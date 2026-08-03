@@ -102,9 +102,9 @@ function LoginPage() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
         <div className="flex items-center gap-2.5 text-white">
-            <div className="grid size-9 place-items-center rounded-xl bg-white/12 backdrop-blur-md ring-1 ring-white/20">
-              <ShieldCheck className="size-[18px]" />
-            </div>
+          <div className="grid size-9 place-items-center rounded-xl bg-white/12 backdrop-blur-md ring-1 ring-white/20">
+            <ShieldCheck className="size-[18px]" />
+          </div>
           <div className="leading-tight">
             <p className="text-sm font-bold">NCOP</p>
             <p className="text-[10px] uppercase tracking-[0.18em] text-white/60">Pharma ERP</p>
@@ -114,7 +114,7 @@ function LoginPage() {
           <span className="hidden text-xs text-white/70 sm:inline">
             GxP-aligned · ISO 27001 hosting
           </span>
-          <ThemeToggle />
+          {/* <ThemeToggle /> */}
         </div>
       </header>
 
