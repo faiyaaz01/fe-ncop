@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_shell/clients")({
       },
     ],
   }),
-  component: ClientMaster;
+  component: ClientMaster,
 });
 
 const segments = ["All", "Manufacturer", "Distributor", "Wholesaler", "Government Tender"] as const;
