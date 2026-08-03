@@ -4,6 +4,68 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  --font-sans:
+    "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-brand-50: oklch(0.968 0.017 254);
+  --color-brand-100: oklch(0.93 0.037 254);
+  --color-brand-300: oklch(0.79 0.09 254);
+  --color-brand-500: oklch(0.55 0.16 258);
+  --color-brand-600: oklch(0.47 0.17 259);
+  --color-brand-700: oklch(0.39 0.15 260);
+  --color-brand-900: oklch(0.26 0.09 262);
+  --color-emerald-accent: oklch(0.63 0.14 163);
+  --shadow-soft: 0 1px 2px oklch(0.26 0.09 262 / 0.06), 0 8px 24px oklch(0.26 0.09 262 / 0.07);
+  --shadow-lift:
+    0 2px 4px oklch(0.26 0.09 262 / 0.06), 0 18px 40px -12px oklch(0.26 0.09 262 / 0.22);
+  --shadow-glass:
+    inset 0 1px 0 oklch(1 0 0 / 0.18), 0 12px 40px -8px oklch(0.2 0.06 262 / 0.35);
+}
+
+@utility glass {
+  background-color: color-mix(in oklab, var(--card) 62%, transparent);
+  backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid color-mix(in oklab, white 55%, transparent);
+  box-shadow: var(--shadow-glass);
+}
+
+@utility glass-dark {
+  background-color: oklch(1 0 0 / 0.1);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid oklch(1 0 0 / 0.14);
+  box-shadow: var(--shadow-glass);
+}
+
+@utility lift {
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+  }
+}
+
+@utility surface {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+@utility text-gradient {
+  background: linear-gradient(
+    100deg,
+    var(--color-brand-600),
+    color-mix(in oklab, var(--color-emerald-accent) 70%, var(--color-brand-500))
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
 /*
  * Design system definition.
  *
