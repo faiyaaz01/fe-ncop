@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellClientsRouteImport } from './routes/_shell.clients'
 import { Route as ShellDashboardRouteImport } from './routes/_shell.dashboard'
+import { Route as ShellInquiryRouteImport } from './routes/_shell.inquiry'
 import { Route as ShellProductsRouteImport } from './routes/_shell.products'
 
 const IndexRoute = IndexRouteImport.update({
@@ -34,6 +35,11 @@ const ShellDashboardRoute = ShellDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellInquiryRoute = ShellInquiryRouteImport.update({
+  id: '/inquiry',
+  path: '/inquiry',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellProductsRoute = ShellProductsRouteImport.update({
   id: '/products',
   path: '/products',
@@ -44,12 +50,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/clients': typeof ShellClientsRoute
   '/dashboard': typeof ShellDashboardRoute
+  '/inquiry': typeof ShellInquiryRoute
   '/products': typeof ShellProductsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/clients': typeof ShellClientsRoute
   '/dashboard': typeof ShellDashboardRoute
+  '/inquiry': typeof ShellInquiryRoute
   '/products': typeof ShellProductsRoute
 }
 export interface FileRoutesById {
@@ -58,19 +66,21 @@ export interface FileRoutesById {
   '/_shell': typeof ShellRouteWithChildren
   '/_shell/clients': typeof ShellClientsRoute
   '/_shell/dashboard': typeof ShellDashboardRoute
+  '/_shell/inquiry': typeof ShellInquiryRoute
   '/_shell/products': typeof ShellProductsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/clients' | '/dashboard' | '/products'
+  fullPaths: '/' | '/clients' | '/dashboard' | '/inquiry' | '/products'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/clients' | '/dashboard' | '/products'
+  to: '/' | '/clients' | '/dashboard' | '/inquiry' | '/products'
   id:
     | '__root__'
     | '/'
     | '/_shell'
     | '/_shell/clients'
     | '/_shell/dashboard'
+    | '/_shell/inquiry'
     | '/_shell/products'
   fileRoutesById: FileRoutesById
 }
@@ -109,6 +119,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellDashboardRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/inquiry': {
+      id: '/_shell/inquiry'
+      path: '/inquiry'
+      fullPath: '/inquiry'
+      preLoaderRoute: typeof ShellInquiryRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/products': {
       id: '/_shell/products'
       path: '/products'
@@ -122,12 +139,14 @@ declare module '@tanstack/react-router' {
 interface ShellRouteChildren {
   ShellClientsRoute: typeof ShellClientsRoute
   ShellDashboardRoute: typeof ShellDashboardRoute
+  ShellInquiryRoute: typeof ShellInquiryRoute
   ShellProductsRoute: typeof ShellProductsRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
   ShellClientsRoute: ShellClientsRoute,
   ShellDashboardRoute: ShellDashboardRoute,
+  ShellInquiryRoute: ShellInquiryRoute,
   ShellProductsRoute: ShellProductsRoute,
 }
 
