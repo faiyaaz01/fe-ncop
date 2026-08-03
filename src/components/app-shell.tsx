@@ -221,8 +221,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild variant="destructive">
-                  <Link to="/">
+                <DropdownMenuItem asChild>
+                  <Link to="/" className="text-destructive">
                     <LogOut className="size-4" /> Logout
                   </Link>
                 </DropdownMenuItem>
