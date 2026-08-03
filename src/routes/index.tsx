@@ -25,7 +25,7 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Sign in · Medivance Pharma CRM" },
       {
         property: "og:description",
-        content: "Enterprise pharmaceutical CRM & sales management workspace.",
+        content: "Secure access to the Medivance pharmaceutical CRM: clients, catalogue, inquiries, orders and analytics.",
       },
     ],
   }),
