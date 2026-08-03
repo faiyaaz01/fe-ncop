@@ -33,13 +33,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/clients")({
   head: () => ({
     meta: [
-      { title: "Client Master · Medivance CRM" },
+      { title: "Client Master · NCOP ERP" },
       {
         name: "description",
         content:
           "Company records, contacts, payment terms, banking details and document dossiers for every pharmaceutical partner.",
       },
-      { property: "og:title", content: "Client Master · Medivance CRM" },
+      { property: "og:title", content: "Client Master · NCOP ERP" },
       {
         property: "og:description",
         content: "Complete pharmaceutical client dossiers with documents and activity timelines.",
@@ -79,7 +79,7 @@ function ClientMaster() {
       </Breadcrumb>
 
       <PageHeader
-        eyebrow="CRM"
+        eyebrow="ERP"
         title="Client Master"
         description="148 registered partners across 42 markets. Select a company to open its full dossier."
         actions={

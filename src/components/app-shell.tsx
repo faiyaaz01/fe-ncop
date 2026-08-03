@@ -54,9 +54,9 @@ function Brand({ collapsed }: { collapsed: boolean }) {
       </div>
       {!collapsed && (
         <div className="leading-tight">
-          <p className="text-sm font-bold">Medivance</p>
+          <p className="text-sm font-bold">NCOP</p>
           <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Pharma CRM
+            Pharma ERP
           </p>
         </div>
       )}
@@ -204,7 +204,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="glass w-56 rounded-2xl">
                 <DropdownMenuLabel className="space-y-0.5">
-                  <p className="text-sm font-semibold">Sara Lindqvist</p>
+                  <p className="text-sm font-semibold">Shayban Saiyed</p>
                   <p className="text-xs font-normal text-muted-foreground">
                     Administrator · Global Sales
                   </p>

@@ -11,13 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_shell/settings")({
   head: () => ({
     meta: [
-      { title: "Settings · Medivance CRM" },
+      { title: "Settings · NCOP ERP" },
       {
         name: "description",
         content:
           "Organisation profile, notification routing, compliance controls and integration preferences.",
       },
-      { property: "og:title", content: "Settings · Medivance CRM" },
+      { property: "og:title", content: "Settings · NCOP ERP" },
       {
         property: "og:description",
         content: "Configure organisation, notifications and compliance controls.",
@@ -33,7 +33,7 @@ function SettingsPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Settings"
-        description="Organisation, notification and compliance preferences for the Medivance workspace."
+        description="Organisation, notification and compliance preferences for the NCOP workspace."
         actions={<Button onClick={() => toast.success("Preferences saved")}>Save changes</Button>}
       />
 
@@ -48,7 +48,7 @@ function SettingsPage() {
           <Panel className="max-w-2xl space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                ["Legal entity", "Medivance Pharma Trading AG"],
+                ["Legal entity", "NCOP Pharma Trading AG"],
                 ["Registration no.", "CHE-114.882.901"],
                 ["Head office", "Basel, Switzerland"],
                 ["Default currency", "USD"],

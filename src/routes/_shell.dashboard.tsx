@@ -39,13 +39,13 @@ import {
 export const Route = createFileRoute("/_shell/dashboard")({
   head: () => ({
     meta: [
-      { title: "Executive Dashboard · Medivance CRM" },
+      { title: "Executive Dashboard · NCOP ERP" },
       {
         name: "description",
         content:
           "Live view of pipeline value, revenue, active export orders and follow-ups across all pharmaceutical markets.",
       },
-      { property: "og:title", content: "Executive Dashboard · Medivance CRM" },
+      { property: "og:title", content: "Executive Dashboard · NCOP ERP" },
       {
         property: "og:description",
         content: "Pipeline, revenue and order performance for pharmaceutical sales teams.",
@@ -88,7 +88,7 @@ function Dashboard() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
                 Monday · 3 August 2026
               </p>
-              <h1 className="text-2xl font-bold sm:text-3xl">Good morning, Sara</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">Good morning, Shayban</h1>
               <p className="max-w-xl text-sm text-primary-foreground/80">
                 Pipeline is up 18% against July. Three orders need QA release before Friday's vessel
                 cut-off in Rotterdam.

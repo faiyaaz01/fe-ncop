@@ -16,16 +16,16 @@ import warehouse from "@/assets/slide-warehouse.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Sign in · Medivance Pharma CRM" },
+      { title: "Sign in · NCOP Pharma ERP" },
       {
         name: "description",
         content:
-          "Secure access to the Medivance pharmaceutical CRM: clients, catalogue, inquiries, orders and analytics.",
+          "Secure access to the NCOP pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
       },
-      { property: "og:title", content: "Sign in · Medivance Pharma CRM" },
+      { property: "og:title", content: "Sign in · NCOP Pharma ERP" },
       {
         property: "og:description",
-        content: "Secure access to the Medivance pharmaceutical CRM: clients, catalogue, inquiries, orders and analytics.",
+        content: "Secure access to the NCOP pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
       },
     ],
   }),
@@ -102,12 +102,12 @@ function LoginPage() {
 
       <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
         <div className="flex items-center gap-2.5 text-white">
-          <div className="grid size-9 place-items-center rounded-xl bg-white/12 backdrop-blur-md ring-1 ring-white/20">
-            <ShieldCheck className="size-[18px]" />
-          </div>
+            <div className="grid size-9 place-items-center rounded-xl bg-white/12 backdrop-blur-md ring-1 ring-white/20">
+              <ShieldCheck className="size-[18px]" />
+            </div>
           <div className="leading-tight">
-            <p className="text-sm font-bold">Medivance</p>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-white/60">Pharma CRM</p>
+            <p className="text-sm font-bold">NCOP</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/60">Pharma ERP</p>
           </div>
         </div>
         <div className="flex items-center gap-2 text-white [&_button]:text-white [&_button:hover]:bg-white/10">
@@ -172,7 +172,7 @@ function LoginPage() {
           className="glass-dark w-full rounded-[18px] p-6 text-white sm:p-7"
         >
           <h2 className="text-xl font-bold">Welcome back</h2>
-          <p className="mt-1 text-sm text-white/65">Sign in to your Medivance workspace.</p>
+          <p className="mt-1 text-sm text-white/65">Sign in to your NCOP workspace.</p>
 
           <form
             className="mt-6 space-y-4"

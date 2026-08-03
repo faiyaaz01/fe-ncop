@@ -434,9 +434,9 @@ export type Rfq = {
 };
 
 export const rfqs: Rfq[] = [
-  { id: "RFQ-8841", client: "Novartis Bio", country: "Switzerland", product: "Amoxicillin 500mg Capsule", quantity: "4,000,000 caps", value: 184500, currency: "USD", status: "Quoted", owner: "Sara Lindqvist", created: "14 Jul 2026" },
+  { id: "RFQ-8841", client: "Novartis Bio", country: "Switzerland", product: "Amoxicillin 500mg Capsule", quantity: "4,000,000 caps", value: 184500, currency: "USD", status: "Quoted", owner: "Shayban Saiyed", created: "14 Jul 2026" },
   { id: "RFQ-8850", client: "Apex Pharma Ltd.", country: "India", product: "Metformin HCl 850mg Tablet", quantity: "6,000,000 tabs", value: 121000, currency: "USD", status: "Under Review", owner: "Daniel Okafor", created: "19 Jul 2026" },
-  { id: "RFQ-8862", client: "Meridian Healthcare", country: "UAE", product: "Ceftriaxone 1g Injection", quantity: "260,000 vials", value: 143200, currency: "USD", status: "Submitted", owner: "Sara Lindqvist", created: "22 Jul 2026" },
+  { id: "RFQ-8862", client: "Meridian Healthcare", country: "UAE", product: "Ceftriaxone 1g Injection", quantity: "260,000 vials", value: 143200, currency: "USD", status: "Submitted", owner: "Shayban Saiyed", created: "22 Jul 2026" },
   { id: "RFQ-8871", client: "Andes Farmacéutica", country: "Brazil", product: "Azithromycin 250mg Tablet", quantity: "900,000 tabs", value: 79800, currency: "USD", status: "Won", owner: "Priya Raman", created: "25 Jul 2026" },
   { id: "RFQ-8879", client: "Helix Laboratories", country: "Germany", product: "Atorvastatin 20mg Tablet", quantity: "1,200,000 tabs", value: 38400, currency: "USD", status: "Lost", owner: "Daniel Okafor", created: "27 Jul 2026" },
   { id: "RFQ-8884", client: "Sakura Medico KK", country: "Japan", product: "Insulin Glargine 100IU/mL", quantity: "40,000 pens", value: 274000, currency: "USD", status: "Draft", owner: "Priya Raman", created: "30 Jul 2026" },
@@ -505,9 +505,9 @@ export const productPerformance = [
 
 export const followUps = [
   { date: "03 Aug", client: "Apex Pharma Ltd.", note: "Q4 forecast alignment call", owner: "Daniel Okafor" },
-  { date: "05 Aug", client: "Meridian Healthcare", note: "Cold-chain logistics review", owner: "Sara Lindqvist" },
+  { date: "05 Aug", client: "Meridian Healthcare", note: "Cold-chain logistics review", owner: "Shayban Saiyed" },
   { date: "08 Aug", client: "Sakura Medico KK", note: "Tender dossier submission", owner: "Priya Raman" },
-  { date: "11 Aug", client: "Novartis Bio", note: "Annual pricing negotiation", owner: "Sara Lindqvist" },
+  { date: "11 Aug", client: "Novartis Bio", note: "Annual pricing negotiation", owner: "Shayban Saiyed" },
 ];
 
 export const notifications = [
@@ -518,10 +518,10 @@ export const notifications = [
 ];
 
 export const demoAccounts = [
-  { role: "Administrator", email: "admin@pharmacrm.io", password: "demo1234", desc: "Full system access", initials: "AD" },
-  { role: "Sales", email: "sales@pharmacrm.io", password: "demo1234", desc: "Clients, RFQs & orders", initials: "SL" },
-  { role: "QA", email: "qa@pharmacrm.io", password: "demo1234", desc: "Batch & document control", initials: "QA" },
-  { role: "Regulatory", email: "regulatory@pharmacrm.io", password: "demo1234", desc: "Registrations & dossiers", initials: "RG" },
+  { role: "Administrator", email: "admin@pharmaERP.io", password: "demo1234", desc: "Full system access", initials: "AD" },
+  { role: "Sales", email: "sales@pharmaERP.io", password: "demo1234", desc: "Clients, RFQs & orders", initials: "SL" },
+  { role: "QA", email: "qa@pharmaERP.io", password: "demo1234", desc: "Batch & document control", initials: "QA" },
+  { role: "Regulatory", email: "regulatory@pharmaERP.io", password: "demo1234", desc: "Registrations & dossiers", initials: "RG" },
 ];
 
 export const currencies = ["USD", "EUR", "CHF", "AED", "JPY", "INR", "BRL"];

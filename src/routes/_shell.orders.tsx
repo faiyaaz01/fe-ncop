@@ -11,13 +11,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/orders")({
   head: () => ({
     meta: [
-      { title: "Final Order · Medivance CRM" },
+      { title: "Final Order · NCOP ERP" },
       {
         name: "description",
         content:
           "Confirmed export order summary with products, shipping details, commercial totals, payment info and a live status tracker.",
       },
-      { property: "og:title", content: "Final Order · Medivance CRM" },
+      { property: "og:title", content: "Final Order · NCOP ERP" },
       {
         property: "og:description",
         content: "Export order summary and shipment status tracker for pharmaceutical trade.",

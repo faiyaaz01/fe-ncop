@@ -32,13 +32,13 @@ import { products, type Product } from "@/lib/mock-data";
 export const Route = createFileRoute("/_shell/products")({
   head: () => ({
     meta: [
-      { title: "Product Master · Medivance CRM" },
+      { title: "Product Master · NCOP ERP" },
       {
         name: "description",
         content:
           "Searchable pharmaceutical catalogue with dosage forms, strengths, packaging, MOQ and registration status.",
       },
-      { property: "og:title", content: "Product Master · Medivance CRM" },
+      { property: "og:title", content: "Product Master · NCOP ERP" },
       {
         property: "og:description",
         content: "Pharmaceutical catalogue: dosage forms, strengths, packaging and registrations.",

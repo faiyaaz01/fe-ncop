@@ -8,15 +8,15 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_shell/profile")({
   head: () => ({
     meta: [
-      { title: "Profile · Medivance CRM" },
+      { title: "Profile · NCOP ERP" },
       {
         name: "description",
-        content: "User profile, assigned markets, permissions and recent activity in the CRM.",
+        content: "User profile, assigned markets, permissions and recent activity in the ERP.",
       },
-      { property: "og:title", content: "Profile · Medivance CRM" },
+      { property: "og:title", content: "Profile · NCOP ERP" },
       {
         property: "og:description",
-        content: "Account details, assigned markets and recent CRM activity.",
+        content: "Account details, assigned markets and recent ERP activity.",
       },
     ],
   }),
@@ -40,14 +40,14 @@ function ProfilePage() {
               <AvatarFallback className="bg-primary/10 text-lg font-bold text-primary">SL</AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="text-xl font-bold">Sara Lindqvist</h2>
+              <h2 className="text-xl font-bold">Shayban Saiyed</h2>
               <p className="text-sm text-muted-foreground">Administrator · Global Sales</p>
             </div>
           </div>
 
           <dl className="mt-6 grid gap-4 sm:grid-cols-2">
             {[
-              ["Email", "s.lindqvist@medivance.example", Mail],
+              ["Email", "s.Saiyed@NCOP.example", Mail],
               ["Phone", "+41 61 555 2210", Phone],
               ["Location", "Basel, Switzerland", MapPin],
               ["Employee ID", "MDV-0042", Mail],

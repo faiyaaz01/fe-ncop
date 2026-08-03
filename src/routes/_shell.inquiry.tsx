@@ -21,13 +21,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/inquiry")({
   head: () => ({
     meta: [
-      { title: "Customer Inquiry · Medivance CRM" },
+      { title: "Customer Inquiry · NCOP ERP" },
       {
         name: "description",
         content:
           "Guided RFQ intake: general info, product details, commercial terms, attachments and review before submission.",
       },
-      { property: "og:title", content: "Customer Inquiry · Medivance CRM" },
+      { property: "og:title", content: "Customer Inquiry · NCOP ERP" },
       {
         property: "og:description",
         content: "Multi-step pharmaceutical RFQ intake wizard with review and submission.",

@@ -37,13 +37,13 @@ import {
 export const Route = createFileRoute("/_shell/reports")({
   head: () => ({
     meta: [
-      { title: "Reports & Analytics · Medivance CRM" },
+      { title: "Reports & Analytics · NCOP ERP" },
       {
         name: "description",
         content:
           "Revenue, sales, top clients, country distribution, inquiry status and product performance analytics.",
       },
-      { property: "og:title", content: "Reports & Analytics · Medivance CRM" },
+      { property: "og:title", content: "Reports & Analytics · NCOP ERP" },
       {
         property: "og:description",
         content: "Pharmaceutical sales analytics across markets, clients and product lines.",
