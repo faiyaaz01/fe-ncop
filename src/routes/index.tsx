@@ -45,6 +45,7 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const active = slides[index] ?? slides[0]!;
 
   useEffect(() => {
     const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
@@ -75,8 +76,8 @@ function LoginPage() {
           className="absolute inset-0"
         >
           <img
-            src={slides[index].src}
-            alt={slides[index].caption}
+            src={active.src}
+            alt={active.caption}
             width={1920}
             height={1088}
             className="kenburns size-full object-cover"
@@ -160,7 +161,7 @@ function LoginPage() {
                 )}
               />
             ))}
-            <span className="ml-3 text-[11px] text-white/55">{slides[index].caption}</span>
+            <span className="ml-3 text-[11px] text-white/55">{active.caption}</span>
           </div>
         </motion.section>
 
