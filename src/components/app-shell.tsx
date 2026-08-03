@@ -32,6 +32,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "@tanstack/react-router";
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -47,8 +48,16 @@ const nav = [
 const mobileNav = nav.slice(0, 5);
 
 function Brand({ collapsed }: { collapsed: boolean }) {
+
+  const navigate = useNavigate();
+
+  const handleOnClickOfBranding = () => {
+    // Navigate to the dashboard route
+    navigate({ to: "/dashboard" });
+  }
+
   return (
-    <div className="flex items-center gap-2.5 overflow-hidden">
+    <div onClick={handleOnClickOfBranding} className="flex items-center gap-2.5 overflow-hidden cursor-pointer" title="NCOP Pharma Dashboard">
       <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-soft">
         <ShieldCheck className="size-[18px]" />
       </div>

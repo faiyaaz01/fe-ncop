@@ -96,7 +96,7 @@ function ProductMaster() {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb>
+      {/* <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
@@ -106,7 +106,7 @@ function ProductMaster() {
             <BreadcrumbPage>Product Master</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
-      </Breadcrumb>
+      </Breadcrumb> */}
 
       <PageHeader
         eyebrow="Catalogue"
