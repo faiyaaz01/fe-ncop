@@ -197,7 +197,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-opacity hover:opacity-80">
                   <Avatar className="size-9 border border-border">
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                      SL
+                      SS
                     </AvatarFallback>
                   </Avatar>
                 </button>
