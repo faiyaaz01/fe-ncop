@@ -77,6 +77,18 @@ const chartTooltip = {
 
 function Dashboard() {
   const topCustomers = [...clients].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  const today = new Date();
+  const todayLabel = today.toLocaleDateString("en-US", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const currentMonthLabel = today.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const todayDate = today.getDate();
+  const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  // Monday-first weekday offset for the 1st of the month (0 = Monday).
+  const firstWeekdayOffset = (new Date(today.getFullYear(), today.getMonth(), 1).getDay() + 6) % 7;
 
   return (
     <div className="space-y-6">
@@ -85,8 +97,8 @@ function Dashboard() {
           <div className="absolute inset-0 opacity-40 [background:radial-gradient(28rem_18rem_at_85%_-20%,color-mix(in_oklab,var(--accent)_60%,transparent),transparent)]" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
-                Monday · 3 August 2026
+             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
+                {todayLabel.replace(",", " ·")}
               </p>
               <h1 className="text-2xl font-bold sm:text-3xl">Good morning, Shayban</h1>
               <p className="max-w-xl text-sm text-primary-foreground/80">
@@ -293,7 +305,7 @@ function Dashboard() {
           <Panel className="h-full">
             <div className="flex items-center gap-2">
               <CalendarDays className="size-4 text-primary" />
-              <h2 className="text-base font-semibold">August 2026</h2>
+              <h2 className="text-base font-semibold">{currentMonthLabel}</h2>
             </div>
             <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[11px] text-muted-foreground">
               {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
@@ -301,16 +313,19 @@ function Dashboard() {
                   {d}
                 </span>
               ))}
-              {Array.from({ length: 31 }).map((_, i) => {
+              {Array.from({ length: firstWeekdayOffset }).map((_, i) => (
+                <span key={`blank-${i}`} />
+              ))}
+              {Array.from({ length: daysInCurrentMonth }).map((_, i) => {
                 const day = i + 1;
                 const marked = [3, 5, 8, 11, 18].includes(day);
-                const today = day === 3;
+                const isToday = day === todayDate;
                 return (
                   <span
                     key={day}
                     className={
                       "grid aspect-square place-items-center rounded-lg text-xs transition-colors " +
-                      (today
+                      (isToday
                         ? "bg-primary font-semibold text-primary-foreground"
                         : marked
                           ? "bg-accent/12 font-medium text-accent"
