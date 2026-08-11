@@ -113,16 +113,32 @@ function LoginPage() {
       const userProfile = data?.user ?? data?.profile ?? data?.data ?? null;
       const authUser = {
         id: userProfile?.id ?? data?.id ?? `user-${trimmedEmail}`,
-        email: trimmedEmail,
-        name: userProfile?.name ?? data?.name ?? trimmedEmail.split("@")[0],
-        role: userProfile?.role ?? data?.role ?? "User",
+        email: data?.email ?? trimmedEmail,
+        firstName: data?.firstName ?? userProfile?.firstName,
+        lastName: data?.lastName ?? userProfile?.lastName,
+        name:
+          userProfile?.name ??
+          ([data?.firstName, data?.lastName].filter(Boolean).join(" ") || trimmedEmail.split("@")[0]),
+        role: userProfile?.role ?? data?.role ?? data?.userType ?? "User",
+        roles: data?.roles ?? userProfile?.roles,
+        userType: data?.userType ?? userProfile?.userType,
         avatar: userProfile?.avatar ?? data?.avatar ?? null,
         token: data?.token ?? null,
+        refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
+        expiresIn: data?.expiresIn ?? userProfile?.expiresIn ?? null,
+        moduleRights: data?.moduleRights ?? userProfile?.moduleRights,
+        lastLoginDate: data?.lastLoginDate ?? userProfile?.lastLoginDate,
+        lastLoginDateUtcDateTimeFormatted:
+          data?.lastLoginDateUtcDateTimeFormatted ?? userProfile?.lastLoginDateUtcDateTimeFormatted,
+        lastLoginDateCurrentTimezoneDateFormatted:
+          data?.lastLoginDateCurrentTimezoneDateFormatted ?? userProfile?.lastLoginDateCurrentTimezoneDateFormatted,
       };
 
       await userSessionService.login(authUser, {
         rememberMe: keepSignedIn,
         token: data?.token ?? null,
+        refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
+        expiresIn: data?.expiresIn ?? null,
       });
 
       navigate({ to: "/dashboard" });

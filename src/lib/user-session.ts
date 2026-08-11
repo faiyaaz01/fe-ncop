@@ -1,10 +1,26 @@
+export type ModuleRight = {
+  name: string;
+  label: string;
+  visible: boolean;
+};
+
 export type AppUser = {
   id?: string;
   email: string;
   name?: string;
+  firstName?: string;
+  lastName?: string;
   role?: string;
+  roles?: string[];
+  userType?: string;
   avatar?: string | null;
   token?: string | null;
+  refreshToken?: string | null;
+  expiresIn?: number | null;
+  moduleRights?: ModuleRight[];
+  lastLoginDate?: string;
+  lastLoginDateUtcDateTimeFormatted?: string;
+  lastLoginDateCurrentTimezoneDateFormatted?: string;
   rememberMe?: boolean;
   lastLoginAt?: string;
   isAuthenticated?: boolean;
@@ -67,12 +83,18 @@ class UserSessionService {
     this.emit();
   }
 
-  public async login(user: AppUser, options: { rememberMe?: boolean; token?: string | null } = {}) {
+  public async login(user: AppUser, options: { rememberMe?: boolean; token?: string | null; refreshToken?: string | null; expiresIn?: number | null } = {}) {
     const normalizedUser: AppUser = {
       ...user,
+      id: user.id ?? user.email,
+      name: user.name ?? ([user.firstName, user.lastName].filter(Boolean).join(" ") || user.email),
+      role: user.role ?? user.roles?.[0] ?? user.userType ?? "User",
+      roles: user.roles ?? (user.role ? [user.role] : undefined),
       rememberMe: options.rememberMe ?? false,
       token: options.token ?? user.token ?? null,
-      lastLoginAt: user.lastLoginAt ?? new Date().toISOString(),
+      refreshToken: options.refreshToken ?? user.refreshToken ?? null,
+      expiresIn: options.expiresIn ?? user.expiresIn ?? null,
+      lastLoginAt: user.lastLoginAt ?? user.lastLoginDate ?? new Date().toISOString(),
       isAuthenticated: true,
     };
 
