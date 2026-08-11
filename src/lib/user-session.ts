@@ -1,0 +1,237 @@
+export type AppUser = {
+  id?: string;
+  email: string;
+  name?: string;
+  role?: string;
+  avatar?: string | null;
+  token?: string | null;
+  rememberMe?: boolean;
+  lastLoginAt?: string;
+  isAuthenticated?: boolean;
+};
+
+type PersistedSession = {
+  currentUser: AppUser | null;
+  allUsers: AppUser[];
+};
+
+type SessionListener = (user: AppUser | null, allUsers: AppUser[]) => void;
+
+const ENCRYPTION_SECRET = "ncop-erp-user-session-v1";
+const CURRENT_USER_STORAGE_KEY = "ncop.auth.session";
+
+class UserSessionService {
+  private currentUser: AppUser | null = null;
+  private allUsers: AppUser[] = [];
+  private listeners = new Set<SessionListener>();
+  private initialized = false;
+
+  constructor() {
+    void this.initialize();
+  }
+
+  public subscribe(listener: SessionListener) {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  public getCurrentUser() {
+    return this.currentUser;
+  }
+
+  public getAllUsers() {
+    return [...this.allUsers];
+  }
+
+  public getLoggedInUsers() {
+    return this.getAllUsers().filter((user) => user.isAuthenticated !== false);
+  }
+
+  public getAuthToken() {
+    return this.currentUser?.token ?? null;
+  }
+
+  public async initialize() {
+    if (this.initialized || typeof window === "undefined") {
+      return;
+    }
+
+    this.initialized = true;
+
+    const persistedData = await this.readPersistedSession();
+    if (persistedData?.currentUser) {
+      this.currentUser = persistedData.currentUser;
+      this.allUsers = persistedData.allUsers;
+    }
+
+    this.emit();
+  }
+
+  public async login(user: AppUser, options: { rememberMe?: boolean; token?: string | null } = {}) {
+    const normalizedUser: AppUser = {
+      ...user,
+      rememberMe: options.rememberMe ?? false,
+      token: options.token ?? user.token ?? null,
+      lastLoginAt: user.lastLoginAt ?? new Date().toISOString(),
+      isAuthenticated: true,
+    };
+
+    this.currentUser = normalizedUser;
+    this.allUsers = [normalizedUser, ...this.allUsers.filter((entry) => entry.email !== normalizedUser.email)].slice(0, 10);
+
+    await this.persistSession({ currentUser: normalizedUser, allUsers: this.allUsers }, normalizedUser.rememberMe ?? false);
+    this.emit();
+    return normalizedUser;
+  }
+
+  public async logout() {
+    this.currentUser = null;
+    this.allUsers = this.allUsers.filter((user) => user.isAuthenticated === false);
+
+    await this.clearPersistedSession();
+    this.emit();
+  }
+
+  private emit() {
+    this.listeners.forEach((listener) => listener(this.currentUser, this.getAllUsers()));
+  }
+
+  private async persistSession(session: PersistedSession, rememberMe: boolean) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storage = rememberMe ? window.localStorage : window.sessionStorage;
+    if (!storage) {
+      return;
+    }
+
+    const payload = JSON.stringify(session);
+    const encryptedPayload = await encryptText(payload);
+
+    storage.setItem(CURRENT_USER_STORAGE_KEY, encryptedPayload);
+
+    if (rememberMe) {
+      window.sessionStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    } else {
+      window.localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    }
+  }
+
+  private async readPersistedSession(): Promise<PersistedSession | null> {
+    if (typeof window === "undefined") {
+      return null;
+    }
+
+    const localValue = window.localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+    const sessionValue = window.sessionStorage.getItem(CURRENT_USER_STORAGE_KEY);
+
+    const encryptedPayload = localValue ?? sessionValue;
+    if (!encryptedPayload) {
+      return null;
+    }
+
+    try {
+      const decryptedPayload = await decryptText(encryptedPayload);
+      if (!decryptedPayload) {
+        return null;
+      }
+
+      return JSON.parse(decryptedPayload) as PersistedSession;
+    } catch {
+      return null;
+    }
+  }
+
+  private async clearPersistedSession() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    window.sessionStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+  }
+}
+
+export const userSessionService = new UserSessionService();
+
+async function encryptText(value: string) {
+  if (typeof crypto === "undefined" || typeof crypto.subtle === "undefined") {
+    return value;
+  }
+
+  const encoder = new TextEncoder();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await crypto.subtle.importKey(
+    "raw",
+    await crypto.subtle.digest("SHA-256", encoder.encode(ENCRYPTION_SECRET)),
+    { name: "AES-GCM" },
+    false,
+    ["encrypt", "decrypt"],
+  );
+
+  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, encoder.encode(value));
+  return `${toBase64(iv)}.${toBase64(new Uint8Array(ciphertext))}`;
+}
+
+async function decryptText(value: string) {
+  if (typeof crypto === "undefined" || typeof crypto.subtle === "undefined") {
+    return value;
+  }
+
+  try {
+    const [ivBase64, cipherBase64] = value.split(".");
+    if (!ivBase64 || !cipherBase64) {
+      return null;
+    }
+
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      await crypto.subtle.digest("SHA-256", encoder.encode(ENCRYPTION_SECRET)),
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"],
+    );
+
+    const plaintext = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: fromBase64(ivBase64) },
+      key,
+      fromBase64(cipherBase64),
+    );
+
+    return decoder.decode(plaintext);
+  } catch {
+    return null;
+  }
+}
+
+function toBase64(value: Uint8Array) {
+  if (typeof window !== "undefined" && typeof window.btoa === "function") {
+    let binary = "";
+    value.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return window.btoa(binary);
+  }
+
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(value).toString("base64");
+  }
+
+  return "";
+}
+
+function fromBase64(value: string) {
+  if (typeof window !== "undefined" && typeof window.atob === "function") {
+    const binary = window.atob(value);
+    return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  }
+
+  if (typeof Buffer !== "undefined") {
+    return Uint8Array.from(Buffer.from(value, "base64"));
+  }
+
+  return new Uint8Array();
+}

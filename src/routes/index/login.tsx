@@ -5,8 +5,8 @@ import { ArrowRight, Lock, Mail, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { demoAccounts } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { userSessionService } from "@/lib/user-session";
 import lab from "@/assets/slide-lab.jpg";
 import manufacturing from "@/assets/slide-manufacturing.jpg";
 import capsules from "@/assets/slide-capsules.jpg";
@@ -52,6 +52,7 @@ function LoginPage() {
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [keepSignedIn, setKeepSignedIn] = useState(true);
   const active = slides[index] ?? slides[0]!;
 
   useEffect(() => {
@@ -109,10 +110,20 @@ function LoginPage() {
         return;
       }
 
-      // Agar aapka backend token/user data return karta hai, yahan store karo
-      if (data?.token) {
-        localStorage.setItem("authToken", data.token);
-      }
+      const userProfile = data?.user ?? data?.profile ?? data?.data ?? null;
+      const authUser = {
+        id: userProfile?.id ?? data?.id ?? `user-${trimmedEmail}`,
+        email: trimmedEmail,
+        name: userProfile?.name ?? data?.name ?? trimmedEmail.split("@")[0],
+        role: userProfile?.role ?? data?.role ?? "User",
+        avatar: userProfile?.avatar ?? data?.avatar ?? null,
+        token: data?.token ?? null,
+      };
+
+      await userSessionService.login(authUser, {
+        rememberMe: keepSignedIn,
+        token: data?.token ?? null,
+      });
 
       navigate({ to: "/dashboard" });
     } catch (err: any) {
@@ -340,7 +351,12 @@ function LoginPage() {
 
             <div className="flex items-center justify-between text-xs text-white/60">
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="size-3.5 accent-white" defaultChecked />
+                <input
+                  type="checkbox"
+                  className="size-3.5 accent-white"
+                  checked={keepSignedIn}
+                  onChange={(e) => setKeepSignedIn(e.target.checked)}
+                />
                 Keep me signed in
               </label>
               <span className="cursor-pointer hover:text-white">Forgot password?</span>
