@@ -123,13 +123,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
 
         <div className="space-y-1 border-t border-border/70 p-3">
-          <Link
-            to="/"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+          <button
+            onClick={async () => {
+              await userSessionService.logout();
+              // navigate to login
+              window.location.href = "/index/login";
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="size-[18px] shrink-0" />
             {!collapsed && <span>Logout</span>}
-          </Link>
+          </button>
           <Button
             variant="ghost"
             size="sm"
@@ -235,10 +239,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/" className="text-destructive">
+                <DropdownMenuItem>
+                  <button
+                    onClick={async () => {
+                      await userSessionService.logout();
+                      window.location.href = "/index/login";
+                    }}
+                    className="w-full text-left text-destructive"
+                  >
                     <LogOut className="size-4" /> Logout
-                  </Link>
+                  </button>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
