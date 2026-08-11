@@ -5,25 +5,25 @@ export type ModuleRight = {
 };
 
 export type AppUser = {
-  id?: string;
+  id?: string | undefined;
   email: string;
-  name?: string;
-  firstName?: string;
-  lastName?: string;
-  role?: string;
-  roles?: string[];
-  userType?: string;
-  avatar?: string | null;
-  token?: string | null;
-  refreshToken?: string | null;
-  expiresIn?: number | null;
-  moduleRights?: ModuleRight[];
-  lastLoginDate?: string;
-  lastLoginDateUtcDateTimeFormatted?: string;
-  lastLoginDateCurrentTimezoneDateFormatted?: string;
-  rememberMe?: boolean;
-  lastLoginAt?: string;
-  isAuthenticated?: boolean;
+  name?: string | undefined;
+  firstName?: string | undefined;
+  lastName?: string | undefined;
+  role?: string | undefined;
+  roles?: string[] | undefined;
+  userType?: string | undefined;
+  avatar?: string | null | undefined;
+  token?: string | null | undefined;
+  refreshToken?: string | null | undefined;
+  expiresIn?: number | null | undefined;
+  moduleRights?: ModuleRight[] | undefined;
+  lastLoginDate?: string | undefined;
+  lastLoginDateUtcDateTimeFormatted?: string | undefined;
+  lastLoginDateCurrentTimezoneDateFormatted?: string | undefined;
+  rememberMe?: boolean | undefined;
+  lastLoginAt?: string | undefined;
+  isAuthenticated?: boolean | undefined;
 };
 
 type PersistedSession = {

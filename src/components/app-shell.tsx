@@ -208,14 +208,19 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-opacity hover:opacity-80">
                   <Avatar className="size-9 border border-border">
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                      {userInfo?.firstName.charAt(0) + userInfo.lastName.charAt(0)}
+                      {(userInfo && userInfo?.firstName) ??
+                        userInfo?.firstName?.charAt(0).toUpperCase()}
+                      {(userInfo && userInfo?.lastName) ??
+                        userInfo?.lastName?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="glass w-56 rounded-2xl">
                 <DropdownMenuLabel className="space-y-0.5">
-                  <p className="text-sm font-semibold">{userInfo.firstName} {userInfo.lastName}</p>
+                  <p className="text-sm font-semibold">
+                    {userInfo?.firstName} {userInfo?.lastName}
+                  </p>
                   <p className="text-xs font-normal text-muted-foreground">
                     Administrator · Global Sales
                   </p>
