@@ -126,7 +126,7 @@ function LoginPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-10 px-5 pb-20 pt-6 sm:px-8 lg:grid-cols-[1.05fr_minmax(380px,420px)] lg:gap-16 lg:pt-10">
+      <main className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-10 px-5 pb-20 pt-6 sm:px-8 lg:grid-cols-[1.05fr_minmax(380px,420px)] lg:gap-16 lg:pt-50">
         <motion.section
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -243,38 +243,6 @@ function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 border-t border-white/12 pt-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
-              Demo accounts
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-2.5">
-              {demoAccounts.map((acc) => (
-                <button
-                  key={acc.role}
-                  type="button"
-                  onClick={() => {
-                    setEmail(acc.email);
-                    setPassword(acc.password);
-                    setSelected(acc.role);
-                  }}
-                  className={cn(
-                    "rounded-2xl border p-3 text-left transition-all duration-300 hover:-translate-y-0.5",
-                    selected === acc.role
-                      ? "border-white/45 bg-white/18"
-                      : "border-white/12 bg-white/6 hover:bg-white/12",
-                  )}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-7 place-items-center rounded-lg bg-white/15 text-[10px] font-bold">
-                      {acc.initials}
-                    </span>
-                    <span className="text-[13px] font-semibold">{acc.role}</span>
-                  </div>
-                  <p className="mt-1.5 text-[11px] leading-snug text-white/55">{acc.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
         </motion.section>
       </main>
     </div>
