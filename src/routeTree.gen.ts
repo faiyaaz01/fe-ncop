@@ -19,6 +19,8 @@ import { Route as ShellProductsRouteImport } from './routes/_shell.products'
 import { Route as ShellProfileRouteImport } from './routes/_shell.profile'
 import { Route as ShellReportsRouteImport } from './routes/_shell.reports'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
+import { Route as ShellUserManagementRouteImport } from './routes/_shell.user-management'
+import { Route as IndexLoginRouteImport } from './routes/index/login'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,6 +71,16 @@ const ShellSettingsRoute = ShellSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellUserManagementRoute = ShellUserManagementRouteImport.update({
+  id: '/user-management',
+  path: '/user-management',
+  getParentRoute: () => ShellRoute,
+} as any)
+const IndexLoginRoute = IndexLoginRouteImport.update({
+  id: '/index/login',
+  path: '/index/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,6 +92,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof ShellProfileRoute
   '/reports': typeof ShellReportsRoute
   '/settings': typeof ShellSettingsRoute
+  '/user-management': typeof ShellUserManagementRoute
+  '/index/login': typeof IndexLoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,6 +105,8 @@ export interface FileRoutesByTo {
   '/profile': typeof ShellProfileRoute
   '/reports': typeof ShellReportsRoute
   '/settings': typeof ShellSettingsRoute
+  '/user-management': typeof ShellUserManagementRoute
+  '/index/login': typeof IndexLoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -104,6 +120,8 @@ export interface FileRoutesById {
   '/_shell/profile': typeof ShellProfileRoute
   '/_shell/reports': typeof ShellReportsRoute
   '/_shell/settings': typeof ShellSettingsRoute
+  '/_shell/user-management': typeof ShellUserManagementRoute
+  '/index/login': typeof IndexLoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -117,6 +135,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reports'
     | '/settings'
+    | '/user-management'
+    | '/index/login'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,6 +148,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/reports'
     | '/settings'
+    | '/user-management'
+    | '/index/login'
   id:
     | '__root__'
     | '/'
@@ -140,11 +162,14 @@ export interface FileRouteTypes {
     | '/_shell/profile'
     | '/_shell/reports'
     | '/_shell/settings'
+    | '/_shell/user-management'
+    | '/index/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ShellRoute: typeof ShellRouteWithChildren
+  IndexLoginRoute: typeof IndexLoginRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -219,6 +244,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellSettingsRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/user-management': {
+      id: '/_shell/user-management'
+      path: '/user-management'
+      fullPath: '/user-management'
+      preLoaderRoute: typeof ShellUserManagementRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/index/login': {
+      id: '/index/login'
+      path: '/index/login'
+      fullPath: '/index/login'
+      preLoaderRoute: typeof IndexLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -231,6 +270,7 @@ interface ShellRouteChildren {
   ShellProfileRoute: typeof ShellProfileRoute
   ShellReportsRoute: typeof ShellReportsRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
+  ShellUserManagementRoute: typeof ShellUserManagementRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
@@ -242,6 +282,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellProfileRoute: ShellProfileRoute,
   ShellReportsRoute: ShellReportsRoute,
   ShellSettingsRoute: ShellSettingsRoute,
+  ShellUserManagementRoute: ShellUserManagementRoute,
 }
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
@@ -249,6 +290,7 @@ const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShellRoute: ShellRouteWithChildren,
+  IndexLoginRoute: IndexLoginRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
