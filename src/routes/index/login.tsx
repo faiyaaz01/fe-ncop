@@ -112,28 +112,37 @@ function LoginPage() {
 
       const userProfile = data?.user ?? data?.profile ?? data?.data ?? null;
       const authUser = {
+        ...(data ?? {}),
         id: userProfile?.id ?? data?.id ?? `user-${trimmedEmail}`,
-        email: trimmedEmail,
-        firstName: userProfile?.firstName ?? data?.name ?? trimmedEmail.split("@")[0],
-        lastName: userProfile?.lastName ?? data?.lastName ?? trimmedEmail.split("@")[1]?.split(".")[0] ?? "",
-        role: userProfile?.role ?? data?.role ?? "User",
+        email: data?.email ?? trimmedEmail,
+        firstName: data?.firstName ?? userProfile?.firstName ?? trimmedEmail.split("@")[0],
+        lastName: data?.lastName ?? userProfile?.lastName ?? trimmedEmail.split("@")[1]?.split(".")[0] ?? "",
+        name: data?.name ?? userProfile?.name ?? trimmedEmail.split("@")[0],
+        role: userProfile?.role ?? data?.role ?? data?.userType ?? "User",
+        roles: data?.roles ?? userProfile?.roles,
+        userType: data?.userType ?? userProfile?.userType,
         avatar: userProfile?.avatar ?? data?.avatar ?? null,
         token: data?.token ?? null,
         refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
+        refresh_token: data?.refresh_token ?? data?.refreshToken ?? null,
         expiresIn: data?.expiresIn ?? userProfile?.expiresIn ?? null,
+        expires_in: data?.expiresIn ?? userProfile?.expiresIn ?? null,
         moduleRights: data?.moduleRights ?? userProfile?.moduleRights,
         lastLoginDate: data?.lastLoginDate ?? userProfile?.lastLoginDate,
         lastLoginDateUtcDateTimeFormatted:
           data?.lastLoginDateUtcDateTimeFormatted ?? userProfile?.lastLoginDateUtcDateTimeFormatted,
         lastLoginDateCurrentTimezoneDateFormatted:
           data?.lastLoginDateCurrentTimezoneDateFormatted ?? userProfile?.lastLoginDateCurrentTimezoneDateFormatted,
+        rawLoginResponse: data,
       };
 
       await userSessionService.login(authUser, {
         rememberMe: keepSignedIn,
         token: data?.token ?? null,
         refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
+        refresh_token: data?.refresh_token ?? data?.refreshToken ?? null,
         expiresIn: data?.expiresIn ?? null,
+        expires_in: data?.expiresIn ?? null,
       });
 
       navigate({ to: "/dashboard" });

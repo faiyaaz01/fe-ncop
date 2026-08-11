@@ -16,7 +16,9 @@ export type AppUser = {
   avatar?: string | null | undefined;
   token?: string | null | undefined;
   refreshToken?: string | null | undefined;
+  refresh_token?: string | null | undefined;
   expiresIn?: number | null | undefined;
+  expires_in?: number | null | undefined;
   moduleRights?: ModuleRight[] | undefined;
   lastLoginDate?: string | undefined;
   lastLoginDateUtcDateTimeFormatted?: string | undefined;
@@ -24,6 +26,8 @@ export type AppUser = {
   rememberMe?: boolean | undefined;
   lastLoginAt?: string | undefined;
   isAuthenticated?: boolean | undefined;
+  rawLoginResponse?: Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 type PersistedSession = {
@@ -83,7 +87,7 @@ class UserSessionService {
     this.emit();
   }
 
-  public async login(user: AppUser, options: { rememberMe?: boolean; token?: string | null; refreshToken?: string | null; expiresIn?: number | null } = {}) {
+  public async login(user: AppUser, options: { rememberMe?: boolean; token?: string | null; refreshToken?: string | null; refresh_token?: string | null; expiresIn?: number | null; expires_in?: number | null } = {}) {
     const normalizedUser: AppUser = {
       ...user,
       id: user.id ?? user.email,
@@ -92,10 +96,13 @@ class UserSessionService {
       roles: user.roles ?? (user.role ? [user.role] : undefined),
       rememberMe: options.rememberMe ?? false,
       token: options.token ?? user.token ?? null,
-      refreshToken: options.refreshToken ?? user.refreshToken ?? null,
-      expiresIn: options.expiresIn ?? user.expiresIn ?? null,
+      refreshToken: options.refreshToken ?? user.refreshToken ?? user.refresh_token ?? null,
+      refresh_token: options.refresh_token ?? user.refresh_token ?? user.refreshToken ?? null,
+      expiresIn: options.expiresIn ?? user.expiresIn ?? user.expires_in ?? null,
+      expires_in: options.expires_in ?? user.expires_in ?? user.expiresIn ?? null,
       lastLoginAt: user.lastLoginAt ?? user.lastLoginDate ?? new Date().toISOString(),
       isAuthenticated: true,
+      rawLoginResponse: user.rawLoginResponse ?? (user as Record<string, unknown>),
     };
 
     this.currentUser = normalizedUser;
