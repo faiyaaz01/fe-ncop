@@ -114,7 +114,8 @@ function LoginPage() {
       const authUser = {
         id: userProfile?.id ?? data?.id ?? `user-${trimmedEmail}`,
         email: trimmedEmail,
-        name: userProfile?.name ?? data?.name ?? trimmedEmail.split("@")[0],
+        firstName: userProfile?.firstName ?? data?.name ?? trimmedEmail.split("@")[0],
+        lastName: userProfile?.lastName ?? data?.lastName ?? trimmedEmail.split("@")[1]?.split(".")[0] ?? "",
         role: userProfile?.role ?? data?.role ?? "User",
         avatar: userProfile?.avatar ?? data?.avatar ?? null,
         token: data?.token ?? null,
