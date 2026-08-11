@@ -78,6 +78,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const userInfo = userSessionService.getCurrentUser();
+  const navigate = useNavigate();
   return (
     <div className="relative min-h-screen bg-background">
       <div
@@ -127,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             onClick={async () => {
               await userSessionService.logout();
               // navigate to login
-              window.location.href = "/index/login";
+              navigate({ to: "/index/login" });
             }}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
@@ -239,16 +240,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <button
-                    onClick={async () => {
-                      await userSessionService.logout();
-                      window.location.href = "/index/login";
-                    }}
-                    className="w-full text-left text-destructive"
-                  >
-                    <LogOut className="size-4" /> Logout
-                  </button>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    await userSessionService.logout();
+                    // navigate to login
+                    navigate({ to: "/index/login" });
+                  }}
+                >
+                  <LogOut className="size-4" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
