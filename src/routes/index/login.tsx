@@ -126,7 +126,7 @@ function LoginPage() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-10 px-5 pb-20 pt-6 sm:px-8 lg:grid-cols-[1.05fr_minmax(380px,420px)] lg:gap-16 lg:pt-50">
+      <main className="relative z-10 mx-auto grid w-full max-w-7xl items-center gap-10 px-5 pb-20 pt-6 sm:px-8 lg:grid-cols-[1.05fr_minmax(380px,420px)] lg:gap-16 lg:pt-30">
         <motion.section
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
