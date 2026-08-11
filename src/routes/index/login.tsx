@@ -50,6 +50,8 @@ function LoginPage() {
     email?: string | undefined;
     password?: string | undefined;
   }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const active = slides[index] ?? slides[0]!;
 
   useEffect(() => {
@@ -80,12 +82,44 @@ function LoginPage() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleOnLogin = () => {
+  const handleOnLogin = async () => {
     if (!validateForm()) {
       return;
     }
 
-    navigate({ to: "/dashboard" });
+    setApiError(null);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          password: trimmedPassword,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setApiError(data?.message ?? "Invalid email or password. Please try again.");
+        return;
+      }
+
+      // Agar aapka backend token/user data return karta hai, yahan store karo
+      if (data?.token) {
+        localStorage.setItem("authToken", data.token);
+      }
+
+      navigate({ to: "/dashboard" });
+    } catch (err) {
+      setApiError("Unable to reach the server. Please check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const particles = useMemo(
@@ -312,13 +346,19 @@ function LoginPage() {
               <span className="cursor-pointer hover:text-white">Forgot password?</span>
             </div>
 
+            {apiError ? (
+              <p className="rounded-lg bg-rose-500/15 px-3 py-2 text-xs text-rose-200 ring-1 ring-rose-400/30">
+                {apiError}
+              </p>
+            ) : null}
+
             <Button
               type="submit"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isSubmitting}
               className="h-11 w-full bg-white text-slate-900 hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/70"
             >
-              Login
-              <ArrowRight className="size-4" />
+              {isSubmitting ? "Signing in..." : "Login"}
+              {!isSubmitting && <ArrowRight className="size-4" />}
             </Button>
           </form>
         </motion.section>
