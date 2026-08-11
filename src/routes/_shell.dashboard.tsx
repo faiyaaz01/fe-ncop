@@ -35,6 +35,7 @@ import {
   products,
   rfqs,
 } from "@/lib/mock-data";
+import { userSessionService } from "@/lib/user-session.ts";
 
 export const Route = createFileRoute("/_shell/dashboard")({
   head: () => ({
@@ -90,6 +91,8 @@ function Dashboard() {
   // Monday-first weekday offset for the 1st of the month (0 = Monday).
   const firstWeekdayOffset = (new Date(today.getFullYear(), today.getMonth(), 1).getDay() + 6) % 7;
 
+  const userInfo = userSessionService.getCurrentUser();
+
   return (
     <div className="space-y-6">
       <Reveal>
@@ -97,10 +100,12 @@ function Dashboard() {
           <div className="absolute inset-0 opacity-40 [background:radial-gradient(28rem_18rem_at_85%_-20%,color-mix(in_oklab,var(--accent)_60%,transparent),transparent)]" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
-             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
                 {todayLabel.replace(",", " ·")}
               </p>
-              <h1 className="text-2xl font-bold sm:text-3xl">Good morning, Shayban</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">
+                Good morning, {userInfo?.firstName}
+              </h1>
               <p className="max-w-xl text-sm text-primary-foreground/80">
                 Pipeline is up 18% against July. Three orders need QA release before Friday's vessel
                 cut-off in Rotterdam.

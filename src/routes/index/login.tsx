@@ -55,7 +55,12 @@ function LoginPage() {
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const active = slides[index] ?? slides[0]!;
 
+  const userInfo = userSessionService.getCurrentUser();
+
   useEffect(() => {
+    if (userInfo?.isAuthenticated) {
+      navigate({ to: "/dashboard" });
+    }
     const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
     return () => clearInterval(t);
   }, []);
