@@ -206,12 +206,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-opacity hover:opacity-80">
-                  <Avatar className="size-9 border border-border">
+                  <Avatar className="size-9 border border-border cursor-pointer">
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                      {(userInfo && userInfo?.firstName) ??
-                        userInfo?.firstName?.charAt(0).toUpperCase()}
-                      {(userInfo && userInfo?.lastName) ??
-                        userInfo?.lastName?.charAt(0).toUpperCase()}
+                      {userInfo?.firstName?.trim().charAt(0).toUpperCase()}
+                      {userInfo?.lastName?.trim().charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </button>

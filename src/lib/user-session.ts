@@ -91,7 +91,8 @@ class UserSessionService {
     const normalizedUser: AppUser = {
       ...user,
       id: user.id ?? user.email,
-      name: user.name ?? ([user.firstName, user.lastName].filter(Boolean).join(" ") || user.email),
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role ?? user.roles?.[0] ?? user.userType ?? "User",
       roles: user.roles ?? (user.role ? [user.role] : undefined),
       rememberMe: options.rememberMe ?? false,
