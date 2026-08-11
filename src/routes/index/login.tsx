@@ -113,15 +113,10 @@ function LoginPage() {
       const userProfile = data?.user ?? data?.profile ?? data?.data ?? null;
       const authUser = {
         id: userProfile?.id ?? data?.id ?? `user-${trimmedEmail}`,
-        email: data?.email ?? trimmedEmail,
-        firstName: data?.firstName ?? userProfile?.firstName,
-        lastName: data?.lastName ?? userProfile?.lastName,
-        name:
-          userProfile?.name ??
-          ([data?.firstName, data?.lastName].filter(Boolean).join(" ") || trimmedEmail.split("@")[0]),
-        role: userProfile?.role ?? data?.role ?? data?.userType ?? "User",
-        roles: data?.roles ?? userProfile?.roles,
-        userType: data?.userType ?? userProfile?.userType,
+        email: trimmedEmail,
+        firstName: userProfile?.firstName ?? data?.name ?? trimmedEmail.split("@")[0],
+        lastName: userProfile?.lastName ?? data?.lastName ?? trimmedEmail.split("@")[1]?.split(".")[0] ?? "",
+        role: userProfile?.role ?? data?.role ?? "User",
         avatar: userProfile?.avatar ?? data?.avatar ?? null,
         token: data?.token ?? null,
         refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,

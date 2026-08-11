@@ -33,6 +33,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
+import { userSessionService } from "@/lib/user-session.ts";
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -76,7 +77,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-
+  const userInfo = userSessionService.getCurrentUser();
   return (
     <div className="relative min-h-screen bg-background">
       <div
@@ -201,19 +202,20 @@ export function AppShell({ children }: { children: ReactNode }) {
               </PopoverContent>
             </Popover>
 
+            {/*User Information Avatar*/}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-opacity hover:opacity-80">
                   <Avatar className="size-9 border border-border">
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                      SS
+                      {userInfo?.firstName.charAt(0) + userInfo.lastName.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="glass w-56 rounded-2xl">
                 <DropdownMenuLabel className="space-y-0.5">
-                  <p className="text-sm font-semibold">Shayban Saiyed</p>
+                  <p className="text-sm font-semibold">{userInfo.firstName} {userInfo.lastName}</p>
                   <p className="text-xs font-normal text-muted-foreground">
                     Administrator · Global Sales
                   </p>
