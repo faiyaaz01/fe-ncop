@@ -39,12 +39,17 @@ const slides = [
   { src: warehouse, caption: "GDP-certified distribution hub" },
 ];
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 function LoginPage() {
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{
+    email?: string | undefined;
+    password?: string | undefined;
+  }>({});
   const active = slides[index] ?? slides[0]!;
 
   useEffect(() => {
@@ -52,14 +57,22 @@ function LoginPage() {
     return () => clearInterval(t);
   }, []);
 
-  const validateForm = () => {
-    const nextErrors: { email?: string; password?: string } = {};
+  const trimmedEmail = email.trim();
+  const trimmedPassword = password.trim();
 
-    if (!email.trim()) {
+  const isFormValid =
+    trimmedEmail.length > 0 && trimmedPassword.length > 0 && EMAIL_REGEX.test(trimmedEmail);
+
+  const validateForm = () => {
+    const nextErrors: { email?: string | undefined; password?: string | undefined } = {};
+
+    if (!trimmedEmail) {
       nextErrors.email = "Email is required.";
+    } else if (!EMAIL_REGEX.test(trimmedEmail)) {
+      nextErrors.email = "Enter a valid email address.";
     }
 
-    if (!password.trim()) {
+    if (!trimmedPassword) {
       nextErrors.password = "Password is required.";
     }
 
@@ -210,6 +223,7 @@ function LoginPage() {
 
           <form
             className="mt-6 space-y-4"
+            noValidate
             onSubmit={(e) => {
               e.preventDefault();
               handleOnLogin();
@@ -227,17 +241,32 @@ function LoginPage() {
                   value={email}
                   required
                   aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? "email-error" : undefined}
                   onChange={(e) => {
                     setEmail(e.target.value);
                     if (errors.email) {
                       setErrors((prev) => ({ ...prev, email: undefined }));
                     }
                   }}
+                  onBlur={() => {
+                    if (!email.trim()) {
+                      setErrors((prev) => ({ ...prev, email: "Email is required." }));
+                    } else if (!EMAIL_REGEX.test(email.trim())) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        email: "Enter a valid email address.",
+                      }));
+                    }
+                  }}
                   placeholder="you@company.com"
                   className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
                 />
               </div>
-              {errors.email ? <p className="text-xs text-rose-300">{errors.email}</p> : null}
+              {errors.email ? (
+                <p id="email-error" className="text-xs text-rose-300">
+                  {errors.email}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-1.5">
@@ -252,17 +281,27 @@ function LoginPage() {
                   value={password}
                   required
                   aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? "password-error" : undefined}
                   onChange={(e) => {
                     setPassword(e.target.value);
                     if (errors.password) {
                       setErrors((prev) => ({ ...prev, password: undefined }));
                     }
                   }}
+                  onBlur={() => {
+                    if (!password.trim()) {
+                      setErrors((prev) => ({ ...prev, password: "Password is required." }));
+                    }
+                  }}
                   placeholder="••••••••"
                   className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
                 />
               </div>
-              {errors.password ? <p className="text-xs text-rose-300">{errors.password}</p> : null}
+              {errors.password ? (
+                <p id="password-error" className="text-xs text-rose-300">
+                  {errors.password}
+                </p>
+              ) : null}
             </div>
 
             <div className="flex items-center justify-between text-xs text-white/60">
@@ -275,17 +314,15 @@ function LoginPage() {
 
             <Button
               type="submit"
-              disabled={!email.trim() || !password.trim()}
+              disabled={!isFormValid}
               className="h-11 w-full bg-white text-slate-900 hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/70"
             >
               Login
               <ArrowRight className="size-4" />
             </Button>
           </form>
-
         </motion.section>
       </main>
     </div>
   );
 }
-
