@@ -91,7 +91,7 @@ function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("http://localhost:8080/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -115,8 +115,8 @@ function LoginPage() {
       }
 
       navigate({ to: "/dashboard" });
-    } catch (err) {
-      setApiError("Unable to reach the server. Please check your connection and try again.");
+    } catch (err: any) {
+      setApiError(err?.message || "Unable to reach the server. Please check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }
