@@ -52,6 +52,10 @@ function LoginPage() {
     return () => clearInterval(t);
   }, []);
 
+  const handleOnLogin = () => {
+    navigate({ to: "/dashboard" });
+  };
+
   const particles = useMemo(
     () =>
       Array.from({ length: 14 }).map((_, i) => ({
@@ -189,7 +193,7 @@ function LoginPage() {
             className="mt-6 space-y-4"
             onSubmit={(e) => {
               e.preventDefault();
-              navigate({ to: "/dashboard" });
+              handleOnLogin();
             }}
           >
             <div className="space-y-1.5">
@@ -234,10 +238,7 @@ function LoginPage() {
               <span className="cursor-pointer hover:text-white">Forgot password?</span>
             </div>
 
-            <Button
-              type="submit"
-              className="h-11 w-full bg-white text-slate-900 hover:bg-white/90"
-            >
+            <Button type="submit" className="h-11 w-full bg-white text-slate-900 hover:bg-white/90">
               Login
               <ArrowRight className="size-4" />
             </Button>
