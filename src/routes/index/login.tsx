@@ -130,9 +130,7 @@ function LoginPage() {
         rememberMe: keepSignedIn,
         token: data?.token ?? null,
         refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
-        refresh_token: data?.refresh_token ?? data?.refreshToken ?? null,
         expiresIn: data?.expiresIn ?? null,
-        expires_in: data?.expiresIn ?? null,
       });
 
       navigate({ to: "/dashboard" });
