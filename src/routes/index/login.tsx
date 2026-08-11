@@ -44,7 +44,7 @@ function LoginPage() {
   const [index, setIndex] = useState(0);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const active = slides[index] ?? slides[0]!;
 
   useEffect(() => {
@@ -52,7 +52,26 @@ function LoginPage() {
     return () => clearInterval(t);
   }, []);
 
+  const validateForm = () => {
+    const nextErrors: { email?: string; password?: string } = {};
+
+    if (!email.trim()) {
+      nextErrors.email = "Email is required.";
+    }
+
+    if (!password.trim()) {
+      nextErrors.password = "Password is required.";
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const handleOnLogin = () => {
+    if (!validateForm()) {
+      return;
+    }
+
     navigate({ to: "/dashboard" });
   };
 
@@ -206,11 +225,19 @@ function LoginPage() {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  aria-invalid={Boolean(errors.email)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) {
+                      setErrors((prev) => ({ ...prev, email: undefined }));
+                    }
+                  }}
                   placeholder="you@company.com"
                   className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
                 />
               </div>
+              {errors.email ? <p className="text-xs text-rose-300">{errors.email}</p> : null}
             </div>
 
             <div className="space-y-1.5">
@@ -223,11 +250,19 @@ function LoginPage() {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  aria-invalid={Boolean(errors.password)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) {
+                      setErrors((prev) => ({ ...prev, password: undefined }));
+                    }
+                  }}
                   placeholder="••••••••"
                   className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
                 />
               </div>
+              {errors.password ? <p className="text-xs text-rose-300">{errors.password}</p> : null}
             </div>
 
             <div className="flex items-center justify-between text-xs text-white/60">
@@ -238,7 +273,11 @@ function LoginPage() {
               <span className="cursor-pointer hover:text-white">Forgot password?</span>
             </div>
 
-            <Button type="submit" className="h-11 w-full bg-white text-slate-900 hover:bg-white/90">
+            <Button
+              type="submit"
+              disabled={!email.trim() || !password.trim()}
+              className="h-11 w-full bg-white text-slate-900 hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/70"
+            >
               Login
               <ArrowRight className="size-4" />
             </Button>
