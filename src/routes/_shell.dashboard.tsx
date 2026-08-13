@@ -116,7 +116,7 @@ function Dashboard() {
   const hour = now.getHours();
   let greeting = "Good night";
   if (hour >= 2 && hour <= 4) {
-    greeting = "Hey, you should probably sleeping now!";
+    greeting = "You should probably sleeping now";
   } else if (hour >= 5 && hour < 12) {
     greeting = "Good Morning";
   } else if (hour >= 12 && hour < 17) {

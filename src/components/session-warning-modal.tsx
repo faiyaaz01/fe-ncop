@@ -40,7 +40,7 @@ export function SessionWarningModal() {
       <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
         <h2 className="text-lg font-bold text-slate-900">Session expiring soon</h2>
         <p className="mt-2 text-sm text-slate-600">
-          You'll be signed out in <span className="font-semibold">{secondsLeft}s</span>. Stay signed
+          You'll be signed out in <span className="font-semibold">{Math.floor(secondsLeft / 60)}:{(secondsLeft % 60).toString().padStart(2, "0")}</span>. Stay signed
           in?
         </p>
         <div className="mt-5 flex justify-end gap-2">
