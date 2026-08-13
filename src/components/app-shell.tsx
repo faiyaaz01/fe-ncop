@@ -87,6 +87,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const resolveRef = useRef<((v: boolean) => void) | null>(null);
   const countdownRef = useRef<number | null>(null);
 
+  // Expired-session modal state (shown when token is expired or invalid)
+  const [isExpiredOpen, setIsExpiredOpen] = useState(false);
+
   useEffect(() => {
     // UI handler: shows modal and resolves true/false based on user action
     userSessionService.registerRefreshUiHandler(async ({ expiresAt, remainingMs }) => {
@@ -159,6 +162,31 @@ export function AppShell({ children }: { children: ReactNode }) {
         countdownRef.current = null;
       }
     };
+  }, []);
+
+  // Subscribe to session changes to surface an expired/invalid-session modal.
+  useEffect(() => {
+    // Immediate check (covers the case where the service initialized earlier and set a reason)
+    const currentUser = userSessionService.getCurrentUser();
+    const initialReason = userSessionService.getLastLogoutReason();
+    if (!currentUser && (initialReason === "expired" || initialReason === "invalid")) {
+      setIsWarningOpen(false);
+      setIsExpiredOpen(true);
+      userSessionService.clearLastLogoutReason();
+    }
+
+    const unsub = userSessionService.subscribe((user) => {
+      const reason = userSessionService.getLastLogoutReason();
+      if (!user && (reason === "expired" || reason === "invalid")) {
+        // Ensure the pre-expiry warning isn't visible
+        setIsWarningOpen(false);
+        setIsExpiredOpen(true);
+        // clear the recorded reason so it doesn't re-fire
+        userSessionService.clearLastLogoutReason();
+      }
+    });
+
+    return () => unsub();
   }, []);
 
   return (
@@ -392,6 +420,27 @@ export function AppShell({ children }: { children: ReactNode }) {
                 countdownRef.current = null;
               }
             }}>Refresh</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expired session dialog (after token expiry or invalidation) */}
+      <Dialog open={isExpiredOpen} onOpenChange={(open) => {
+        // prevent closing by backdrop; keep modal until user clicks action
+        if (!open) setIsExpiredOpen(true);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Your session has expired</DialogTitle>
+            <DialogDescription>For your security, you&apos;ve been logged out due to inactivity or session timeout.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-end">
+            <Button onClick={async () => {
+              // ensure session cleared and navigate to login
+              await userSessionService.logout();
+              setIsExpiredOpen(false);
+              navigate({ to: "/index/login" });
+            }}>Log back in</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -60,6 +60,14 @@ class UserSessionService {
   // Storing this instead of a duration is what makes expiry survive page reloads correctly.
   private expiresAt: number | null = null;
 
+  // ID for a periodic background check (to survive timer throttling).
+  private periodicCheckId: number | null = null;
+
+  // lastLogoutReason is set when logout happens programmatically so UI can surface
+  // an "expired session" modal instead of silently redirecting the user.
+  // Possible values: 'user' | 'expired' | 'invalid' | null
+  private lastLogoutReason: string | null = null;
+
   constructor() {
     try {
       console.debug && console.debug("user-session: constructor");
@@ -122,8 +130,9 @@ class UserSessionService {
         this.expiresAt = storedExpiry;
         this.scheduleTimersFromExpiresAt();
       } else {
-        // Session already expired while the app was closed -> log out immediately.
-        await this.logout();
+        // Session already expired while the app was closed -> log out immediately
+        // and mark reason so UI can present the expired-session modal.
+        await this.logout("expired");
       }
     }
 
@@ -171,7 +180,10 @@ class UserSessionService {
     return normalizedUser;
   }
 
-  public async logout() {
+  public async logout(reason: "user" | "expired" | "invalid" | null = "user") {
+    // mark reason for callers/UI to react to
+    this.lastLogoutReason = reason;
+
     this.clearRefreshTimers();
 
     this.currentUser = null;
@@ -180,6 +192,14 @@ class UserSessionService {
 
     await this.clearPersistedSession();
     this.emit();
+  }
+
+  public getLastLogoutReason() {
+    return this.lastLogoutReason;
+  }
+
+  public clearLastLogoutReason() {
+    this.lastLogoutReason = null;
   }
 
   /**
@@ -221,6 +241,16 @@ class UserSessionService {
     this.expiryTimerId = window.setTimeout(() => {
       void this.handleExpiry();
     }, expiryDelay);
+
+    // Add a periodic check to guard against browser timer throttling (e.g., when tab is backgrounded).
+    // Runs every 15 seconds and compares Date.now() against the absolute expiresAt.
+    this.periodicCheckId = window.setInterval(() => {
+      try {
+        if (this.expiresAt && Date.now() >= this.expiresAt) {
+          void this.handleExpiry();
+        }
+      } catch {}
+    }, 15_000);
   }
 
   private clearRefreshTimers() {
@@ -231,6 +261,10 @@ class UserSessionService {
     if (this.expiryTimerId != null) {
       clearTimeout(this.expiryTimerId);
       this.expiryTimerId = null;
+    }
+    if (this.periodicCheckId != null) {
+      clearInterval(this.periodicCheckId);
+      this.periodicCheckId = null;
     }
   }
 
@@ -270,7 +304,8 @@ class UserSessionService {
   }
 
   private async handleExpiry() {
-    await this.logout();
+    // mark as expired so UI can surface the expired-session modal
+    await this.logout("expired");
   }
 
   private emit() {
