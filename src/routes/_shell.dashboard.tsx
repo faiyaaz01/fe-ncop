@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -78,7 +79,14 @@ const chartTooltip = {
 
 function Dashboard() {
   const topCustomers = [...clients].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  const today = new Date();
+
+  const [now, setNow] = useState(new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const today = now;
   const todayLabel = today.toLocaleDateString("en-US", {
     weekday: "long",
     day: "numeric",
@@ -91,6 +99,28 @@ function Dashboard() {
   // Monday-first weekday offset for the 1st of the month (0 = Monday).
   const firstWeekdayOffset = (new Date(today.getFullYear(), today.getMonth(), 1).getDay() + 6) % 7;
 
+  // Live time string and short timezone name (uses user's locale/system settings)
+  const timeString = now.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const tzName =
+    Intl.DateTimeFormat(undefined, { timeZoneName: "short" })
+      .formatToParts(now)
+      .find((p) => p.type === "timeZoneName")?.value ?? "";
+
+  // Greeting based on local hour
+  const hour = now.getHours();
+  const greeting =
+    hour >= 5 && hour < 12
+      ? "Good morning"
+      : hour >= 12 && hour < 17
+      ? "Good afternoon"
+      : hour >= 17 && hour < 21
+      ? "Good evening"
+      : "Good night";
+
   const userInfo = userSessionService.getCurrentUser();
 
   return (
@@ -101,10 +131,10 @@ function Dashboard() {
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
-                {todayLabel.replace(",", " ·")}
+                {todayLabel.replace(",", " ·")} · {timeString} {tzName}
               </p>
               <h1 className="text-2xl font-bold sm:text-3xl">
-                Good morning, {userInfo?.firstName}
+                {greeting}, {userInfo?.firstName}
               </h1>
               <p className="max-w-xl text-sm text-primary-foreground/80">
                 Pipeline is up 18% against July. Three orders need QA release before Friday's vessel
