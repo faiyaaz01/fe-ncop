@@ -33,3 +33,4 @@ dist-ssr
 
 # Environment files (may contain secrets)
 .env*.local
+.env.*
