@@ -105,21 +105,28 @@ function Dashboard() {
     minute: "2-digit",
     second: "2-digit",
   });
-  const tzName =
+  const rawTzName =
     Intl.DateTimeFormat(undefined, { timeZoneName: "short" })
       .formatToParts(now)
       .find((p) => p.type === "timeZoneName")?.value ?? "";
+  // Prefer IST label for Indian timezone (UTC+5:30). Fall back to the platform-provided short name.
+  const tzName = now.getTimezoneOffset() === -330 ? "IST" : rawTzName;
 
-  // Greeting based on local hour
+  // Greeting based on local hour. Special message for 02:00-04:59 (user requested 2 to 4).
   const hour = now.getHours();
-  const greeting =
-    hour >= 5 && hour < 12
-      ? "Good morning"
-      : hour >= 12 && hour < 17
-      ? "Good afternoon"
-      : hour >= 17 && hour < 21
-      ? "Good evening"
-      : "Good night";
+  let greeting = "Good night";
+  if (hour >= 2 && hour <= 4) {
+    greeting = "Hey, you should probably sleeping now!";
+  } else if (hour >= 5 && hour < 12) {
+    greeting = "Good morning";
+  } else if (hour >= 12 && hour < 17) {
+    greeting = "Good afternoon";
+  } else if (hour >= 17 && hour < 21) {
+    greeting = "Good evening";
+  } else {
+    greeting = "Good night";
+  }
+
 
   const userInfo = userSessionService.getCurrentUser();
 
