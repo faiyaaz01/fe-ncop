@@ -43,7 +43,7 @@ const CURRENT_USER_STORAGE_KEY = "ncop.auth.session";
 
 // 🔧 Tune these two values. Currently set to short test values.
 const SESSION_DURATION_MS = 30 * 60 * 1000; // total session length (test value: 20s)
-const WARNING_MS = 3*60 * 1000; // show popup this long before expiry
+const WARNING_MS = 3 * 60 * 1000; // show popup this long before expiry
 
 class UserSessionService {
   private currentUser: AppUser | null = null;

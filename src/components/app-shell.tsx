@@ -165,6 +165,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   // Subscribe to session changes to surface an expired/invalid-session modal.
+  // @ts-ignore
   useEffect(() => {
     // Immediate check (covers the case where the service initialized earlier and set a reason)
     const currentUser = userSessionService.getCurrentUser();
