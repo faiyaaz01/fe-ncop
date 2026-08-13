@@ -139,7 +139,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Register refresh token function: try real endpoint, fallback to mock for testing
     userSessionService.registerRefreshTokenFunction(async (refreshToken) => {
       try {
-        const resp = await fetch("/api/auth/refresh", {
+        const resp = await fetch("http://localhost:8080/auth/refresh", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refreshToken }),
@@ -239,6 +239,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (!user && (reason === "expired" || reason === "invalid")) {
         // Ensure the pre-expiry warning isn't visible
         setIsWarningOpen(false);
+        navigate({ to: '/index/login' });
         setIsExpiredOpen(true);
       }
     });
@@ -482,35 +483,35 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Dialog>
 
       {/* Expired session dialog (after token expiry or invalidation) */}
-      <Dialog open={isExpiredOpen} onOpenChange={(open) => {
-        // prevent backdrop clicks from closing unless explicitly allowed by code
-        if (!open) {
-          if (skipExpiredReopenRef.current) {
-            // allow programmatic close
-            skipExpiredReopenRef.current = false;
-            setIsExpiredOpen(false);
-          } else {
-            // re-open the modal to prevent accidental backdrop/esc closes
-            setIsExpiredOpen(true);
-          }
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Your session has expired</DialogTitle>
-            <DialogDescription>For your security, you&apos;ve been logged out due to inactivity or session timeout.</DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 flex justify-end">
-            <Button onClick={async () => {
-              // ensure session cleared and navigate to login
-              skipExpiredReopenRef.current = true;
-              await userSessionService.logout();
-              setIsExpiredOpen(false);
-              navigate({ to: "/index/login" });
-            }}>Log back in</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/*<Dialog open={isExpiredOpen} onOpenChange={(open) => {*/}
+      {/*  // prevent backdrop clicks from closing unless explicitly allowed by code*/}
+      {/*  if (!open) {*/}
+      {/*    if (skipExpiredReopenRef.current) {*/}
+      {/*      // allow programmatic close*/}
+      {/*      skipExpiredReopenRef.current = false;*/}
+      {/*      setIsExpiredOpen(false);*/}
+      {/*    } else {*/}
+      {/*      // re-open the modal to prevent accidental backdrop/esc closes*/}
+      {/*      setIsExpiredOpen(true);*/}
+      {/*    }*/}
+      {/*  }*/}
+      {/*}}>*/}
+      {/*  <DialogContent>*/}
+      {/*    <DialogHeader>*/}
+      {/*      <DialogTitle>Your session has expired</DialogTitle>*/}
+      {/*      <DialogDescription>For your security, you&apos;ve been logged out due to inactivity or session timeout.</DialogDescription>*/}
+      {/*    </DialogHeader>*/}
+      {/*    <div className="mt-4 flex justify-end">*/}
+      {/*      <Button onClick={async () => {*/}
+      {/*        // ensure session cleared and navigate to login*/}
+      {/*        skipExpiredReopenRef.current = true;*/}
+      {/*        await userSessionService.logout();*/}
+      {/*        setIsExpiredOpen(false);*/}
+      {/*        navigate({ to: "/index/login" });*/}
+      {/*      }}>Log back in</Button>*/}
+      {/*    </div>*/}
+      {/*  </DialogContent>*/}
+      {/*</Dialog>*/}
 
       {/* Inactivity warning dialog */}
       <Dialog open={isInactivityWarningOpen} onOpenChange={(open) => {
