@@ -42,13 +42,17 @@ const ENCRYPTION_SECRET = "ncop-erp-user-session-v1";
 const CURRENT_USER_STORAGE_KEY = "ncop.auth.session";
 
 // 🔧 Tune these two values. Currently set to short test values.
-const SESSION_DURATION_MS = 30 * 60 * 1000; // total session length (test value: 20s)
-const WARNING_MS = 3 * 60 * 1000; // show popup this long before expiry
+const SESSION_DURATION_MS = 25 * 60 * 1000; // total session length (test value: 20s)
+const WARNING_MS = 23 * 60 * 1000; // show popup this long before expiry
+
+// 🔧 Inactivity-based auto-logout
+const INACTIVITY_TIMEOUT_MS = 2 * 60 * 1000; // show popup after 2 min of inactivity
+const INACTIVITY_WARNING_DURATION_MS = 3 * 60 * 1000; // auto-logout 3 min after popup
 
 class UserSessionService {
   private currentUser: AppUser | null = null;
   private allUsers: AppUser[] = [];
-  private listeners = new Set<SessionListener>();
+  private listeners = new Set<SessionListener>(); 
   private initialized = false;
 
   private warningTimerId: number | null = null;
@@ -62,6 +66,13 @@ class UserSessionService {
 
   // ID for a periodic background check (to survive timer throttling).
   private periodicCheckId: number | null = null;
+
+  // Inactivity tracking
+  private inactivityTimerId: number | null = null;
+  private inactivityUiHandler:
+    null | ((opts: { warningDurationMs: number }) => Promise<boolean>) = null;
+  private boundActivityHandler: (() => void) | null = null;
+  private inactivityPaused = false;
 
   // lastLogoutReason is set when logout happens programmatically so UI can surface
   // an "expired session" modal instead of silently redirecting the user.
@@ -108,6 +119,11 @@ class UserSessionService {
   ) {
     // intentionally does nothing
   }
+  public registerInactivityUiHandler(
+    handler: (opts: { warningDurationMs: number }) => Promise<boolean>,
+  ) {
+    this.inactivityUiHandler = handler;
+  }
   public async initialize() {
     try {
       console.debug && console.debug("user-session: initialize start");
@@ -129,6 +145,7 @@ class UserSessionService {
       if (typeof storedExpiry === "number" && storedExpiry > Date.now()) {
         this.expiresAt = storedExpiry;
         this.scheduleTimersFromExpiresAt();
+        this.startInactivityTracking();
       } else {
         // Session already expired while the app was closed -> log out immediately
         // and mark reason so UI can present the expired-session modal.
@@ -184,6 +201,7 @@ class UserSessionService {
     await this.persistSession(normalizedUser.rememberMe ?? false);
     this.scheduleTimersFromExpiresAt();
     this.emit();
+    this.startInactivityTracking();
 
     return normalizedUser;
   }
@@ -192,7 +210,10 @@ class UserSessionService {
     // mark reason for callers/UI to react to
     this.lastLogoutReason = reason;
 
+    console.debug && console.debug("user-session: logout called", { reason });
+
     this.clearRefreshTimers();
+    this.stopInactivityTracking();
 
     this.currentUser = null;
     this.expiresAt = null;
@@ -221,6 +242,7 @@ class UserSessionService {
     await this.persistSession(this.currentUser.rememberMe ?? false);
     this.scheduleTimersFromExpiresAt();
     this.emit();
+    this.startInactivityTracking();
   }
 
   private scheduleTimersFromExpiresAt() {
@@ -240,6 +262,10 @@ class UserSessionService {
           expiryDelay,
           expiresAt: this.expiresAt,
         });
+    } catch {}
+
+    try {
+      console.debug && console.debug("user-session: starting periodic expiry check (15s)");
     } catch {}
 
     this.warningTimerId = window.setTimeout(() => {
@@ -294,8 +320,9 @@ class UserSessionService {
     if (this.refreshUiHandler) {
       try {
         wantsToStay = await this.refreshUiHandler({ expiresAt: this.expiresAt, remainingMs });
-      } catch {
+      } catch (e) {
         wantsToStay = false;
+        console.debug && console.debug("user-session: refreshUiHandler threw", e);
       }
     } else {
       try {
@@ -306,7 +333,10 @@ class UserSessionService {
     }
 
     if (wantsToStay) {
+      console.debug && console.debug("user-session: user chose to extend session from warning");
       await this.extendSession();
+    } else {
+      console.debug && console.debug("user-session: user did not extend session from warning");
     }
     // If declined or no response, do nothing — the expiry timer will log out on schedule.
   }
@@ -314,6 +344,84 @@ class UserSessionService {
   private async handleExpiry() {
     // mark as expired so UI can surface the expired-session modal
     await this.logout("expired");
+  }
+
+  // ── Inactivity tracking ────────────────────────────────────────────
+
+  private startInactivityTracking() {
+    if (typeof window === "undefined" || !this.currentUser) return;
+    this.stopInactivityTracking();
+    this.inactivityPaused = false;
+
+    let debounceTimer: number | null = null;
+    this.boundActivityHandler = () => {
+      if (this.inactivityPaused) return;
+      if (debounceTimer) return;
+      debounceTimer = window.setTimeout(() => {
+        debounceTimer = null;
+      }, 1000);
+      this.resetInactivityTimer();
+    };
+
+    const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
+    events.forEach((evt) =>
+      window.addEventListener(evt, this.boundActivityHandler!, { passive: true }),
+    );
+
+    this.resetInactivityTimer();
+  }
+
+  private stopInactivityTracking() {
+    if (typeof window === "undefined") return;
+
+    if (this.inactivityTimerId != null) {
+      clearTimeout(this.inactivityTimerId);
+      this.inactivityTimerId = null;
+    }
+
+    if (this.boundActivityHandler) {
+      const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"];
+      events.forEach((evt) => window.removeEventListener(evt, this.boundActivityHandler!));
+      this.boundActivityHandler = null;
+    }
+
+    this.inactivityPaused = false;
+  }
+
+  private resetInactivityTimer() {
+    if (this.inactivityTimerId != null) {
+      clearTimeout(this.inactivityTimerId);
+    }
+
+    this.inactivityTimerId = window.setTimeout(() => {
+      void this.handleInactivity();
+    }, INACTIVITY_TIMEOUT_MS);
+  }
+
+  private async handleInactivity() {
+    if (!this.currentUser) return;
+
+    // Pause activity listeners so mouse moves while the popup is open don't reset the timer
+    this.inactivityPaused = true;
+
+    let wantsToStay = false;
+
+    if (this.inactivityUiHandler) {
+      try {
+        wantsToStay = await this.inactivityUiHandler({
+          warningDurationMs: INACTIVITY_WARNING_DURATION_MS,
+        });
+      } catch {
+        wantsToStay = false;
+      }
+    }
+
+    if (wantsToStay) {
+      // extendSession() also restarts inactivity tracking
+      await this.extendSession();
+    } else {
+      await this.logout("expired");
+    }
   }
 
   private emit() {

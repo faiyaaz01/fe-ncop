@@ -89,6 +89,14 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Expired-session modal state (shown when token is expired or invalid)
   const [isExpiredOpen, setIsExpiredOpen] = useState(false);
+  // when true, allow programmatic close without the onOpenChange forcing reopen
+  const skipExpiredReopenRef = useRef(false);
+
+  // Inactivity warning modal state
+  const [isInactivityWarningOpen, setIsInactivityWarningOpen] = useState(false);
+  const [inactivityRemainingSecs, setInactivityRemainingSecs] = useState(0);
+  const inactivityResolveRef = useRef<((v: boolean) => void) | null>(null);
+  const inactivityCountdownRef = useRef<number | null>(null);
 
   useEffect(() => {
     // UI handler: shows modal and resolves true/false based on user action
@@ -161,6 +169,55 @@ export function AppShell({ children }: { children: ReactNode }) {
         clearInterval(countdownRef.current);
         countdownRef.current = null;
       }
+      if (inactivityCountdownRef.current) {
+        clearInterval(inactivityCountdownRef.current);
+        inactivityCountdownRef.current = null;
+      }
+    };
+  }, []);
+
+  // Inactivity UI handler: shows modal and resolves true/false
+  useEffect(() => {
+    userSessionService.registerInactivityUiHandler(async ({ warningDurationMs }) => {
+      const secs = Math.ceil(warningDurationMs / 1000);
+      setInactivityRemainingSecs(secs);
+      setIsInactivityWarningOpen(true);
+
+      return await new Promise<boolean>((resolve) => {
+        inactivityResolveRef.current = (v: boolean) => {
+          resolve(v);
+          inactivityResolveRef.current = null;
+        };
+
+        if (inactivityCountdownRef.current) {
+          clearInterval(inactivityCountdownRef.current);
+          inactivityCountdownRef.current = null;
+        }
+        inactivityCountdownRef.current = window.setInterval(() => {
+          setInactivityRemainingSecs((s) => {
+            if (s <= 1) {
+              if (inactivityResolveRef.current) {
+                inactivityResolveRef.current(false);
+                inactivityResolveRef.current = null;
+              }
+              setIsInactivityWarningOpen(false);
+              if (inactivityCountdownRef.current) {
+                clearInterval(inactivityCountdownRef.current);
+                inactivityCountdownRef.current = null;
+              }
+              return 0;
+            }
+            return s - 1;
+          });
+        }, 1000);
+      });
+    });
+
+    return () => {
+      if (inactivityCountdownRef.current) {
+        clearInterval(inactivityCountdownRef.current);
+        inactivityCountdownRef.current = null;
+      }
     };
   }, []);
 
@@ -170,20 +227,19 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Immediate check (covers the case where the service initialized earlier and set a reason)
     const currentUser = userSessionService.getCurrentUser();
     const initialReason = userSessionService.getLastLogoutReason();
+    console.debug && console.debug("AppShell: initial session check", { currentUser: !!currentUser, initialReason });
     if (!currentUser && (initialReason === "expired" || initialReason === "invalid")) {
       setIsWarningOpen(false);
       setIsExpiredOpen(true);
-      userSessionService.clearLastLogoutReason();
     }
 
     const unsub = userSessionService.subscribe((user) => {
       const reason = userSessionService.getLastLogoutReason();
+      console.debug && console.debug("AppShell: session change", { user: !!user, reason });
       if (!user && (reason === "expired" || reason === "invalid")) {
         // Ensure the pre-expiry warning isn't visible
         setIsWarningOpen(false);
         setIsExpiredOpen(true);
-        // clear the recorded reason so it doesn't re-fire
-        userSessionService.clearLastLogoutReason();
       }
     });
 
@@ -427,8 +483,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Expired session dialog (after token expiry or invalidation) */}
       <Dialog open={isExpiredOpen} onOpenChange={(open) => {
-        // prevent closing by backdrop; keep modal until user clicks action
-        if (!open) setIsExpiredOpen(true);
+        // prevent backdrop clicks from closing unless explicitly allowed by code
+        if (!open) {
+          if (skipExpiredReopenRef.current) {
+            // allow programmatic close
+            skipExpiredReopenRef.current = false;
+            setIsExpiredOpen(false);
+          } else {
+            // re-open the modal to prevent accidental backdrop/esc closes
+            setIsExpiredOpen(true);
+          }
+        }
       }}>
         <DialogContent>
           <DialogHeader>
@@ -438,10 +503,52 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="mt-4 flex justify-end">
             <Button onClick={async () => {
               // ensure session cleared and navigate to login
+              skipExpiredReopenRef.current = true;
               await userSessionService.logout();
               setIsExpiredOpen(false);
               navigate({ to: "/index/login" });
             }}>Log back in</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Inactivity warning dialog */}
+      <Dialog open={isInactivityWarningOpen} onOpenChange={(open) => {
+        if (!open) {
+          // Dismissing the dialog = user is still here → stay signed in
+          if (inactivityResolveRef.current) {
+            inactivityResolveRef.current(true);
+            inactivityResolveRef.current = null;
+          }
+          setIsInactivityWarningOpen(false);
+          if (inactivityCountdownRef.current) {
+            clearInterval(inactivityCountdownRef.current);
+            inactivityCountdownRef.current = null;
+          }
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you still there?</DialogTitle>
+            <DialogDescription>
+              You&apos;ve been inactive. For your security, you&apos;ll be automatically logged out in{" "}
+              <span className="font-semibold tabular-nums">
+                {Math.floor(inactivityRemainingSecs / 60)}:{String(inactivityRemainingSecs % 60).padStart(2, "0")}
+              </span>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-end">
+            <Button onClick={() => {
+              if (inactivityResolveRef.current) {
+                inactivityResolveRef.current(true);
+                inactivityResolveRef.current = null;
+              }
+              setIsInactivityWarningOpen(false);
+              if (inactivityCountdownRef.current) {
+                clearInterval(inactivityCountdownRef.current);
+                inactivityCountdownRef.current = null;
+              }
+            }}>Stay signed in</Button>
           </div>
         </DialogContent>
       </Dialog>
