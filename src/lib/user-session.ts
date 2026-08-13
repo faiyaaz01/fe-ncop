@@ -59,6 +59,11 @@ class UserSessionService {
   private expiryTimerId: number | null = null;
   private refreshUiHandler:
     null | ((opts: { expiresAt: number; remainingMs: number }) => Promise<boolean>) = null;
+  private refreshTokenFn:
+    null |
+    ((
+      refreshToken: string | null,
+    ) => Promise<{ token: string; refreshToken?: string | null; expiresIn?: number | null } | null>) = null;
 
   // Absolute timestamp (ms since epoch) when the session expires.
   // Storing this instead of a duration is what makes expiry survive page reloads correctly.
@@ -113,11 +118,11 @@ class UserSessionService {
     this.refreshUiHandler = handler;
   }
   public registerRefreshTokenFunction(
-    _fn: (
+    fn: (
       refreshToken: string | null,
     ) => Promise<{ token: string; refreshToken?: string | null; expiresIn?: number | null } | null>,
   ) {
-    // intentionally does nothing
+    this.refreshTokenFn = fn;
   }
   public registerInactivityUiHandler(
     handler: (opts: { warningDurationMs: number }) => Promise<boolean>,
@@ -243,6 +248,51 @@ class UserSessionService {
     this.scheduleTimersFromExpiresAt();
     this.emit();
     this.startInactivityTracking();
+  }
+
+  public async refreshSession() {
+    if (!this.currentUser || !this.refreshTokenFn) {
+      return false;
+    }
+
+    const refreshed = await this.refreshTokenFn(
+      this.currentUser.refreshToken ?? this.currentUser.refresh_token ?? null,
+    );
+
+    if (!refreshed) {
+      return false;
+    }
+
+    const nextUser: AppUser = {
+      ...this.currentUser,
+      token: refreshed.token ?? this.currentUser.token ?? null,
+      refreshToken: refreshed.refreshToken ?? refreshed.refresh_token ?? this.currentUser.refreshToken ?? this.currentUser.refresh_token ?? null,
+      refresh_token:
+        refreshed.refreshToken ?? refreshed.refresh_token ?? this.currentUser.refreshToken ?? this.currentUser.refresh_token ?? null,
+      expiresIn:
+        typeof refreshed.expiresIn === "number" ? refreshed.expiresIn : this.currentUser.expiresIn ?? null,
+      isAuthenticated: true,
+      lastLoginAt: this.currentUser.lastLoginAt ?? new Date().toISOString(),
+    };
+
+    this.currentUser = nextUser;
+    this.allUsers = [nextUser, ...this.allUsers.filter((user) => user.email !== nextUser.email)].slice(
+      0,
+      10,
+    );
+
+    const durationMs =
+      typeof refreshed.expiresIn === "number" && refreshed.expiresIn > 0
+        ? refreshed.expiresIn * 1000
+        : SESSION_DURATION_MS;
+    this.expiresAt = Date.now() + durationMs;
+
+    await this.persistSession(this.currentUser.rememberMe ?? false);
+    this.scheduleTimersFromExpiresAt();
+    this.emit();
+    this.startInactivityTracking();
+
+    return true;
   }
 
   private scheduleTimersFromExpiresAt() {

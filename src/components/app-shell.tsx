@@ -453,7 +453,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Session expiring soon</DialogTitle>
-            <DialogDescription>Your session will expire in {remainingSecs} second{remainingSecs === 1 ? '' : 's'}. Refresh to continue your session.</DialogDescription>
+
+            <DialogDescription>Your session will expire in {Math.floor(remainingSecs / 60)}:{String(remainingSecs % 60).padStart(2, '0')}. Refresh to continue your session.</DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex justify-end gap-2">
             <Button variant="ghost" onClick={() => {
@@ -467,9 +468,12 @@ export function AppShell({ children }: { children: ReactNode }) {
                 countdownRef.current = null;
               }
             }}>Logout</Button>
-            <Button onClick={() => {
+
+            <Button onClick={async () => {
+              const refreshed = await userSessionService.refreshSession();
+
               if (resolveRef.current) {
-                resolveRef.current(true);
+                resolveRef.current(refreshed);
                 resolveRef.current = null;
               }
               setIsWarningOpen(false);
