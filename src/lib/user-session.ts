@@ -325,11 +325,11 @@ class UserSessionService {
         console.debug && console.debug("user-session: refreshUiHandler threw", e);
       }
     } else {
-      try {
-        wantsToStay = window.confirm("Your session will expire soon. Click OK to stay signed in.");
-      } catch {
-        wantsToStay = false;
-      }
+      // No UI handler registered — do not show a blocking native confirm dialog.
+      // Default to not extending the session; UI consumers should register refreshUiHandler
+      // if they want to prompt the user.
+      console.debug && console.debug("user-session: no refreshUiHandler registered; skipping native confirm fallback");
+      wantsToStay = false;
     }
 
     if (wantsToStay) {
