@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { userSessionService } from "@/lib/user-session";
-import { SessionExpiredModal } from "@/components/session-expired-modal";
 import lab from "@/assets/slide-lab.jpg";
 import manufacturing from "@/assets/slide-manufacturing.jpg";
 import capsules from "@/assets/slide-capsules.jpg";
@@ -165,7 +164,6 @@ function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950">
-      <SessionExpiredModal />
 
       <AnimatePresence>
         <motion.div
