@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Lock, Mail, ShieldCheck } from "lucide-react";
+import { ArrowRight, Lock, Mail, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { userSessionService } from "@/lib/user-session";
+import { apiUrl } from "@/lib/api-config";
 import lab from "@/assets/slide-lab.jpg";
 import manufacturing from "@/assets/slide-manufacturing.jpg";
 import capsules from "@/assets/slide-capsules.jpg";
@@ -57,6 +58,16 @@ function LoginPage() {
 
   const userInfo = userSessionService.getCurrentUser();
 
+  // Check if we arrived here due to session expiry
+  const [sessionExpiredReason, setSessionExpiredReason] = useState<string | null>(() => {
+    const reason = userSessionService.getLastLogoutReason();
+    if (reason === "expired" || reason === "invalid") {
+      userSessionService.clearLastLogoutReason();
+      return reason;
+    }
+    return null;
+  });
+
   useEffect(() => {
     if (userInfo?.isAuthenticated) {
       navigate({ to: "/dashboard" });
@@ -94,10 +105,11 @@ function LoginPage() {
     }
 
     setApiError(null);
+    setSessionExpiredReason(null);
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:8080/auth/login", {
+      const response = await fetch(apiUrl("/auth/login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -396,6 +408,36 @@ function LoginPage() {
             </Button>
           </form>
         </motion.section>
+
+        {sessionExpiredReason && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="glass-dark mt-4 w-full rounded-[18px] p-5 text-white lg:col-start-2"
+          >
+            <div className="flex items-start gap-3">
+              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-rose-500/15">
+                <ShieldAlert className="size-5 text-rose-400" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-rose-300">Your session has expired</p>
+                <p className="text-xs leading-relaxed text-white/60">
+                  For your security, you were logged out due to inactivity or session timeout.
+                  Please sign in again to continue.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSessionExpiredReason(null)}
+                className="ml-auto shrink-0 rounded-lg p-1 text-white/40 transition-colors hover:bg-white/10 hover:text-white/70"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          </motion.section>
+        )}
       </main>
     </div>
   );

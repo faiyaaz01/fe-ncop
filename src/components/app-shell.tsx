@@ -34,6 +34,7 @@ import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { userSessionService } from "@/lib/user-session.ts";
+import { apiUrl } from "@/lib/api-config.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const nav = [
@@ -135,7 +136,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     // @ts-ignore
     userSessionService.registerRefreshTokenFunction(async (refreshToken) => {
       try {
-        const resp = await fetch("http://localhost:8080/auth/refresh", {
+        const resp = await fetch(apiUrl("/auth/refresh"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
