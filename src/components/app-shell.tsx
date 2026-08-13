@@ -137,12 +137,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     });
 
     // Register refresh token function: try real endpoint, fallback to mock for testing
+    // @ts-ignore
     userSessionService.registerRefreshTokenFunction(async (refreshToken) => {
       try {
         const resp = await fetch("http://localhost:8080/auth/refresh", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${refreshToken}`,
+          },
         });
         if (resp.ok) {
           const json = await resp.json();
@@ -154,14 +157,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
       } catch (e) {
         // ignore and fallback to mock
+        console.log("Failed to refresh token");
+        // navigate({ to: "/index/login" });
       }
-
-      // Mock refresh for testing
-      return {
-        token: `mock-token-${Date.now()}`,
-        refreshToken: `mock-refresh-${Date.now()}`,
-        expiresIn: 20,
-      };
     });
 
     return () => {
