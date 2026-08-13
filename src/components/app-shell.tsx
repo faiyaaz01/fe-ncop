@@ -87,11 +87,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const resolveRef = useRef<((v: boolean) => void) | null>(null);
   const countdownRef = useRef<number | null>(null);
 
-  // Expired-session modal state (shown when token is expired or invalid)
-  const [isExpiredOpen, setIsExpiredOpen] = useState(false);
-  // when true, allow programmatic close without the onOpenChange forcing reopen
-  const skipExpiredReopenRef = useRef(false);
-
   // Inactivity warning modal state
   const [isInactivityWarningOpen, setIsInactivityWarningOpen] = useState(false);
   const [inactivityRemainingSecs, setInactivityRemainingSecs] = useState(0);
@@ -175,48 +170,51 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, []);
 
   // Inactivity UI handler: shows modal and resolves true/false
+  // @ts-ignore
   useEffect(() => {
-    userSessionService.registerInactivityUiHandler(async ({ warningDurationMs }) => {
-      const secs = Math.ceil(warningDurationMs / 1000);
-      setInactivityRemainingSecs(secs);
-      setIsInactivityWarningOpen(true);
+    if (!isWarningOpen) {
+      userSessionService.registerInactivityUiHandler(async ({ warningDurationMs }) => {
+        const secs = Math.ceil(warningDurationMs / 1000);
+        setInactivityRemainingSecs(secs);
+        setIsInactivityWarningOpen(true);
 
-      return await new Promise<boolean>((resolve) => {
-        inactivityResolveRef.current = (v: boolean) => {
-          resolve(v);
-          inactivityResolveRef.current = null;
-        };
+        return await new Promise<boolean>((resolve) => {
+          inactivityResolveRef.current = (v: boolean) => {
+            resolve(v);
+            inactivityResolveRef.current = null;
+          };
 
+          if (inactivityCountdownRef.current) {
+            clearInterval(inactivityCountdownRef.current);
+            inactivityCountdownRef.current = null;
+          }
+          inactivityCountdownRef.current = window.setInterval(() => {
+            setInactivityRemainingSecs((s) => {
+              if (s <= 1) {
+                if (inactivityResolveRef.current) {
+                  inactivityResolveRef.current(false);
+                  inactivityResolveRef.current = null;
+                }
+                setIsInactivityWarningOpen(false);
+                if (inactivityCountdownRef.current) {
+                  clearInterval(inactivityCountdownRef.current);
+                  inactivityCountdownRef.current = null;
+                }
+                return 0;
+              }
+              return s - 1;
+            });
+          }, 1000);
+        });
+      });
+
+      return () => {
         if (inactivityCountdownRef.current) {
           clearInterval(inactivityCountdownRef.current);
           inactivityCountdownRef.current = null;
         }
-        inactivityCountdownRef.current = window.setInterval(() => {
-          setInactivityRemainingSecs((s) => {
-            if (s <= 1) {
-              if (inactivityResolveRef.current) {
-                inactivityResolveRef.current(false);
-                inactivityResolveRef.current = null;
-              }
-              setIsInactivityWarningOpen(false);
-              if (inactivityCountdownRef.current) {
-                clearInterval(inactivityCountdownRef.current);
-                inactivityCountdownRef.current = null;
-              }
-              return 0;
-            }
-            return s - 1;
-          });
-        }, 1000);
-      });
-    });
-
-    return () => {
-      if (inactivityCountdownRef.current) {
-        clearInterval(inactivityCountdownRef.current);
-        inactivityCountdownRef.current = null;
-      }
-    };
+      };
+    }
   }, []);
 
   // Subscribe to session changes to surface an expired/invalid-session modal.
@@ -228,7 +226,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     console.debug && console.debug("AppShell: initial session check", { currentUser: !!currentUser, initialReason });
     if (!currentUser && (initialReason === "expired" || initialReason === "invalid")) {
       setIsWarningOpen(false);
-      setIsExpiredOpen(true);
     }
 
     const unsub = userSessionService.subscribe((user) => {
@@ -238,7 +235,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         // Ensure the pre-expiry warning isn't visible
         setIsWarningOpen(false);
         navigate({ to: '/index/login' });
-        setIsExpiredOpen(true);
       }
     });
 
@@ -483,37 +479,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Expired session dialog (after token expiry or invalidation) */}
-      {/*<Dialog open={isExpiredOpen} onOpenChange={(open) => {*/}
-      {/*  // prevent backdrop clicks from closing unless explicitly allowed by code*/}
-      {/*  if (!open) {*/}
-      {/*    if (skipExpiredReopenRef.current) {*/}
-      {/*      // allow programmatic close*/}
-      {/*      skipExpiredReopenRef.current = false;*/}
-      {/*      setIsExpiredOpen(false);*/}
-      {/*    } else {*/}
-      {/*      // re-open the modal to prevent accidental backdrop/esc closes*/}
-      {/*      setIsExpiredOpen(true);*/}
-      {/*    }*/}
-      {/*  }*/}
-      {/*}}>*/}
-      {/*  <DialogContent>*/}
-      {/*    <DialogHeader>*/}
-      {/*      <DialogTitle>Your session has expired</DialogTitle>*/}
-      {/*      <DialogDescription>For your security, you&apos;ve been logged out due to inactivity or session timeout.</DialogDescription>*/}
-      {/*    </DialogHeader>*/}
-      {/*    <div className="mt-4 flex justify-end">*/}
-      {/*      <Button onClick={async () => {*/}
-      {/*        // ensure session cleared and navigate to login*/}
-      {/*        skipExpiredReopenRef.current = true;*/}
-      {/*        await userSessionService.logout();*/}
-      {/*        setIsExpiredOpen(false);*/}
-      {/*        navigate({ to: "/index/login" });*/}
-      {/*      }}>Log back in</Button>*/}
-      {/*    </div>*/}
-      {/*  </DialogContent>*/}
-      {/*</Dialog>*/}
 
       {/* Inactivity warning dialog */}
       <Dialog open={isInactivityWarningOpen} onOpenChange={(open) => {
