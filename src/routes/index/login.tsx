@@ -134,8 +134,6 @@ function LoginPage() {
       await userSessionService.login(authUser, {
         rememberMe: keepSignedIn,
         token: data?.token ?? null,
-        refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
-        expiresIn: data?.expiresIn ?? null,
       });
 
       navigate({ to: "/dashboard" });
