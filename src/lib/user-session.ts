@@ -145,7 +145,10 @@ class UserSessionService {
     } catch {}
   }
 
-  public async login(user: AppUser, options: { rememberMe?: boolean; token?: string | null } = {}) {
+  public async login(
+    user: AppUser,
+    options: { rememberMe?: boolean; token?: string | null; expiresIn?: number | null } = {},
+  ) {
     try {
       console.debug && console.debug("user-session: login called", { email: user.email });
     } catch {}
@@ -170,8 +173,13 @@ class UserSessionService {
       ...this.allUsers.filter((entry) => entry.email !== normalizedUser.email),
     ].slice(0, 10);
 
-    // Fresh absolute expiry, set at login time.
-    this.expiresAt = Date.now() + SESSION_DURATION_MS;
+    // Use the REAL backend expiry (seconds) when provided, else fall back to the local default.
+    const durationMs =
+      typeof options.expiresIn === "number" && options.expiresIn > 0
+        ? options.expiresIn * 1000
+        : SESSION_DURATION_MS;
+
+    this.expiresAt = Date.now() + durationMs;
 
     await this.persistSession(normalizedUser.rememberMe ?? false);
     this.scheduleTimersFromExpiresAt();
@@ -445,3 +453,11 @@ function fromBase64(value: string) {
 
   return new Uint8Array();
 }
+// /**
+//  * Call this from any authenticated fetch/API wrapper when a request comes back 401.
+//  * Treats the token as invalid immediately, regardless of the local expiry timer.
+//  */
+// public async handleUnauthorizedResponse() {
+//   if (!this.currentUser) return;
+//   await this.logout("invalid");
+// }

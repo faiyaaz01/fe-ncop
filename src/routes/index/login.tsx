@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { userSessionService } from "@/lib/user-session";
+import { SessionExpiredModal } from "@/components/session-expired-modal";
 import lab from "@/assets/slide-lab.jpg";
 import manufacturing from "@/assets/slide-manufacturing.jpg";
 import capsules from "@/assets/slide-capsules.jpg";
@@ -131,14 +132,20 @@ function LoginPage() {
         rawLoginResponse: data,
       };
 
+      // clear any stale "session expired" state now that a fresh login is happening
+      userSessionService.clearLastLogoutReason();
+
       await userSessionService.login(authUser, {
         rememberMe: keepSignedIn,
         token: data?.token ?? null,
+        expiresIn: data?.expiresIn ?? null, // ⬅️ this was missing before — real backend expiry now flows through
       });
 
       navigate({ to: "/dashboard" });
     } catch (err: any) {
-      setApiError(err?.message || "Unable to reach the server. Please check your connection and try again.");
+      setApiError(
+        err?.message || "Unable to reach the server. Please check your connection and try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -158,6 +165,8 @@ function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950">
+      <SessionExpiredModal />
+
       <AnimatePresence>
         <motion.div
           key={index}
