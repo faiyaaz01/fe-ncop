@@ -16,7 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -34,6 +34,7 @@ import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { userSessionService } from "@/lib/user-session.ts";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -79,6 +80,87 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const userInfo = userSessionService.getCurrentUser();
   const navigate = useNavigate();
+
+  // Warning modal state for token refresh
+  const [isWarningOpen, setIsWarningOpen] = useState(false);
+  const [remainingSecs, setRemainingSecs] = useState(0);
+  const resolveRef = useRef<((v: boolean) => void) | null>(null);
+  const countdownRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // UI handler: shows modal and resolves true/false based on user action
+    userSessionService.registerRefreshUiHandler(async ({ expiresAt, remainingMs }) => {
+      setRemainingSecs(Math.max(0, Math.ceil(remainingMs / 1000)));
+      setIsWarningOpen(true);
+
+      return await new Promise<boolean>((resolve) => {
+        resolveRef.current = (v: boolean) => {
+          resolve(v);
+          resolveRef.current = null;
+        };
+
+        // start countdown
+        if (countdownRef.current) {
+          clearInterval(countdownRef.current);
+          countdownRef.current = null;
+        }
+        countdownRef.current = window.setInterval(() => {
+          setRemainingSecs((s) => {
+            if (s <= 1) {
+              // timeout: resolve false
+              if (resolveRef.current) {
+                resolveRef.current(false);
+                resolveRef.current = null;
+              }
+              setIsWarningOpen(false);
+              if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+              }
+              return 0;
+            }
+            return s - 1;
+          });
+        }, 1000);
+      });
+    });
+
+    // Register refresh token function: try real endpoint, fallback to mock for testing
+    userSessionService.registerRefreshTokenFunction(async (refreshToken) => {
+      try {
+        const resp = await fetch("/api/auth/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ refreshToken }),
+        });
+        if (resp.ok) {
+          const json = await resp.json();
+          return {
+            token: json.token,
+            refreshToken: json.refreshToken ?? json.refresh_token,
+            expiresIn: json.expiresIn ?? json.expires_in ?? 20,
+          };
+        }
+      } catch (e) {
+        // ignore and fallback to mock
+      }
+
+      // Mock refresh for testing
+      return {
+        token: `mock-token-${Date.now()}`,
+        refreshToken: `mock-refresh-${Date.now()}`,
+        expiresIn: 20,
+      };
+    });
+
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+        countdownRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-background">
       <div
@@ -267,6 +349,52 @@ export function AppShell({ children }: { children: ReactNode }) {
           </motion.main>
         </AnimatePresence>
       </div>
+
+      {/* Session expiry warning dialog */}
+      <Dialog open={isWarningOpen} onOpenChange={(open) => {
+        if (!open) {
+          if (resolveRef.current) {
+            resolveRef.current(false);
+            resolveRef.current = null;
+          }
+          setIsWarningOpen(false);
+          if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+          }
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Session expiring soon</DialogTitle>
+            <DialogDescription>Your session will expire in {remainingSecs} second{remainingSecs === 1 ? '' : 's'}. Refresh to continue your session.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => {
+              if (resolveRef.current) {
+                resolveRef.current(false);
+                resolveRef.current = null;
+              }
+              setIsWarningOpen(false);
+              if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+              }
+            }}>Logout</Button>
+            <Button onClick={() => {
+              if (resolveRef.current) {
+                resolveRef.current(true);
+                resolveRef.current = null;
+              }
+              setIsWarningOpen(false);
+              if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+              }
+            }}>Refresh</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/80 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <ul className="flex items-center justify-between">
