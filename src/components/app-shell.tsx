@@ -12,11 +12,12 @@ import {
   Search,
   Settings,
   ShieldCheck,
+  UserCog,
   UserRound,
   Users,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useState, type ReactNode, useRef, useEffect } from "react";
+import { useState, type ReactNode, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -33,7 +34,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { userSessionService } from "@/lib/user-session.ts";
+import { userSessionService, isUserAdmin } from "@/lib/user-session.ts";
 import { apiUrl } from "@/lib/api-config.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
@@ -44,6 +45,7 @@ const nav = [
   { label: "Customer Inquiry", to: "/inquiry", icon: ClipboardList },
   { label: "Final Order", to: "/orders", icon: FileText },
   { label: "Reports", to: "/reports", icon: PieChart },
+  { label: "User Management", to: "/user-management", icon: UserCog },
   { label: "Settings", to: "/settings", icon: Settings },
   { label: "Profile", to: "/profile", icon: UserRound },
 ] as const;
@@ -79,8 +81,25 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const userInfo = userSessionService.getCurrentUser();
+  const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
   const navigate = useNavigate();
+
+  useEffect(() => {
+    return userSessionService.subscribe((u) => setCurrentUser(u));
+  }, []);
+
+  const isAdmin = useMemo(() => isUserAdmin(currentUser), [currentUser]);
+
+  const visibleNav = useMemo(() => {
+    return nav.filter((item) => {
+      if (item.to === "/user-management") {
+        return isAdmin;
+      }
+      return true;
+    });
+  }, [isAdmin]);
+
+  const userInfo = currentUser;
 
   // Warning modal state for token refresh
   const [isWarningOpen, setIsWarningOpen] = useState(false);
@@ -260,7 +279,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-2">
-          {nav.map((item) => {
+          {visibleNav.map((item) => {
             const active = pathname === item.to;
             return (
               <Link

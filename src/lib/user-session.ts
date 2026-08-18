@@ -30,6 +30,36 @@ export type AppUser = {
   [key: string]: unknown;
 };
 
+export function isUserAdmin(user: AppUser | null | undefined): boolean {
+  if (!user) return false;
+  const role = String(user.role || "").toUpperCase();
+  const userType = String(user.userType || "").toUpperCase();
+  const roles = (user.roles || []).map((r) => String(r).toUpperCase());
+  if (
+    role === "ADMIN" ||
+    role.includes("ADMIN") ||
+    userType === "ADMIN" ||
+    roles.includes("ADMIN") ||
+    roles.some((r) => r.includes("ADMIN"))
+  ) {
+    return true;
+  }
+  if (user.moduleRights && Array.isArray(user.moduleRights)) {
+    return user.moduleRights.some((mr: any) => {
+      if (typeof mr === "string") {
+        const key = mr.toUpperCase();
+        return key === "USER_MANAGEMENT" || key === "USER-MANAGEMENT";
+      }
+      const name = String(mr.name || "").toLowerCase();
+      return (
+        (name === "user-management" || name === "user_management") &&
+        mr.visible !== false
+      );
+    });
+  }
+  return false;
+}
+
 type PersistedSession = {
   currentUser: AppUser | null;
   allUsers: AppUser[];
