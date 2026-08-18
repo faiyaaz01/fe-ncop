@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  clients,
+  mockClients as clients,
   countryDistribution,
   inquiryStatusData,
   monthlySales,

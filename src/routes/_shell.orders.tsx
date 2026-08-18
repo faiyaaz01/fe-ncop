@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { EmptyState, PageHeader, Panel, StatusChip, Timeline } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { clients, orders, products } from "@/lib/mock-data";
+import { mockClients as clients, orders, products } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/orders")({

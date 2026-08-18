@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { clients, currencies, incoterms, products } from "@/lib/mock-data";
+import { mockClients as clients, currencies, incoterms, products } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/inquiry")({

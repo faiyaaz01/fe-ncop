@@ -28,7 +28,7 @@ import { Counter, Panel, Reveal, StatusChip } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  clients,
+  mockClients as clients,
   countryDistribution,
   followUps,
   monthlySales,

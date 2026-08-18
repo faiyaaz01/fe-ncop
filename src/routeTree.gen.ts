@@ -21,6 +21,7 @@ import { Route as ShellReportsRouteImport } from './routes/_shell.reports'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellUserManagementRouteImport } from './routes/_shell.user-management'
 import { Route as IndexLoginRouteImport } from './routes/index/login'
+import { Route as RegisterClientIdRouteImport } from './routes/register-client/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,6 +82,11 @@ const IndexLoginRoute = IndexLoginRouteImport.update({
   path: '/index/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RegisterClientIdRoute = RegisterClientIdRouteImport.update({
+  id: '/register-client/$id',
+  path: '/register-client/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof ShellSettingsRoute
   '/user-management': typeof ShellUserManagementRoute
   '/index/login': typeof IndexLoginRoute
+  '/register-client/$id': typeof RegisterClientIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/settings': typeof ShellSettingsRoute
   '/user-management': typeof ShellUserManagementRoute
   '/index/login': typeof IndexLoginRoute
+  '/register-client/$id': typeof RegisterClientIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -122,6 +130,7 @@ export interface FileRoutesById {
   '/_shell/settings': typeof ShellSettingsRoute
   '/_shell/user-management': typeof ShellUserManagementRoute
   '/index/login': typeof IndexLoginRoute
+  '/register-client/$id': typeof RegisterClientIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/user-management'
     | '/index/login'
+    | '/register-client/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/user-management'
     | '/index/login'
+    | '/register-client/$id'
   id:
     | '__root__'
     | '/'
@@ -164,12 +175,14 @@ export interface FileRouteTypes {
     | '/_shell/settings'
     | '/_shell/user-management'
     | '/index/login'
+    | '/register-client/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ShellRoute: typeof ShellRouteWithChildren
   IndexLoginRoute: typeof IndexLoginRoute
+  RegisterClientIdRoute: typeof RegisterClientIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -258,6 +271,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/register-client/$id': {
+      id: '/register-client/$id'
+      path: '/register-client/$id'
+      fullPath: '/register-client/$id'
+      preLoaderRoute: typeof RegisterClientIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -291,6 +311,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShellRoute: ShellRouteWithChildren,
   IndexLoginRoute: IndexLoginRoute,
+  RegisterClientIdRoute: RegisterClientIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

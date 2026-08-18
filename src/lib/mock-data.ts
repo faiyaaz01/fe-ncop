@@ -1,4 +1,4 @@
-export type Client = {
+export type MockClient = {
   id: string;
   name: string;
   code: string;
@@ -23,7 +23,7 @@ export type Client = {
   openOrders: number;
 };
 
-export const clients: Client[] = [
+export const mockClients: MockClient[] = [
   {
     id: "CL-1042",
     name: "Novartis Bio",

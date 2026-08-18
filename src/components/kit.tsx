@@ -38,7 +38,7 @@ export function Panel({
   children: ReactNode;
   hover?: boolean;
 }) {
-  return <div className={cn("surface p-5", hover && "lift", className)}>{children}</div>;
+  return <div className={cn("surface flex flex-col justify-between p-5", hover && "lift", className)}>{children}</div>;
 }
 
 export function Reveal({
