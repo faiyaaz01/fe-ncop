@@ -1,42 +1,44 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+// import {
+//   Area,
+//   AreaChart,
+//   Bar,
+//   BarChart,
+//   CartesianGrid,
+//   Cell,
+//   Pie,
+//   PieChart,
+//   ResponsiveContainer,
+//   Tooltip,
+//   XAxis,
+//   YAxis,
+// } from "recharts";
 import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  ArrowUpRight,
-  Boxes,
-  CalendarDays,
-  ClipboardList,
-  FileText,
-  ListChecks,
-  TrendingUp,
+  // ArrowUpRight,
+  // Boxes,
+  // CalendarDays,
+  // ClipboardList,
+  // FileText,
+  // ListChecks,
+  // TrendingUp,
   Users,
 } from "lucide-react";
-import { Counter, Panel, Reveal, StatusChip } from "@/components/kit";
+import { Panel, Reveal } from "@/components/kit";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import {
-  mockClients as clients,
-  countryDistribution,
-  followUps,
-  monthlySales,
-  orders,
-  products,
-  rfqs,
-} from "@/lib/mock-data";
+// import { Progress } from "@/components/ui/progress";
+// import {
+//   mockClients as clients,
+//   countryDistribution,
+//   followUps,
+//   monthlySales,
+//   orders,
+//   products,
+//   rfqs,
+// } from "@/lib/mock-data";
 import { userSessionService } from "@/lib/user-session.ts";
+import { fetchClientCount, fetchClientLevelCounts } from "@/lib/client-api";
 
 export const Route = createFileRoute("/_shell/dashboard")({
   head: () => ({
@@ -57,6 +59,7 @@ export const Route = createFileRoute("/_shell/dashboard")({
   component: Dashboard,
 });
 
+/* ── COMMENTED OUT: hardcoded stats not connected to backend ──────────────────
 const stats = [
   { label: "Total Clients", value: 148, delta: "+6 this quarter", icon: Users },
   { label: "Products", value: 1280, delta: "+24 registrations", icon: Boxes },
@@ -65,7 +68,9 @@ const stats = [
   { label: "Revenue (YTD)", value: 14.4, prefix: "$", suffix: "M", decimals: 1, icon: TrendingUp },
   { label: "Pending Tasks", value: 9, delta: "3 overdue", icon: ListChecks },
 ];
+──────────────────────────────────────────────────────────────────────────────── */
 
+/* ── COMMENTED OUT: chart tooltip config (no charts currently connected) ──────
 const chartTooltip = {
   contentStyle: {
     borderRadius: 14,
@@ -76,9 +81,32 @@ const chartTooltip = {
     boxShadow: "var(--shadow-soft)",
   },
 };
+──────────────────────────────────────────────────────────────────────────────── */
+
+const CLIENT_LEVEL_CONFIG = [
+  { key: "PLATINUM", label: "Platinum", range: "Above ₹10 Cr",   dot: "bg-blue-500" },
+  { key: "GOLD",     label: "Gold",     range: "₹5–10 Cr",      dot: "bg-green-500" },
+  { key: "SILVER",   label: "Silver",   range: "₹1–5 Cr",       dot: "bg-yellow-400" },
+  { key: "BRONZE",   label: "Bronze",   range: "₹25 Lakh–1 Cr", dot: "bg-orange-500" },
+  { key: "NO_VIP",   label: "No VIP",   range: "Below ₹25 Lakh", dot: "bg-gray-400" },
+] as const;
 
 function Dashboard() {
+  // ── Live client count from backend ──────────────────────────────────────
+  const { data: clientCount, isLoading: isClientCountLoading } = useQuery({
+    queryKey: ["clientCount"],
+    queryFn: fetchClientCount,
+  });
+
+  // ── Client level distribution from backend ─────────────────────────────
+  const { data: levelCounts, isLoading: isLevelCountsLoading } = useQuery({
+    queryKey: ["clientLevelCounts"],
+    queryFn: fetchClientLevelCounts,
+  });
+
+  /* ── COMMENTED OUT: top customers from mock data ────────────────────────
   const topCustomers = [...clients].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  ──────────────────────────────────────────────────────────────────────── */
 
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -93,11 +121,13 @@ function Dashboard() {
     month: "long",
     year: "numeric",
   });
+  /* ── COMMENTED OUT: calendar variables (calendar widget not connected) ──
   const currentMonthLabel = today.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const todayDate = today.getDate();
   const daysInCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   // Monday-first weekday offset for the 1st of the month (0 = Monday).
   const firstWeekdayOffset = (new Date(today.getFullYear(), today.getMonth(), 1).getDay() + 6) % 7;
+  ──────────────────────────────────────────────────────────────────────── */
 
   // Live time string and short timezone name (uses user's locale/system settings)
   const timeString = now.toLocaleTimeString(undefined, {
@@ -132,6 +162,7 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* ── Greeting banner ─────────────────────────────────────────────── */}
       <Reveal>
         <div className="relative overflow-hidden rounded-[20px] border border-border/60 bg-primary p-6 text-primary-foreground sm:p-8">
           <div className="absolute inset-0 opacity-40 [background:radial-gradient(28rem_18rem_at_85%_-20%,color-mix(in_oklab,var(--accent)_60%,transparent),transparent)]" />
@@ -144,52 +175,92 @@ function Dashboard() {
                 {greeting}, {userInfo?.firstName}
               </h1>
               <p className="max-w-xl text-sm text-primary-foreground/80">
-                Pipeline is up 18% against July. Three orders need QA release before Friday's vessel
-                cut-off in Rotterdam.
+                Welcome to your dashboard. Client analytics are shown below.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="secondary">
-                <Link to="/inquiry">New inquiry</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
-              >
-                <Link to="/reports">View reports</Link>
+                <Link to="/clients">View clients</Link>
               </Button>
             </div>
           </div>
         </div>
       </Reveal>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {stats.map((s, i) => (
-          <Reveal key={s.label} delay={i * 0.05}>
-            <Panel hover className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {s.label}
-                </p>
-                <p className="text-3xl font-bold">
-                  <Counter
-                    value={s.value}
-                    prefix={s.prefix ?? ""}
-                    suffix={s.suffix ?? ""}
-                    decimals={s.decimals ?? 0}
-                  />
-                </p>
-                <p className="text-xs text-muted-foreground">{s.delta ?? "vs. last period"}</p>
+      {/* ── Client analytics (connected to backend) ────────────────────── */}
+      <Reveal>
+        <Panel className="space-y-3">
+          {/* Title row — heading on left, total count badge on right */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+                <Users className="size-4" />
               </div>
-              <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary">
-                <s.icon className="size-[18px]" />
+              <div>
+                <h2 className="text-sm font-semibold leading-tight">Client Analytics</h2>
+                <p className="text-[11px] text-muted-foreground">By annual business turnover</p>
               </div>
-            </Panel>
-          </Reveal>
-        ))}
-      </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-1.5">
+              <span className="text-xs font-medium text-muted-foreground">Total</span>
+              <span className="text-lg font-bold leading-none tabular-nums">
+                {isClientCountLoading ? (
+                  <span className="inline-block h-5 w-8 animate-pulse rounded bg-muted" />
+                ) : (
+                  clientCount ?? 0
+                )}
+              </span>
+            </div>
+          </div>
 
+          {/* Compact level table */}
+          <div className="overflow-hidden rounded-md border border-border/60">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-border/60 bg-secondary/40">
+                  <th className="px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Level</th>
+                  <th className="px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Turnover Range</th>
+                  <th className="px-2.5 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {CLIENT_LEVEL_CONFIG.map((level, i) => {
+                  const count = levelCounts?.[level.key] ?? 0;
+                  const hasClients = count > 0;
+                  return (
+                    <tr
+                      key={level.key}
+                      className={
+                        "transition-colors hover:bg-secondary/50" +
+                        (i < CLIENT_LEVEL_CONFIG.length - 1 ? " border-b border-border/40" : "")
+                      }
+                    >
+                      <td className="px-2.5 py-2">
+                        <span className="flex items-center gap-2">
+                          <span className={`size-2 shrink-0 rounded-full ${level.dot}`} />
+                          <span className={hasClients ? "font-semibold" : "font-medium text-muted-foreground"}>{level.label}</span>
+                        </span>
+                      </td>
+                      <td className="px-2.5 py-2 text-muted-foreground">{level.range}</td>
+                      <td className="px-2.5 py-2 text-right tabular-nums">
+                        {isLevelCountsLoading ? (
+                          <span className="inline-block h-4 w-6 animate-pulse rounded bg-muted" />
+                        ) : (
+                          <span className={hasClients ? "font-bold" : "text-muted-foreground"}>{count}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+      </Reveal>
+
+      {/* ── COMMENTED OUT: all sections below are not connected to backend ── */}
+
+      {/* ── Monthly sales & revenue chart (mock data) ──────────────────────
       <div className="grid gap-4 lg:grid-cols-3">
         <Reveal className="lg:col-span-2">
           <Panel>
@@ -292,7 +363,9 @@ function Dashboard() {
           </Panel>
         </Reveal>
       </div>
+      ────────────────────────────────────────────────────────────────────── */}
 
+      {/* ── Recent orders & top customers (mock data) ─────────────────────
       <div className="grid gap-4 lg:grid-cols-3">
         <Reveal className="lg:col-span-2">
           <Panel>
@@ -341,7 +414,9 @@ function Dashboard() {
           </Panel>
         </Reveal>
       </div>
+      ────────────────────────────────────────────────────────────────────── */}
 
+      {/* ── Calendar, follow-ups, inquiry chart (mock data) ──────────────
       <div className="grid gap-4 lg:grid-cols-3">
         <Reveal>
           <Panel className="h-full">
@@ -441,6 +516,7 @@ function Dashboard() {
           </Panel>
         </Reveal>
       </div>
+      ────────────────────────────────────────────────────────────────────── */}
     </div>
   );
 }

@@ -36,6 +36,24 @@ export async function fetchClients(): Promise<Client[]> {
   return handleResponse<Client[]>(res);
 }
 
+/** GET /api/clients/count — fetch total client count */
+export async function fetchClientCount(): Promise<number> {
+  const res = await fetch(apiUrl("/api/clients/count"), {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  return handleResponse<number>(res);
+}
+
+/** GET /api/clients/level-counts — fetch client count per level */
+export async function fetchClientLevelCounts(): Promise<Record<string, number>> {
+  const res = await fetch(apiUrl("/api/clients/level-counts"), {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  return handleResponse<Record<string, number>>(res);
+}
+
 /** GET /api/clients/:id — fetch a single client */
 export async function fetchClient(id: string): Promise<Client> {
   const res = await fetch(apiUrl(`/api/clients/${id}`), {
