@@ -5,10 +5,10 @@ import { useForm } from "react-hook-form";
 import {
   Building2,
   CheckCircle2,
+  Eye,
   FileText,
   Loader2,
   Upload,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,8 +19,9 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { apiUrl } from "@/lib/api-config";
-import type { Client, DocumentType, BankDetail } from "@/lib/client-types";
-import { DOCUMENT_TYPES, DOCUMENT_TYPE_LABELS } from "@/lib/client-types";
+import type { Client, DocumentType, BankDetail, ClientDocument } from "@/lib/client-types";
+import { DOCUMENT_TYPE_LABELS } from "@/lib/client-types";
+import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
 
 // ─── Route ───────────────────────────────────────────────────────────────────
 
@@ -113,13 +114,14 @@ function ClientRegistration() {
     queryFn: () => fetchClientPublic(id),
   });
 
-  const [uploadedDocs, setUploadedDocs] = useState<Set<DocumentType>>(new Set());
   const [uploadingDoc, setUploadingDoc] = useState<DocumentType | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<ClientDocument | null>(null);
   const [bankSubmitted, setBankSubmitted] = useState(false);
 
-  // Pre-populate uploaded docs from existing client data
-  const existingDocs = client?.documents?.map((d) => d.documentType) ?? [];
-  const allUploaded = new Set([...uploadedDocs, ...existingDocs]);
+  const docsMap = new Map<DocumentType, ClientDocument>();
+  (client?.documents ?? []).forEach((d) => {
+    docsMap.set(d.documentType, d);
+  });
 
   const bankForm = useForm<BankFormValues>({
     defaultValues: {
@@ -146,7 +148,6 @@ function ClientRegistration() {
     setUploadingDoc(docType);
     try {
       await uploadDocument(id, file, docType);
-      setUploadedDocs((prev) => new Set(prev).add(docType));
       queryClient.invalidateQueries({ queryKey: ["client-registration", id] });
       toast.success(`${DOCUMENT_TYPE_LABELS[docType]} uploaded`);
     } catch {
@@ -207,25 +208,26 @@ function ClientRegistration() {
             Complete Your Registration
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Please upload the required documents and provide your bank details below.
+            Please upload the required regulatory dossiers, legal licenses and provide your bank details below.
           </p>
         </div>
 
         {/* ── Document Uploads ── */}
         <section className="space-y-4">
           <h3 className="text-base font-semibold flex items-center gap-2">
-            <FileText className="size-4" /> Attachments
+            <FileText className="size-4" /> Attachment Dossier
           </h3>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {/* Left column */}
             <div className="space-y-2">
               {DOC_LEFT.map((docType) => (
                 <DocUploadRow
                   key={docType}
                   docType={docType}
-                  uploaded={allUploaded.has(docType)}
+                  doc={docsMap.get(docType)}
                   uploading={uploadingDoc === docType}
                   onUpload={(file) => handleDocUpload(docType, file)}
+                  onView={(d) => setViewingDoc(d)}
                 />
               ))}
             </div>
@@ -235,9 +237,10 @@ function ClientRegistration() {
                 <DocUploadRow
                   key={docType}
                   docType={docType}
-                  uploaded={allUploaded.has(docType)}
+                  doc={docsMap.get(docType)}
                   uploading={uploadingDoc === docType}
                   onUpload={(file) => handleDocUpload(docType, file)}
+                  onView={(d) => setViewingDoc(d)}
                 />
               ))}
             </div>
@@ -322,6 +325,14 @@ function ClientRegistration() {
           )}
         </section>
       </main>
+
+      {/* ── Document Viewer ── */}
+      <DocumentViewerDialog
+        open={!!viewingDoc}
+        onOpenChange={(o) => !o && setViewingDoc(null)}
+        clientId={client.id}
+        document={viewingDoc}
+      />
     </div>
   );
 }
@@ -330,41 +341,38 @@ function ClientRegistration() {
 
 function DocUploadRow({
   docType,
-  uploaded,
+  doc,
   uploading,
   onUpload,
+  onView,
 }: {
   docType: DocumentType;
-  uploaded: boolean;
+  doc?: ClientDocument;
   uploading: boolean;
   onUpload: (file: File) => void;
+  onView: (doc: ClientDocument) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-
-  function handleClick() {
-    if (!uploaded && !uploading) {
-      inputRef.current?.click();
-    }
-  }
+  const uploaded = !!doc;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
       onUpload(file);
-      e.target.value = ""; // reset input
+      e.target.value = "";
     }
   }
 
   return (
     <div
       className={cn(
-        "flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors",
+        "flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors gap-2",
         uploaded
           ? "border-accent/30 bg-accent/5"
           : "border-border hover:bg-secondary/50",
       )}
     >
-      <span className={cn("truncate pr-2 font-medium", uploaded && "text-accent")}>
+      <span className={cn("truncate font-medium flex-1", uploaded && "text-accent")}>
         {DOCUMENT_TYPE_LABELS[docType]}
       </span>
       <input
@@ -374,27 +382,36 @@ function DocUploadRow({
         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
         onChange={handleFileChange}
       />
-      {uploaded ? (
-        <span className="flex items-center gap-1 text-xs text-accent">
-          <CheckCircle2 className="size-3.5" /> Uploaded
-        </span>
-      ) : (
+      <div className="flex items-center gap-1.5 shrink-0">
+        {uploaded && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs px-2 text-accent hover:text-accent font-medium gap-1"
+            onClick={() => onView(doc)}
+          >
+            <Eye className="size-3.5" />
+            View
+          </Button>
+        )}
         <Button
           type="button"
-          variant="outline"
+          variant={uploaded ? "ghost" : "outline"}
           size="sm"
-          className="h-7 shrink-0 text-xs"
+          className={cn("h-7 shrink-0 text-xs", uploaded && "text-muted-foreground")}
           disabled={uploading}
-          onClick={handleClick}
+          onClick={() => inputRef.current?.click()}
+          title={uploaded ? "Replace file" : "Upload file"}
         >
           {uploading ? (
             <Loader2 className="size-3.5 animate-spin" />
           ) : (
             <Upload className="size-3.5" />
           )}
-          Upload
+          {uploaded ? "Replace" : "Upload"}
         </Button>
-      )}
+      </div>
     </div>
   );
 }

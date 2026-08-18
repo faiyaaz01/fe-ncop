@@ -102,3 +102,27 @@ export async function uploadDocument(
   return handleResponse<Client>(res);
 }
 
+/** Get relative URL for viewing/streaming document */
+export function getDocumentViewUrl(clientId: string, docId: string): string {
+  return apiUrl(`/api/clients/${clientId}/documents/${docId}/view`);
+}
+
+/** Get relative URL for downloading document */
+export function getDocumentDownloadUrl(clientId: string, docId: string): string {
+  return apiUrl(`/api/clients/${clientId}/documents/${docId}/download`);
+}
+
+/** DELETE /api/clients/:id/documents/:docId — delete a document */
+export async function deleteDocument(
+  clientId: string,
+  docId: string,
+): Promise<Client> {
+  const headers: HeadersInit = authHeaders();
+  const res = await fetch(apiUrl(`/api/clients/${clientId}/documents/${docId}`), {
+    method: "DELETE",
+    headers,
+  });
+  return handleResponse<Client>(res);
+}
+
+

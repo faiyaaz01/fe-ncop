@@ -123,7 +123,14 @@ export interface BankDetail {
 export interface ClientDocument {
   id?: string;
   documentType: DocumentType;
+  fileName?: string;
+  originalFileName?: string;
+  contentType?: string;
+  fileSize?: number;
   fileUrl?: string;
+  storageType?: "GCS" | "LOCAL" | string;
+  storagePath?: string;
+  uploadedAt?: string | Date;
 }
 
 // ─── Main entity ─────────────────────────────────────────────────────────────

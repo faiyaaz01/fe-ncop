@@ -5,7 +5,10 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { motion } from "motion/react";
 import {
   Building2,
+  CheckCircle2,
   Download,
+  ExternalLink,
+  Eye,
   FileText,
   Globe2,
   Loader2,
@@ -32,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
@@ -58,6 +62,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
 
 import {
   fetchClients,
@@ -65,6 +70,8 @@ import {
   updateClient,
   resendRegistrationEmail,
   uploadDocument,
+  deleteDocument,
+  getDocumentDownloadUrl,
 } from "@/lib/client-api";
 import type {
   Client,
@@ -73,6 +80,7 @@ import type {
   CustomerType,
   ClientLevel,
   DocumentType,
+  ClientDocument,
 } from "@/lib/client-types";
 import {
   CUSTOMER_TYPES,
@@ -232,6 +240,19 @@ function formToDto(values: ClientFormValues): ClientRequestDto {
   };
 }
 
+function areAddressesEqual(a?: AddressFields, b?: AddressFields): boolean {
+  if (!a || !b) return false;
+  if (!a.line1?.trim() && !a.city?.trim()) return false;
+  return (
+    (a.line1 ?? "").trim().toLowerCase() === (b.line1 ?? "").trim().toLowerCase() &&
+    (a.line2 ?? "").trim().toLowerCase() === (b.line2 ?? "").trim().toLowerCase() &&
+    (a.city ?? "").trim().toLowerCase() === (b.city ?? "").trim().toLowerCase() &&
+    (a.state ?? "").trim().toLowerCase() === (b.state ?? "").trim().toLowerCase() &&
+    (a.country ?? "").trim().toLowerCase() === (b.country ?? "").trim().toLowerCase() &&
+    (a.pinCode ?? "").trim().toLowerCase() === (b.pinCode ?? "").trim().toLowerCase()
+  );
+}
+
 function clientToFormValues(client: Client): ClientFormValues {
   const registeredAddr = client.addresses?.find((a) => a.type === "REGISTERED");
   const billingAddr = client.addresses?.find((a) => a.type === "BILLING");
@@ -246,6 +267,22 @@ function clientToFormValues(client: Client): ClientFormValues {
     pinCode: a?.pinCode ?? "",
   });
 
+  const regFields = toFields(registeredAddr);
+  const billFields = toFields(billingAddr);
+  const shipFields = toFields(shippingAddr);
+
+  // Detect if billing was same as registered
+  const billingSameAsRegistered =
+    !!registeredAddr && !!billingAddr && areAddressesEqual(regFields, billFields);
+
+  const billingSource = billingSameAsRegistered ? regFields : billFields;
+
+  // Detect if shipping was same as billing
+  const shippingSameAsBilling =
+    (!!billingAddr || billingSameAsRegistered) &&
+    !!shippingAddr &&
+    areAddressesEqual(billingSource, shipFields);
+
   return {
     customerType: client.customerType,
     companyName: client.companyName,
@@ -257,11 +294,11 @@ function clientToFormValues(client: Client): ClientFormValues {
       afterDispatchDays: client.paymentTerms?.afterDispatchDays?.toString() ?? "",
       afterDispatchPercent: client.paymentTerms?.afterDispatchPercent?.toString() ?? "",
     },
-    registeredAddress: toFields(registeredAddr),
-    billingAddress: toFields(billingAddr),
-    shippingAddress: toFields(shippingAddr),
-    billingSameAsRegistered: false,
-    shippingSameAsBilling: false,
+    registeredAddress: regFields,
+    billingAddress: billingSameAsRegistered ? { ...regFields } : billFields,
+    shippingAddress: shippingSameAsBilling ? { ...billingSource } : shipFields,
+    billingSameAsRegistered,
+    shippingSameAsBilling,
     pointOfContacts: (client.pointOfContacts ?? []).map((p) => ({
       personName: p.personName,
       designation: p.designation,
@@ -305,7 +342,7 @@ function ClientMaster() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [segment, setSegment] = useState<(typeof filterSegments)[number]>("All");
-  const [active, setActive] = useState<Client | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
 
@@ -319,11 +356,15 @@ function ClientMaster() {
     queryFn: fetchClients,
   });
 
+  const active = clients.find((c) => c.id === activeId) ?? null;
+
   const createMutation = useMutation({
     mutationFn: createClient,
-    onSuccess: () => {
+    onSuccess: (newClient) => {
+      queryClient.setQueryData<Client[]>(["clients"], (old = []) => [newClient, ...old]);
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setFormOpen(false);
+      setActiveId(newClient.id);
       toast.success("Client created successfully");
     },
     onError: (err: Error) => toast.error(`Failed to create client: ${err.message}`),
@@ -332,10 +373,12 @@ function ClientMaster() {
   const updateMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: ClientRequestDto }) => updateClient(id, dto),
     onSuccess: (updatedClient) => {
+      queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
+        old.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+      );
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setFormOpen(false);
       setEditingClient(null);
-      setActive(updatedClient);
       toast.success("Client updated successfully");
     },
     onError: (err: Error) => toast.error(`Failed to update client: ${err.message}`),
@@ -490,7 +533,7 @@ function ClientMaster() {
             const addr = firstAddr(c);
             return (
               <Reveal key={c.id} delay={i * 0.05}>
-                <button onClick={() => setActive(c)} className="w-full text-left h-full">
+                <button onClick={() => setActiveId(c.id)} className="w-full text-left h-full">
                   <Panel hover className="h-full">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
@@ -541,7 +584,7 @@ function ClientMaster() {
       )}
 
       {/* ── Detail Drawer ── */}
-      <Sheet open={!!active} onOpenChange={(o) => !o && setActive(null)}>
+      <Sheet open={!!active} onOpenChange={(o) => !o && setActiveId(null)}>
         <SheetContent className="glass w-full overflow-y-auto sm:max-w-xl">
           {active && (
             <ClientDetailDrawer
@@ -773,7 +816,7 @@ function AddressBlock({
             <Label className="text-xs">Address Line 2</Label>
             <Input {...form.register(`${prefix}.line2`)} placeholder="Apt, suite, etc." />
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">City</Label>
               <Input {...form.register(`${prefix}.city`)} placeholder="City" />
@@ -841,31 +884,33 @@ function ClientFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-hidden p-0">
-        <DialogHeader className="px-6 pt-6">
-          <DialogTitle>{isEdit ? "Edit Client" : "Add New Client"}</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-3xl lg:max-w-4xl sm:h-[88vh] sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+        {/* Fixed Header */}
+        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
+          <DialogTitle className="text-lg font-semibold">{isEdit ? "Edit Client" : "Add New Client"}</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
             {isEdit
               ? `Editing ${editingClient?.companyName} (${editingClient?.customerCode})`
               : "Fill in the details below. Customer code will be auto-generated."}
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-10rem)] px-6">
-          <form id="client-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 pb-6">
+        {/* Scrollable Form Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <form id="client-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* ── Company Info ── */}
             <fieldset className="space-y-4">
               <legend className="text-sm font-semibold">Company Information</legend>
 
               {isEdit && (
-                <div className="surface flex items-center gap-3 p-3">
+                <div className="surface flex items-center gap-3 p-3 rounded-lg">
                   <span className="text-xs font-medium text-muted-foreground">Customer Code</span>
                   <span className="text-sm font-semibold">{editingClient?.customerCode}</span>
                   <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Auto-generated</span>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customerType">Customer Type *</Label>
                   <Select value={form.watch("customerType")} onValueChange={(v) => form.setValue("customerType", v as CustomerType)}>
@@ -880,7 +925,7 @@ function ClientFormDialog({
                   <Input id="annualTurnover" type="number" placeholder="e.g. 75000000" {...form.register("annualTurnover")} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name *</Label>
                   <Input id="companyName" placeholder="e.g. Acme Global Industries" {...form.register("companyName", { required: true })} />
@@ -913,7 +958,16 @@ function ClientFormDialog({
                 disabled={billingSameAsRegistered}
                 sameAsLabel="Same as Registered"
                 sameAsChecked={billingSameAsRegistered}
-                onSameAsChange={(checked) => form.setValue("billingSameAsRegistered", checked)}
+                onSameAsChange={(checked) => {
+                  form.setValue("billingSameAsRegistered", checked);
+                  if (checked) {
+                    const reg = form.getValues("registeredAddress");
+                    form.setValue("billingAddress", { ...reg });
+                    if (form.getValues("shippingSameAsBilling")) {
+                      form.setValue("shippingAddress", { ...reg });
+                    }
+                  }
+                }}
               />
 
               <Separator className="my-2" />
@@ -925,7 +979,15 @@ function ClientFormDialog({
                 disabled={shippingSameAsBilling}
                 sameAsLabel="Same as Billing"
                 sameAsChecked={shippingSameAsBilling}
-                onSameAsChange={(checked) => form.setValue("shippingSameAsBilling", checked)}
+                onSameAsChange={(checked) => {
+                  form.setValue("shippingSameAsBilling", checked);
+                  if (checked) {
+                    const bill = form.getValues("billingSameAsRegistered")
+                      ? form.getValues("registeredAddress")
+                      : form.getValues("billingAddress");
+                    form.setValue("shippingAddress", { ...bill });
+                  }
+                }}
               />
             </fieldset>
 
@@ -934,7 +996,7 @@ function ClientFormDialog({
             {/* ── Payment Terms ── */}
             <fieldset className="space-y-4">
               <legend className="text-sm font-semibold">Agreed Payment Terms</legend>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Advance %</Label>
                   <Input type="number" placeholder="e.g. 50" {...form.register("paymentTerms.advancePercent")} />
@@ -966,7 +1028,7 @@ function ClientFormDialog({
               </div>
               {pocFields.length === 0 && <p className="text-xs text-muted-foreground">No contacts added yet.</p>}
               {pocFields.map((field, idx) => (
-                <div key={field.id} className="surface space-y-3 p-4">
+                <div key={field.id} className="surface space-y-3.5 p-4 rounded-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <p className="text-xs font-semibold text-muted-foreground">Contact {idx + 1}</p>
@@ -975,7 +1037,6 @@ function ClientFormDialog({
                           checked={form.watch(`pointOfContacts.${idx}.primary`)}
                           onCheckedChange={(v) => {
                             if (v === true) {
-                              // Uncheck all others, then check this one
                               pocFields.forEach((_, i) => form.setValue(`pointOfContacts.${i}.primary`, false));
                             }
                             form.setValue(`pointOfContacts.${idx}.primary`, v === true);
@@ -988,12 +1049,12 @@ function ClientFormDialog({
                       <Trash2 className="size-3.5 text-destructive" />
                     </Button>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     <div className="space-y-1"><Label className="text-xs">Person Name *</Label><Input {...form.register(`pointOfContacts.${idx}.personName`, { required: true })} placeholder="Full name" /></div>
                     <div className="space-y-1"><Label className="text-xs">Designation</Label><Input {...form.register(`pointOfContacts.${idx}.designation`)} placeholder="e.g. Sales Ex." /></div>
                   </div>
                   <div className="space-y-1"><Label className="text-xs">Department</Label><Input {...form.register(`pointOfContacts.${idx}.department`)} placeholder="e.g. Sales, QA, QC, Admin" /></div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     <div className="space-y-1"><Label className="text-xs">Phone</Label><Input {...form.register(`pointOfContacts.${idx}.phone`)} placeholder="+91-XXXXXXXXXX" /></div>
                     <div className="space-y-1"><Label className="text-xs">Email</Label><Input type="email" {...form.register(`pointOfContacts.${idx}.email`)} placeholder="email@example.com" /></div>
                   </div>
@@ -1001,11 +1062,12 @@ function ClientFormDialog({
               ))}
             </fieldset>
           </form>
-        </ScrollArea>
+        </div>
 
-        <DialogFooter className="border-t px-6 py-4">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" form="client-form" disabled={isSubmitting}>
+        {/* Fixed Footer at bottom */}
+        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button type="submit" form="client-form" disabled={isSubmitting} className="w-full sm:w-auto">
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             {isEdit ? "Update Client" : "Create Client"}
           </Button>
@@ -1038,64 +1100,219 @@ const DOC_RIGHT: DocumentType[] = [
   "CIN_COPY",
 ];
 
+function formatBytes(bytes?: number): string {
+  if (!bytes || bytes === 0) return "";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+}
+
 function AdminDocumentsPanel({ client }: { client: Client }) {
   const queryClient = useQueryClient();
   const [uploadingDoc, setUploadingDoc] = useState<DocumentType | null>(null);
-  const uploadedTypes = new Set(client.documents?.map((d) => d.documentType) ?? []);
+  const [viewingDoc, setViewingDoc] = useState<ClientDocument | null>(null);
+
+  const docsMap = new Map<DocumentType, ClientDocument>();
+  (client.documents ?? []).forEach((d) => {
+    docsMap.set(d.documentType, d);
+  });
+
+  const uploadedCount = docsMap.size;
+  const totalCount = DOC_LEFT.length + DOC_RIGHT.length;
+
+  const deleteMutation = useMutation({
+    mutationFn: (docId: string) => deleteDocument(client.id, docId),
+    onSuccess: (updatedClient) => {
+      queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
+        old.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+      );
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Document removed");
+    },
+    onError: (err: Error) => toast.error(`Failed to delete document: ${err.message}`),
+  });
 
   async function handleUpload(docType: DocumentType, file: File) {
     setUploadingDoc(docType);
     try {
-      await uploadDocument(client.id, file, docType);
+      const updatedClient = await uploadDocument(client.id, file, docType);
+      queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
+        old.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+      );
       queryClient.invalidateQueries({ queryKey: ["clients"] });
-      toast.success(`${DOCUMENT_TYPE_LABELS[docType]} uploaded`);
-    } catch {
-      toast.error(`Failed to upload ${DOCUMENT_TYPE_LABELS[docType]}`);
+      toast.success(`${DOCUMENT_TYPE_LABELS[docType]} uploaded successfully`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload document";
+      toast.error(`Failed to upload ${DOCUMENT_TYPE_LABELS[docType]}: ${msg}`);
     } finally {
       setUploadingDoc(null);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Upload or view documents for this client. Two-column layout matching the registration form.
-      </p>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="space-y-2">
-          {DOC_LEFT.map((dt) => (
-            <AdminDocRow key={dt} docType={dt} uploaded={uploadedTypes.has(dt)} uploading={uploadingDoc === dt} onUpload={(f) => handleUpload(dt, f)} />
-          ))}
+    <div className="space-y-6">
+      {/* ── Summary Card ── */}
+      <div className="surface p-4 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Document Dossier
+          </p>
+          <p className="text-sm font-medium mt-0.5">
+            {uploadedCount} of {totalCount} documents attached
+          </p>
         </div>
-        <div className="space-y-2">
-          {DOC_RIGHT.map((dt) => (
-            <AdminDocRow key={dt} docType={dt} uploaded={uploadedTypes.has(dt)} uploading={uploadingDoc === dt} onUpload={(f) => handleUpload(dt, f)} />
-          ))}
+        <div className="flex items-center gap-2">
+          <Badge variant={uploadedCount === totalCount ? "default" : "secondary"}>
+            {uploadedCount === totalCount ? "Complete" : `${Math.round((uploadedCount / totalCount) * 100)}% Complete`}
+          </Badge>
         </div>
       </div>
+
+      {/* ── Uploaded Documents List ── */}
+      {client.documents && client.documents.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Uploaded Files ({client.documents.length})
+          </p>
+          <div className="space-y-2">
+            {client.documents.map((doc) => {
+              const label = DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType;
+              const filename = doc.originalFileName || doc.fileName || label;
+              const downloadUrl = getDocumentDownloadUrl(client.id, doc.id || "");
+
+              return (
+                <div
+                  key={doc.id || doc.documentType}
+                  className="surface flex items-center justify-between p-3 gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary shrink-0">
+                      <FileText className="size-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold truncate leading-tight">
+                          {label}
+                        </p>
+                        {doc.storageType && (
+                          <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shrink-0">
+                            {doc.storageType}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        {filename} {doc.fileSize ? `• ${formatBytes(doc.fileSize)}` : ""}{" "}
+                        {doc.uploadedAt ? `• ${new Date(doc.uploadedAt).toLocaleDateString()}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 text-xs text-primary"
+                      onClick={() => setViewingDoc(doc)}
+                      title="View in document viewer"
+                    >
+                      <Eye className="size-3.5" />
+                      View
+                    </Button>
+
+                    <a href={downloadUrl} download={filename} title="Download original file">
+                      <Button variant="ghost" size="icon" className="size-8 text-muted-foreground">
+                        <Download className="size-3.5" />
+                      </Button>
+                    </a>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      disabled={deleteMutation.isPending}
+                      onClick={() => doc.id && deleteMutation.mutate(doc.id)}
+                      title="Delete document"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Document Upload Matrix ── */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Document Checklist & Uploads
+        </p>
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <div className="space-y-2">
+            {DOC_LEFT.map((dt) => (
+              <AdminDocRow
+                key={dt}
+                docType={dt}
+                doc={docsMap.get(dt)}
+                uploading={uploadingDoc === dt}
+                onUpload={(f) => handleUpload(dt, f)}
+                onView={(d) => setViewingDoc(d)}
+              />
+            ))}
+          </div>
+          <div className="space-y-2">
+            {DOC_RIGHT.map((dt) => (
+              <AdminDocRow
+                key={dt}
+                docType={dt}
+                doc={docsMap.get(dt)}
+                uploading={uploadingDoc === dt}
+                onUpload={(f) => handleUpload(dt, f)}
+                onView={(d) => setViewingDoc(d)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── In-App Document Viewer Dialog ── */}
+      <DocumentViewerDialog
+        open={!!viewingDoc}
+        onOpenChange={(o) => !o && setViewingDoc(null)}
+        clientId={client.id}
+        document={viewingDoc}
+      />
     </div>
   );
 }
 
 function AdminDocRow({
   docType,
-  uploaded,
+  doc,
   uploading,
   onUpload,
+  onView,
 }: {
   docType: DocumentType;
-  uploaded: boolean;
+  doc?: ClientDocument;
   uploading: boolean;
   onUpload: (file: File) => void;
+  onView: (doc: ClientDocument) => void;
 }) {
   const inputRef = { current: null as HTMLInputElement | null };
+  const uploaded = !!doc;
 
   return (
-    <div className={cn(
-      "flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors",
-      uploaded ? "border-accent/30 bg-accent/5" : "border-border",
-    )}>
-      <span className={cn("truncate pr-2 font-medium", uploaded && "text-accent")}>
+    <div
+      className={cn(
+        "flex items-center justify-between rounded-lg border px-3 py-2 text-xs transition-colors gap-2",
+        uploaded ? "border-accent/30 bg-accent/5" : "border-border hover:bg-muted/40",
+      )}
+    >
+      <span className={cn("truncate font-medium flex-1", uploaded && "text-accent")}>
         {DOCUMENT_TYPE_LABELS[docType]}
       </span>
       <input
@@ -1108,21 +1325,36 @@ function AdminDocRow({
           if (file) { onUpload(file); e.target.value = ""; }
         }}
       />
-      {uploaded ? (
-        <span className="flex items-center gap-1 text-[11px] text-accent font-medium">✓ Uploaded</span>
-      ) : (
+      <div className="flex items-center gap-1 shrink-0">
+        {uploaded && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[11px] px-2 text-accent hover:text-accent font-medium gap-1"
+            onClick={() => onView(doc)}
+          >
+            <Eye className="size-3" />
+            View
+          </Button>
+        )}
         <Button
           type="button"
-          variant="outline"
+          variant={uploaded ? "ghost" : "outline"}
           size="sm"
-          className="h-6 shrink-0 text-[11px] px-2"
+          className={cn("h-6 shrink-0 text-[11px] px-2", uploaded && "text-muted-foreground")}
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
+          title={uploaded ? "Replace file" : "Upload file"}
         >
-          {uploading ? <Loader2 className="size-3 animate-spin" /> : <Upload className="size-3" />}
-          Upload
+          {uploading ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : (
+            <Upload className="size-3" />
+          )}
+          {uploaded ? "Replace" : "Upload"}
         </Button>
-      )}
+      </div>
     </div>
   );
 }
