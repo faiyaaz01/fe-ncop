@@ -563,7 +563,7 @@ function UserManagementPage() {
         className="space-y-6"
       >
         <div className="border-b border-border/70 pb-px">
-          <TabsList className="h-11 rounded-xl bg-secondary/60 p-1">
+          <TabsList className="h-11 rounded-xl bg-secondary/60 p-1 pb-6">
             <TabsTrigger
               value="users"
               className="gap-2 rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-sm"
