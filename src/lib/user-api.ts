@@ -30,6 +30,12 @@ export interface UserResponse {
 export interface RoleResponse {
   roleId: string;
   name: string;
+  description?: string;
+  active?: boolean;
+  moduleRights?: string[];
+  userCount?: number;
+  createdOn?: string;
+  lastUpdatedOn?: string;
 }
 
 export interface ModuleRightItem {
@@ -37,6 +43,8 @@ export interface ModuleRightItem {
   name: string;
   label?: string;
   description?: string;
+  createdOn?: string;
+  lastUpdatedOn?: string;
 }
 
 export interface CreateUserPayload {
@@ -58,6 +66,32 @@ export interface UpdateUserPayload {
   moduleRights?: string[];
   userStatus?: UserStatus;
   userType?: UserType;
+}
+
+export interface CreateRolePayload {
+  name: string;
+  description?: string;
+  active?: boolean;
+  moduleRights?: string[];
+}
+
+export interface UpdateRolePayload {
+  name?: string;
+  description?: string;
+  active?: boolean;
+  moduleRights?: string[];
+}
+
+export interface CreateModuleRightPayload {
+  name: string;
+  label?: string;
+  description?: string;
+}
+
+export interface UpdateModuleRightPayload {
+  name?: string;
+  label?: string;
+  description?: string;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -149,6 +183,8 @@ export async function resetUserPassword(id: string, password: string): Promise<v
   return handleResponse<void>(res);
 }
 
+// ─── Role Management APIs ────────────────────────────────────────────────────
+
 /** GET /api/v1/roles — fetch all available roles */
 export async function fetchRoles(): Promise<RoleResponse[]> {
   const res = await fetch(apiUrl("/api/v1/roles"), {
@@ -158,6 +194,46 @@ export async function fetchRoles(): Promise<RoleResponse[]> {
   return handleResponse<RoleResponse[]>(res);
 }
 
+/** GET /api/v1/roles/:id — fetch single role */
+export async function fetchRoleById(id: string): Promise<RoleResponse> {
+  const res = await fetch(apiUrl(`/api/v1/roles/${id}`), {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  return handleResponse<RoleResponse>(res);
+}
+
+/** POST /api/v1/roles — create a new role */
+export async function createRole(payload: CreateRolePayload): Promise<RoleResponse> {
+  const res = await fetch(apiUrl("/api/v1/roles"), {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<RoleResponse>(res);
+}
+
+/** PUT /api/v1/roles/:id — update role details and module rights */
+export async function updateRole(id: string, payload: UpdateRolePayload): Promise<RoleResponse> {
+  const res = await fetch(apiUrl(`/api/v1/roles/${id}`), {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<RoleResponse>(res);
+}
+
+/** DELETE /api/v1/roles/:id — delete a role */
+export async function deleteRole(id: string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/v1/roles/${id}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse<void>(res);
+}
+
+// ─── Module Rights Management APIs ───────────────────────────────────────────
+
 /** GET /auth/module-rights — fetch all module rights */
 export async function fetchModuleRights(): Promise<ModuleRightItem[]> {
   const res = await fetch(apiUrl("/auth/module-rights"), {
@@ -165,4 +241,33 @@ export async function fetchModuleRights(): Promise<ModuleRightItem[]> {
     headers: authHeaders(),
   });
   return handleResponse<ModuleRightItem[]>(res);
+}
+
+/** POST /auth/module-rights — create a new module right */
+export async function createModuleRight(payload: CreateModuleRightPayload): Promise<ModuleRightItem> {
+  const res = await fetch(apiUrl("/auth/module-rights"), {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<ModuleRightItem>(res);
+}
+
+/** PUT /auth/module-rights/:id — update a module right */
+export async function updateModuleRight(id: string, payload: UpdateModuleRightPayload): Promise<ModuleRightItem> {
+  const res = await fetch(apiUrl(`/auth/module-rights/${id}`), {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<ModuleRightItem>(res);
+}
+
+/** DELETE /auth/module-rights/:id — delete a module right */
+export async function deleteModuleRight(id: string): Promise<void> {
+  const res = await fetch(apiUrl(`/auth/module-rights/${id}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse<void>(res);
 }
