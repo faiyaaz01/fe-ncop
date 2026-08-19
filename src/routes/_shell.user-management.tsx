@@ -1229,115 +1229,120 @@ function UserFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:max-w-2xl lg:max-w-3xl sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:max-w-lg sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl max-h-[90vh]">
         {/* Header */}
-        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
-          <DialogTitle className="text-lg font-bold">
+        <DialogHeader className="px-5 py-3.5 shrink-0 border-b border-border/40 bg-muted/20">
+          <DialogTitle className="text-base font-bold">
             {isEdit ? "Edit User Account" : "Create New User Account"}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Manage profile details, system roles, and direct user-level module access rights.
+            Manage profile details, system roles, and module access rights.
           </DialogDescription>
         </DialogHeader>
 
         {/* Scrollable Form Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-          <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Information */}
-            <fieldset className="space-y-4">
-              <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+          <form id="user-form" onSubmit={handleSubmit} className="space-y-5">
+
+            {/* ── Section 1: Account & Profile ─────────────────────── */}
+            <fieldset className="space-y-3">
+              <legend className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 1. Account & Profile
               </legend>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">First Name</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">First Name</Label>
                   <Input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     placeholder="e.g. John"
+                    className="h-8 text-xs"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Last Name</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Last Name</Label>
                   <Input
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     placeholder="e.g. Doe"
+                    className="h-8 text-xs"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Email Address (Username) *</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Email (Username) <span className="text-destructive">*</span></Label>
                   <Input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@nourishpharma.com"
+                    placeholder="user@company.com"
                     required
+                    className="h-8 text-xs"
                   />
                 </div>
                 {!isEdit && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Password *</Label>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium">Password <span className="text-destructive">*</span></Label>
                     <Input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required={!isEdit}
+                      placeholder="Min 6 characters"
+                      required
+                      className="h-8 text-xs"
                     />
                   </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Account Status</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Account Status</Label>
                   <Select value={status} onValueChange={(v) => setStatus(v as UserStatus)}>
-                    <SelectTrigger className="h-10 text-xs">
+                    <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACTIVE">Active (Allowed Login)</SelectItem>
-                      <SelectItem value="PENDING">Pending Approval</SelectItem>
-                      <SelectItem value="INACTIVE">Inactive (Disabled)</SelectItem>
-                      <SelectItem value="SUSPENDED">Suspended (Blocked)</SelectItem>
+                      <SelectItem value="ACTIVE" className="text-xs">Active (Allowed Login)</SelectItem>
+                      <SelectItem value="PENDING" className="text-xs">Pending Approval</SelectItem>
+                      <SelectItem value="INACTIVE" className="text-xs">Inactive (Disabled)</SelectItem>
+                      <SelectItem value="SUSPENDED" className="text-xs">Suspended (Blocked)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">User Classification</Label>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">User Classification</Label>
                   <Select value={userType} onValueChange={(v) => setUserType(v as UserType)}>
-                    <SelectTrigger className="h-10 text-xs">
+                    <SelectTrigger className="h-8 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ADMIN">Administrator</SelectItem>
-                      <SelectItem value="EMPLOYEE">Standard Employee</SelectItem>
-                      <SelectItem value="MANAGER">Department Manager</SelectItem>
-                      <SelectItem value="CONTRACTOR">Contractor / Auditor</SelectItem>
-                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                      <SelectItem value="ADMIN" className="text-xs">Administrator</SelectItem>
+                      <SelectItem value="EMPLOYEE" className="text-xs">Standard Employee</SelectItem>
+                      <SelectItem value="MANAGER" className="text-xs">Department Manager</SelectItem>
+                      <SelectItem value="CONTRACTOR" className="text-xs">Contractor / Auditor</SelectItem>
+                      <SelectItem value="SUPER_ADMIN" className="text-xs">Super Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
             </fieldset>
 
-            {/* Role Assignment */}
-            <fieldset className="space-y-3 pt-3 border-t border-border/40">
+            {/* ── Section 2: Organizational Roles ──────────────────── */}
+            <fieldset className="space-y-2.5 pt-3 border-t border-border/40">
               <div>
-                <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                <legend className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                   2. Organizational Roles
                 </legend>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  Assign user to one or more roles. Note: if all assigned roles are inactive, the user will be blocked from logging in.
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Assign user to one or more roles. If all roles are inactive, login will be blocked.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 {roles.map((role) => {
                   const isChecked = selectedRoles.includes(role.roleId);
                   return (
@@ -1345,28 +1350,28 @@ function UserFormDialog({
                       key={role.roleId}
                       onClick={() => toggleRole(role.roleId)}
                       className={cn(
-                        "flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none",
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all cursor-pointer select-none",
                         isChecked
-                          ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
-                          : "border-border/60 hover:border-border surface"
+                          ? "border-primary/50 bg-primary/8 ring-1 ring-primary/20"
+                          : "border-border/60 hover:border-border/90 bg-background"
                       )}
                     >
                       <Checkbox
                         checked={isChecked}
                         onCheckedChange={() => toggleRole(role.roleId)}
-                        className="mt-0.5 shrink-0"
+                        className="size-3.5 shrink-0"
                       />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-semibold text-xs text-foreground">{role.name}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1">
+                          <p className="font-semibold text-[11px] text-foreground truncate">{role.name}</p>
                           {!role.active && (
-                            <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-400 py-0">
-                              Inactive
+                            <Badge variant="outline" className="text-[9px] text-amber-600 border-amber-400 px-1 py-0 h-4 shrink-0">
+                              Off
                             </Badge>
                           )}
                         </div>
                         {role.description && (
-                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                          <p className="text-[10px] text-muted-foreground truncate leading-tight">
                             {role.description}
                           </p>
                         )}
@@ -1377,33 +1382,33 @@ function UserFormDialog({
               </div>
             </fieldset>
 
-            {/* Direct Module Rights Assignment */}
-            <fieldset className="space-y-3 pt-3 border-t border-border/40">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            {/* ── Section 3: Module Rights ──────────────────────────── */}
+            <fieldset className="space-y-2.5 pt-3 border-t border-border/40">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    3. Direct User Module Rights ({selectedRights.length}/{moduleRights.length} granted)
+                  <legend className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                    3. Direct Module Rights ({selectedRights.length}/{moduleRights.length} granted)
                   </legend>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Module rights are granted directly to the user (independent of roles).
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Granted directly to the user, independent of roles.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={selectAllRights}>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button type="button" variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={selectAllRights}>
                     Select All
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={clearAllRights}>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-[10px]" onClick={clearAllRights}>
                     Clear
                   </Button>
                 </div>
               </div>
 
               {moduleRights.length === 0 ? (
-                <div className="surface p-6 text-center rounded-xl border border-dashed text-xs text-muted-foreground">
-                  No module rights registered. Register module rights in the "Module Rights" tab first.
+                <div className="p-4 text-center rounded-xl border border-dashed text-xs text-muted-foreground">
+                  No module rights registered. Add them in the "Module Rights" tab first.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                   {moduleRights.map((mr) => {
                     const isChecked = selectedRights.includes(mr.name);
                     return (
@@ -1411,29 +1416,24 @@ function UserFormDialog({
                         key={mr.id || mr.name}
                         onClick={() => toggleRight(mr.name)}
                         className={cn(
-                          "flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer select-none",
+                          "flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all cursor-pointer select-none",
                           isChecked
-                            ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
-                            : "border-border/60 hover:border-border surface"
+                            ? "border-primary/50 bg-primary/8 ring-1 ring-primary/20"
+                            : "border-border/60 hover:border-border/90 bg-background"
                         )}
                       >
                         <Checkbox
                           checked={isChecked}
                           onCheckedChange={() => toggleRight(mr.name)}
-                          className="mt-0.5 shrink-0"
+                          className="size-3.5 shrink-0"
                         />
                         <div className="min-w-0">
-                          <p className="font-semibold text-xs text-foreground leading-tight">
+                          <p className="font-semibold text-[11px] text-foreground truncate leading-tight">
                             {mr.label || mr.name}
                           </p>
-                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                          <p className="text-[9px] text-muted-foreground truncate font-mono">
                             {mr.name}
                           </p>
-                          {mr.description && (
-                            <p className="text-[11px] text-muted-foreground/80 mt-1 line-clamp-2">
-                              {mr.description}
-                            </p>
-                          )}
                         </div>
                       </div>
                     );
@@ -1445,12 +1445,12 @@ function UserFormDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
-          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="px-5 py-3.5 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-2.5">
+          <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto h-8 text-xs" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit" form="user-form" disabled={isSubmitting} className="w-full sm:w-auto">
-            {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+          <Button type="submit" form="user-form" disabled={isSubmitting} size="sm" className="w-full sm:w-auto h-8 text-xs gap-1.5">
+            {isSubmitting && <Loader2 className="size-3.5 animate-spin" />}
             {isEdit ? "Update User" : "Create User"}
           </Button>
         </DialogFooter>
