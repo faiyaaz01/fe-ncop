@@ -175,7 +175,7 @@ export function UserManagementPage() {
         title="User & Access Management"
         description="Configure users, organizational roles, and user-level module access rights."
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             {/* Timezone Switcher */}
             <div className="flex items-center gap-1.5 surface px-3 py-1.5 rounded-lg border border-border/60 text-xs">
               <Globe className="size-3.5 text-muted-foreground shrink-0" />
@@ -360,7 +360,7 @@ export function UserManagementPage() {
 
       {/* ── Main Tabbed Content ── */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-5">
-        <TabsList className="surface p-1 border border-border/60 h-auto">
+        <div className="overflow-x-auto pb-1"><TabsList className="surface p-1 border border-border/60 h-auto flex w-max sm:w-auto">
           <TabsTrigger value="users" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <Users className="size-3.5" /> Users ({users.length})
           </TabsTrigger>
@@ -370,7 +370,7 @@ export function UserManagementPage() {
           <TabsTrigger value="rights" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
             <KeyRound className="size-3.5" /> Module Rights ({moduleRights.length})
           </TabsTrigger>
-        </TabsList>
+        </TabsList></div>
 
         {/* ══════════════════════════════════════════════════════════════════════
             TAB 1: USERS
@@ -637,7 +637,7 @@ function UsersTab({
       {/* ── Users Table ── */}
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="px-5 py-3.5">User</th>
@@ -837,7 +837,7 @@ function RolesTab({
     <div className="space-y-4">
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="px-5 py-3.5">Role Name</th>
@@ -958,7 +958,7 @@ function ModuleRightsTab({
     <div className="space-y-4">
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="px-5 py-3.5">Module Right Name</th>
@@ -1408,15 +1408,16 @@ function RoleFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-6">
-        <DialogHeader>
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:max-w-lg sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
           <DialogTitle>{isEdit ? "Edit Organizational Role" : "Create New Role"}</DialogTitle>
           <DialogDescription className="text-xs">
             Roles categorize team members. Note: Specific module rights are assigned directly per user.
           </DialogDescription>
         </DialogHeader>
 
-        <form id="role-form" onSubmit={handleSubmit} className="space-y-4 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+        <form id="role-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs">Role Name *</Label>
             <Input
@@ -1446,8 +1447,9 @@ function RoleFormDialog({
             <Switch checked={active} onCheckedChange={setActive} />
           </div>
         </form>
+        </div>
 
-        <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -1531,15 +1533,16 @@ function ModuleRightFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg p-6">
-        <DialogHeader>
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:max-w-lg sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
           <DialogTitle>{isEdit ? "Edit Module Right" : "Register New Module Right"}</DialogTitle>
           <DialogDescription className="text-xs">
             Module rights represent features or pages that can be directly granted to users.
           </DialogDescription>
         </DialogHeader>
 
-        <form id="right-form" onSubmit={handleSubmit} className="space-y-4 py-2">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+        <form id="right-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs">System Identifier (Key) *</Label>
             <Input
@@ -1568,8 +1571,9 @@ function ModuleRightFormDialog({
             />
           </div>
         </form>
+        </div>
 
-        <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
