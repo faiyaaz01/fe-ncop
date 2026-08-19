@@ -206,9 +206,24 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  button,
+  input,
+  optgroup,
+  select,
+  textarea,
+  table,
+  th,
+  td {
+    font-family: var(--font-sans);
+  }
+
   h1,
   h2,
-  h3 {
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans);
     letter-spacing: -0.02em;
   }
 }

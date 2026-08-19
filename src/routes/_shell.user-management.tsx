@@ -365,8 +365,8 @@ function UserManagementPage() {
 
       {/* ── Main Tab Navigation ── */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
-        <div className="overflow-x-auto pb-1">
-          <TabsList className="surface p-1 border border-border/60 h-auto flex w-max sm:w-auto">
+        <div className="flex justify-start overflow-x-auto pb-1">
+          <TabsList className="surface p-1 border border-border/60 h-auto inline-flex justify-start w-fit">
             <TabsTrigger value="users" className="gap-2 text-xs py-2 px-3 sm:px-4">
               <Users className="size-3.5" /> Users ({stats.totalUsers})
             </TabsTrigger>
@@ -729,12 +729,12 @@ function UsersTab({
                       </td>
 
                       {/* Last Login in Selected Timezone */}
-                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                      <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
                         {formatShortDateTime(user.lastLoginDate, timezone)}
                       </td>
 
                       {/* Created in Selected Timezone */}
-                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                      <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
                         {formatShortDateTime(user.createdOn, timezone)}
                       </td>
 
@@ -917,7 +917,7 @@ function RolesTab({
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                    <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
                       {formatShortDateTime(role.lastUpdatedOn || role.createdOn, timezone)}
                     </td>
 
@@ -1046,7 +1046,7 @@ function ModuleRightsTab({
                           <KeyRound className="size-4" />
                         </div>
                         <div>
-                          <p className="font-mono font-bold text-xs text-foreground">{mr.name}</p>
+                          <p className="font-bold text-xs text-foreground">{mr.name}</p>
                           <p className="text-[10px] text-muted-foreground">Direct User Permission</p>
                         </div>
                       </div>
@@ -1062,7 +1062,7 @@ function ModuleRightsTab({
                       {mr.description || <span className="italic">No description</span>}
                     </td>
 
-                    <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                    <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
                       {formatShortDateTime(mr.createdOn, timezone)}
                     </td>
 
@@ -1426,7 +1426,7 @@ function UserFormDialog({
                           <p className="font-semibold text-xs text-foreground leading-tight">
                             {mr.label || mr.name}
                           </p>
-                          <p className="font-mono text-[10px] text-muted-foreground truncate mt-0.5">
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5">
                             {mr.name}
                           </p>
                           {mr.description && (
