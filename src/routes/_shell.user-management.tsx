@@ -7,8 +7,6 @@ import {
   KeyRound,
   Plus,
   Search,
-  CheckCircle2,
-  XCircle,
   AlertTriangle,
   Clock,
   MoreHorizontal,
@@ -20,11 +18,8 @@ import {
   Ban,
   Globe,
   Loader2,
-  Check,
   UserCheck,
-  UserX,
-  Layers,
-  Sparkles,
+  UserX
 } from "lucide-react";
 import { PageHeader, Panel } from "@/components/kit";
 import { Button } from "@/components/ui/button";
