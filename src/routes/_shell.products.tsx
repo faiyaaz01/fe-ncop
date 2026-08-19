@@ -127,7 +127,7 @@ function ProductMaster() {
       <DataTable
         rows={rows}
         columns={columns}
-        pageSize={6}
+        pageSize={10}
         onRowClick={setActive}
         searchKeys={(p) => `${p.name} ${p.generic} ${p.category} ${p.strength} ${p.id}`}
         empty={

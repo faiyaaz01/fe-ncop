@@ -8,6 +8,7 @@ import type {
   CreateRoleRequest,
   UpdateRoleRequest,
   ModuleRight,
+  PageResponse,
 } from "@/lib/auth-types";
 
 function getAuthHeaders(): HeadersInit {
@@ -35,8 +36,28 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ─── Users API ──────────────────────────────────────────────────────────────
 
-export async function fetchUsers(): Promise<UserResponse[]> {
-  const res = await fetch(apiUrl("/api/v1/users"), {
+export async function fetchUsers(params: {
+  page?: number | undefined;
+  size?: number | undefined;
+  search?: string | undefined;
+  status?: string | undefined;
+  role?: string | undefined;
+} = {}): Promise<PageResponse<UserResponse>> {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 10));
+  if (params.search) query.set("search", params.search);
+  if (params.status && params.status !== "ALL") query.set("status", params.status);
+  if (params.role && params.role !== "ALL") query.set("role", params.role);
+
+  const res = await fetch(apiUrl(`/api/v1/users?${query.toString()}`), {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<PageResponse<UserResponse>>(res);
+}
+
+export async function fetchAllUsers(): Promise<UserResponse[]> {
+  const res = await fetch(apiUrl("/api/v1/users/all"), {
     headers: getAuthHeaders(),
   });
   return handleResponse<UserResponse[]>(res);
@@ -77,8 +98,24 @@ export async function deleteUser(id: string): Promise<void> {
 
 // ─── Roles API ──────────────────────────────────────────────────────────────
 
-export async function fetchRoles(): Promise<RoleResponse[]> {
-  const res = await fetch(apiUrl("/api/v1/roles"), {
+export async function fetchRoles(params: {
+  page?: number | undefined;
+  size?: number | undefined;
+  search?: string | undefined;
+} = {}): Promise<PageResponse<RoleResponse>> {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 10));
+  if (params.search) query.set("search", params.search);
+
+  const res = await fetch(apiUrl(`/api/v1/roles?${query.toString()}`), {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<PageResponse<RoleResponse>>(res);
+}
+
+export async function fetchAllRoles(): Promise<RoleResponse[]> {
+  const res = await fetch(apiUrl("/api/v1/roles/all"), {
     headers: getAuthHeaders(),
   });
   return handleResponse<RoleResponse[]>(res);
@@ -119,14 +156,30 @@ export async function deleteRole(id: string): Promise<void> {
 
 // ─── Module Rights API ──────────────────────────────────────────────────────
 
-export async function fetchModuleRights(): Promise<ModuleRight[]> {
-  const res = await fetch(apiUrl("/auth/module-rights"), {
+export async function fetchModuleRights(params: {
+  page?: number | undefined;
+  size?: number | undefined;
+  search?: string | undefined;
+} = {}): Promise<PageResponse<ModuleRight>> {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 10));
+  if (params.search) query.set("search", params.search);
+
+  const res = await fetch(apiUrl(`/auth/module-rights?${query.toString()}`), {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<PageResponse<ModuleRight>>(res);
+}
+
+export async function fetchAllModuleRights(): Promise<ModuleRight[]> {
+  const res = await fetch(apiUrl("/auth/module-rights/all"), {
     headers: getAuthHeaders(),
   });
   return handleResponse<ModuleRight[]>(res);
 }
 
-export async function createModuleRight(data: { name: string; label?: string; description?: string }): Promise<ModuleRight> {
+export async function createModuleRight(data: { name: string; label?: string | undefined; description?: string | undefined }): Promise<ModuleRight> {
   const res = await fetch(apiUrl("/auth/module-rights"), {
     method: "POST",
     headers: getAuthHeaders(),
@@ -135,7 +188,7 @@ export async function createModuleRight(data: { name: string; label?: string; de
   return handleResponse<ModuleRight>(res);
 }
 
-export async function updateModuleRight(id: string, data: { name?: string; label?: string; description?: string }): Promise<ModuleRight> {
+export async function updateModuleRight(id: string, data: { name?: string | undefined; label?: string | undefined; description?: string | undefined }): Promise<ModuleRight> {
   const res = await fetch(apiUrl(`/auth/module-rights/${id}`), {
     method: "PUT",
     headers: getAuthHeaders(),

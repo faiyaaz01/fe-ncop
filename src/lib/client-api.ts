@@ -1,6 +1,6 @@
 import { apiUrl } from "./api-config";
 import { userSessionService } from "./user-session";
-import type { Client, ClientRequestDto, DocumentType } from "./client-types";
+import type { Client, ClientRequestDto, DocumentType, PageResponse } from "./client-types";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -27,9 +27,27 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ─── Client API ──────────────────────────────────────────────────────────────
 
-/** GET /api/clients — fetch all clients */
-export async function fetchClients(): Promise<Client[]> {
-  const res = await fetch(apiUrl("/api/clients"), {
+/** GET /api/clients — fetch paginated clients */
+export async function fetchClients(params: {
+  page?: number | undefined;
+  size?: number | undefined;
+  search?: string | undefined;
+} = {}): Promise<PageResponse<Client>> {
+  const query = new URLSearchParams();
+  query.set("page", String(params.page ?? 0));
+  query.set("size", String(params.size ?? 10));
+  if (params.search) query.set("search", params.search);
+
+  const res = await fetch(apiUrl(`/api/clients?${query.toString()}`), {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  return handleResponse<PageResponse<Client>>(res);
+}
+
+/** GET /api/clients/all — fetch all clients (unpaginated for select dropdowns) */
+export async function fetchAllClients(): Promise<Client[]> {
+  const res = await fetch(apiUrl("/api/clients/all"), {
     method: "GET",
     headers: authHeaders(),
   });

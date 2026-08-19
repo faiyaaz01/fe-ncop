@@ -63,6 +63,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 
 import {
   fetchClients,
@@ -343,18 +344,24 @@ function ClientMaster() {
   const [query, setQuery] = useState("");
   const [segment, setSegment] = useState<(typeof filterSegments)[number]>("All");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [formOpen, setFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const {
-    data: clients = [],
+    data: pageData,
     isLoading,
     isError,
     error,
   } = useQuery({
-    queryKey: ["clients"],
-    queryFn: fetchClients,
+    queryKey: ["clients", page, pageSize, query],
+    queryFn: () => fetchClients({ page, size: pageSize, search: query.trim() || undefined }),
   });
+
+  const clients = pageData?.content ?? [];
+  const totalElements = pageData?.totalElements ?? 0;
+  const totalPages = pageData?.totalPages ?? 1;
 
   const active = clients.find((c) => c.id === activeId) ?? null;
 
@@ -439,7 +446,7 @@ function ClientMaster() {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); setPage(0); }}
             placeholder="Search by company, code or trade name…"
             className="pl-9"
           />

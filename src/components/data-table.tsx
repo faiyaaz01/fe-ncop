@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 
 export type Column<T> = {
   key: string;
@@ -41,6 +42,7 @@ export function DataTable<T extends { id: string }>({
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
   const [page, setPage] = useState(1);
+  const [currentPageSize, setCurrentPageSize] = useState(pageSize || 10);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -61,9 +63,9 @@ export function DataTable<T extends { id: string }>({
     return out;
   }, [rows, query, sort, columns, searchKeys]);
 
-  const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pages = Math.max(1, Math.ceil(filtered.length / currentPageSize));
   const current = Math.min(page, pages);
-  const visible = filtered.slice((current - 1) * pageSize, current * pageSize);
+  const visible = filtered.slice((current - 1) * currentPageSize, current * currentPageSize);
 
   return (
     <div className="surface overflow-hidden">
@@ -173,42 +175,17 @@ export function DataTable<T extends { id: string }>({
         </div>
       )}
 
-      <div className="flex flex-col gap-3 border-t border-border p-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted-foreground">
-          Showing {visible.length} of {filtered.length} records
-        </p>
-        <div className="flex items-center gap-1.5">
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            aria-label="Previous page"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          {Array.from({ length: pages }).map((_, i) => (
-            <Button
-              key={i}
-              variant={current === i + 1 ? "default" : "outline"}
-              size="icon"
-              className="size-8 text-xs"
-              onClick={() => setPage(i + 1)}
-            >
-              {i + 1}
-            </Button>
-          ))}
-          <Button
-            variant="outline"
-            size="icon"
-            className="size-8"
-            aria-label="Next page"
-            onClick={() => setPage((p) => Math.min(pages, p + 1))}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-      </div>
+      <PaginationBar
+        page={current - 1}
+        pageSize={currentPageSize}
+        totalElements={filtered.length}
+        totalPages={pages}
+        onPageChange={(p) => setPage(p + 1)}
+        onPageSizeChange={(newSize) => {
+          setCurrentPageSize(newSize);
+          setPage(1);
+        }}
+      />
     </div>
   );
 }

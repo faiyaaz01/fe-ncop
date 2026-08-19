@@ -4,38 +4,34 @@ import { useState, useMemo, useEffect } from "react";
 import {
   Users,
   Shield,
-  KeyRound,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldOff,
   Plus,
   Search,
-  AlertTriangle,
-  Clock,
-  MoreHorizontal,
-  Edit2,
   Trash2,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldOff,
-  Ban,
+  Edit2,
+  CheckCircle2,
+  XCircle,
+  KeyRound,
+  Lock,
   Globe,
   Loader2,
+  AlertTriangle,
   UserCheck,
-  UserX
+  UserX,
+  Clock,
+  Ban,
 } from "lucide-react";
+import { toast } from "sonner";
+
 import { PageHeader, Panel } from "@/components/kit";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -45,25 +41,35 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
+  TIMEZONE_OPTIONS,
+  type SupportedTimezone,
+  formatShortDateTime,
+} from "@/lib/date-utils";
+
+import {
   fetchUsers,
+  fetchAllUsers,
   createUser,
   updateUser,
   deleteUser,
   fetchRoles,
+  fetchAllRoles,
   createRole,
   updateRole,
   deleteRole,
   fetchModuleRights,
+  fetchAllModuleRights,
   createModuleRight,
   updateModuleRight,
   deleteModuleRight,
@@ -75,45 +81,49 @@ import type {
   UserStatus,
   UserType,
 } from "@/lib/auth-types";
-import {
-  formatDateTime,
-  formatShortDateTime,
-  TIMEZONE_OPTIONS,
-  type SupportedTimezone,
-} from "@/lib/date-utils";
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ROUTE DEFINITION
+// ══════════════════════════════════════════════════════════════════════════════
 
 export const Route = createFileRoute("/_shell/user-management")({
   head: () => ({
     meta: [
-      { title: "User & Access Management · NCOP ERP" },
+      {
+        title: "User Management | Nourish Pharma ERP",
+      },
       {
         name: "description",
-        content: "Manage users, organizational roles, and user-level module access rights.",
+        content: "Manage system users, roles, and user-level module access rights.",
       },
     ],
   }),
   component: UserManagementPage,
 });
 
-export function UserManagementPage() {
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function UserManagementPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"users" | "roles" | "rights">("users");
   const [timezone, setTimezone] = useState<SupportedTimezone>("LOCAL");
 
-  // ── Queries ──
-  const { data: users = [], isLoading: loadingUsers } = useQuery({
-    queryKey: ["auth-users"],
-    queryFn: fetchUsers,
+  // ── Global Queries (Unpaginated for stats & modal pickers) ──
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["auth-all-users"],
+    queryFn: fetchAllUsers,
   });
 
-  const { data: roles = [], isLoading: loadingRoles } = useQuery({
-    queryKey: ["auth-roles"],
-    queryFn: fetchRoles,
+  const { data: allRoles = [] } = useQuery({
+    queryKey: ["auth-all-roles"],
+    queryFn: fetchAllRoles,
   });
 
-  const { data: moduleRights = [], isLoading: loadingRights } = useQuery({
-    queryKey: ["auth-module-rights"],
-    queryFn: fetchModuleRights,
+  const { data: allModuleRights = [] } = useQuery({
+    queryKey: ["auth-all-module-rights"],
+    queryFn: fetchAllModuleRights,
   });
 
   // ── Modals State ──
@@ -136,17 +146,17 @@ export function UserManagementPage() {
 
   // ── Summary Stats ──
   const stats = useMemo(() => {
-    const totalUsers = users.length;
-    const activeUsers = users.filter((u) => u.effectiveActive).length;
-    const inactiveUsers = users.filter((u) => u.userStatus === "INACTIVE").length;
-    const suspendedUsers = users.filter((u) => u.userStatus === "SUSPENDED").length;
-    const pendingUsers = users.filter((u) => u.userStatus === "PENDING").length;
-    const roleInactiveUsers = users.filter((u) => !u.hasActiveRole && u.roleIds.length > 0).length;
+    const totalUsers = allUsers.length;
+    const activeUsers = allUsers.filter((u) => u.effectiveActive).length;
+    const inactiveUsers = allUsers.filter((u) => u.userStatus === "INACTIVE").length;
+    const suspendedUsers = allUsers.filter((u) => u.userStatus === "SUSPENDED").length;
+    const pendingUsers = allUsers.filter((u) => u.userStatus === "PENDING").length;
+    const roleInactiveUsers = allUsers.filter((u) => !u.hasActiveRole && u.roleIds.length > 0).length;
 
-    const totalRoles = roles.length;
-    const activeRoles = roles.filter((r) => r.active).length;
-    const inactiveRoles = roles.filter((r) => !r.active).length;
-    const totalRights = moduleRights.length;
+    const totalRoles = allRoles.length;
+    const activeRoles = allRoles.filter((r) => r.active).length;
+    const inactiveRoles = allRoles.filter((r) => !r.active).length;
+    const totalRights = allModuleRights.length;
 
     return {
       totalUsers,
@@ -160,7 +170,7 @@ export function UserManagementPage() {
       inactiveRoles,
       totalRights,
     };
-  }, [users, roles, moduleRights]);
+  }, [allUsers, allRoles, allModuleRights]);
 
   return (
     <div className="space-y-6">
@@ -353,32 +363,31 @@ export function UserManagementPage() {
         </div>
       </div>
 
-      {/* ── Main Tabbed Content ── */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-5">
-        <div className="overflow-x-auto pb-1"><TabsList className="surface p-1 border border-border/60 h-auto flex w-max sm:w-auto">
-          <TabsTrigger value="users" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Users className="size-3.5" /> Users ({users.length})
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Shield className="size-3.5" /> Roles ({roles.length})
-          </TabsTrigger>
-          <TabsTrigger value="rights" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <KeyRound className="size-3.5" /> Module Rights ({moduleRights.length})
-          </TabsTrigger>
-        </TabsList></div>
+      {/* ── Main Tab Navigation ── */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="surface p-1 border border-border/60 h-auto flex w-max sm:w-auto">
+            <TabsTrigger value="users" className="gap-2 text-xs py-2 px-3 sm:px-4">
+              <Users className="size-3.5" /> Users ({stats.totalUsers})
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="gap-2 text-xs py-2 px-3 sm:px-4">
+              <Shield className="size-3.5" /> Roles ({stats.totalRoles})
+            </TabsTrigger>
+            <TabsTrigger value="rights" className="gap-2 text-xs py-2 px-3 sm:px-4">
+              <KeyRound className="size-3.5" /> Module Rights ({stats.totalRights})
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ══════════════════════════════════════════════════════════════════════
             TAB 1: USERS
         ══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="users">
           <UsersTab
-            users={users}
-            roles={roles}
-            moduleRights={moduleRights}
+            roles={allRoles}
             timezone={timezone}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
-            isLoading={loadingUsers}
             onEdit={(u) => {
               setEditingUser(u);
               setUserModalOpen(true);
@@ -398,9 +407,7 @@ export function UserManagementPage() {
         ══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="roles">
           <RolesTab
-            roles={roles}
             timezone={timezone}
-            isLoading={loadingRoles}
             onEdit={(r) => {
               setEditingRole(r);
               setRoleModalOpen(true);
@@ -420,9 +427,7 @@ export function UserManagementPage() {
         ══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="rights">
           <ModuleRightsTab
-            moduleRights={moduleRights}
             timezone={timezone}
-            isLoading={loadingRights}
             onEdit={(mr) => {
               setEditingRight(mr);
               setRightModalOpen(true);
@@ -438,169 +443,143 @@ export function UserManagementPage() {
         </TabsContent>
       </Tabs>
 
-      {/* ── User Add/Edit Dialog ── */}
+      {/* ── Modals & Dialogs ── */}
       <UserFormDialog
         open={userModalOpen}
         onOpenChange={setUserModalOpen}
         editingUser={editingUser}
-        roles={roles}
-        moduleRights={moduleRights}
-        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["auth-users"] })}
+        roles={allRoles}
+        moduleRights={allModuleRights}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-roles-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-roles"] });
+        }}
       />
 
-      {/* ── Role Add/Edit Dialog ── */}
       <RoleFormDialog
         open={roleModalOpen}
         onOpenChange={setRoleModalOpen}
         editingRole={editingRole}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["auth-roles"] });
-          queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-roles-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-roles"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
         }}
       />
 
-      {/* ── Module Right Add/Edit Dialog ── */}
       <ModuleRightFormDialog
         open={rightModalOpen}
         onOpenChange={setRightModalOpen}
         editingRight={editingRight}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["auth-module-rights"] });
-          queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-rights-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-module-rights"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
         }}
       />
 
-      {/* ── Delete Confirmation Dialog ── */}
-      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <DialogContent className="max-w-md p-6">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="size-5" /> Delete {deleteConfirm?.type === "user" ? "User" : deleteConfirm?.type === "role" ? "Role" : "Module Right"}
-            </DialogTitle>
-            <DialogDescription className="pt-2 text-sm">
-              Are you sure you want to permanently delete <strong className="text-foreground">{deleteConfirm?.name}</strong>?
-              {deleteConfirm?.type === "role" && " Users assigned to this role will lose this role assignment."}
-              {deleteConfirm?.type === "right" && " This permission will be removed from all users who currently have it."}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
-            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={async () => {
-                if (!deleteConfirm) return;
-                try {
-                  if (deleteConfirm.type === "user") {
-                    await deleteUser(deleteConfirm.id);
-                    toast.success("User deleted successfully");
-                    queryClient.invalidateQueries({ queryKey: ["auth-users"] });
-                  } else if (deleteConfirm.type === "role") {
-                    await deleteRole(deleteConfirm.id);
-                    toast.success("Role deleted successfully");
-                    queryClient.invalidateQueries({ queryKey: ["auth-roles"] });
-                    queryClient.invalidateQueries({ queryKey: ["auth-users"] });
-                  } else if (deleteConfirm.type === "right") {
-                    await deleteModuleRight(deleteConfirm.id);
-                    toast.success("Module right deleted successfully");
-                    queryClient.invalidateQueries({ queryKey: ["auth-module-rights"] });
-                    queryClient.invalidateQueries({ queryKey: ["auth-users"] });
-                  }
-                  setDeleteConfirm(null);
-                } catch (e: any) {
-                  toast.error(e.message || "Failed to delete");
-                }
-              }}
-            >
-              Confirm Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteConfirmDialog
+        confirmData={deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+        onSuccess={() => {
+          if (deleteConfirm?.type === "user") {
+            queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+            queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
+          } else if (deleteConfirm?.type === "role") {
+            queryClient.invalidateQueries({ queryKey: ["auth-roles-paged"] });
+            queryClient.invalidateQueries({ queryKey: ["auth-all-roles"] });
+            queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+            queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
+          } else if (deleteConfirm?.type === "right") {
+            queryClient.invalidateQueries({ queryKey: ["auth-rights-paged"] });
+            queryClient.invalidateQueries({ queryKey: ["auth-all-module-rights"] });
+            queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+            queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
+          }
+          setDeleteConfirm(null);
+        }}
+      />
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// USERS TAB COMPONENT
+// TAB 1: USERS TAB COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 
 function UsersTab({
-  users,
   roles,
-  moduleRights,
   timezone,
   statusFilter,
   onStatusFilterChange,
-  isLoading,
   onEdit,
   onDelete,
 }: {
-  users: UserResponse[];
   roles: RoleResponse[];
-  moduleRights: ModuleRight[];
   timezone: SupportedTimezone;
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
-  isLoading: boolean;
   onEdit: (user: UserResponse) => void;
   onDelete: (user: UserResponse) => void;
 }) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      const matchesSearch =
-        search === "" ||
-        u.email.toLowerCase().includes(search.toLowerCase()) ||
-        (u.fullName && u.fullName.toLowerCase().includes(search.toLowerCase())) ||
-        u.roleNames.some((r) => r.toLowerCase().includes(search.toLowerCase()));
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(0);
+  };
 
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        (statusFilter === "ROLE_INACTIVE" ? !u.hasActiveRole && u.roleIds.length > 0 : u.userStatus === statusFilter);
+  const handleStatusChange = (val: string) => {
+    onStatusFilterChange(val);
+    setPage(0);
+  };
 
-      const matchesRole =
-        roleFilter === "ALL" || u.roleNames.includes(roleFilter);
+  const handleRoleChange = (val: string) => {
+    setRoleFilter(val);
+    setPage(0);
+  };
 
-      return matchesSearch && matchesStatus && matchesRole;
-    });
-  }, [users, search, statusFilter, roleFilter]);
 
-  const roleMap = useMemo(() => {
-    const map = new Map<string, RoleResponse>();
-    roles.forEach((r) => map.set(r.roleId, r));
-    return map;
-  }, [roles]);
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["auth-users-paged", page, pageSize, search, statusFilter, roleFilter],
+    queryFn: () =>
+      fetchUsers({
+        page,
+        size: pageSize,
+        search: search.trim() || undefined,
+        status: statusFilter,
+        role: roleFilter,
+      }),
+  });
 
-  if (isLoading) {
-    return (
-      <div className="surface p-12 text-center rounded-xl flex flex-col items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-primary mb-3" />
-        <p className="text-sm text-muted-foreground">Loading users directory...</p>
-      </div>
-    );
-  }
+  const users = pageData?.content ?? [];
+  const totalElements = pageData?.totalElements ?? 0;
+  const totalPages = pageData?.totalPages ?? 1;
 
   return (
     <div className="space-y-4">
-      {/* ── Search & Filter Bar ── */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      {/* ── Search & Filter Controls ── */}
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search users by name, email, or role..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-10"
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9 h-10 text-xs sm:text-sm"
           />
         </div>
 
-        <div className="flex gap-2 shrink-0">
-          <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-            <SelectTrigger className="w-38 h-10 text-xs">
+        <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+          <Select value={statusFilter} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-full sm:w-38 h-10 text-xs">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -613,8 +592,8 @@ function UsersTab({
             </SelectContent>
           </Select>
 
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-38 h-10 text-xs">
+          <Select value={roleFilter} onValueChange={handleRoleChange}>
+            <SelectTrigger className="w-full sm:w-38 h-10 text-xs">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
@@ -632,7 +611,7 @@ function UsersTab({
       {/* ── Users Table ── */}
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs min-w-[700px]">
+          <table className="w-full text-left text-xs min-w-[750px]">
             <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
               <tr>
                 <th className="px-5 py-3.5">User</th>
@@ -645,14 +624,21 @@ function UsersTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {filteredUsers.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                    <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
+                    Loading users...
+                  </td>
+                </tr>
+              ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
                     No users found matching your search and filter criteria.
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => {
+                users.map((user) => {
                   const initials =
                     (user.firstName?.[0] || "") + (user.lastName?.[0] || user.email[0] || "U").toUpperCase();
 
@@ -754,25 +740,19 @@ function UsersTab({
 
                       {/* Actions */}
                       <td className="px-4 py-3.5 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="size-8">
-                              <MoreHorizontal className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(user)}>
-                              <Edit2 className="size-3.5 mr-2" /> Edit User & Rights
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onDelete(user)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="size-3.5 mr-2" /> Delete User
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(user)}>
+                            <Edit2 className="size-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-destructive hover:text-destructive"
+                            onClick={() => onDelete(user)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -781,29 +761,60 @@ function UsersTab({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls (Default Limit: 10) */}
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(0);
+          }}
+        />
       </div>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ROLES TAB COMPONENT
+// TAB 2: ROLES TAB COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 
 function RolesTab({
-  roles,
   timezone,
-  isLoading,
   onEdit,
   onDelete,
 }: {
-  roles: RoleResponse[];
   timezone: SupportedTimezone;
-  isLoading: boolean;
   onEdit: (role: RoleResponse) => void;
   onDelete: (role: RoleResponse) => void;
 }) {
   const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(0);
+  };
+
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["auth-roles-paged", page, pageSize, search],
+    queryFn: () =>
+      fetchRoles({
+        page,
+        size: pageSize,
+        search: search.trim() || undefined,
+      }),
+  });
+
+  const roles = pageData?.content ?? [];
+  const totalElements = pageData?.totalElements ?? 0;
+  const totalPages = pageData?.totalPages ?? 1;
 
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ roleId, active }: { roleId: string; active: boolean }) => {
@@ -811,25 +822,31 @@ function RolesTab({
     },
     onSuccess: (updated) => {
       toast.success(`Role "${updated.name}" is now ${updated.active ? "Active" : "Inactive"}`);
-      queryClient.invalidateQueries({ queryKey: ["auth-roles"] });
-      queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+      queryClient.invalidateQueries({ queryKey: ["auth-roles-paged"] });
+      queryClient.invalidateQueries({ queryKey: ["auth-all-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+      queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
     },
     onError: (err: any) => {
       toast.error(err.message || "Failed to update role status");
     },
   });
 
-  if (isLoading) {
-    return (
-      <div className="surface p-12 text-center rounded-xl flex flex-col items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-primary mb-3" />
-        <p className="text-sm text-muted-foreground">Loading roles...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
+      {/* Search Input */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search roles by name or description..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9 h-10 text-xs sm:text-sm"
+          />
+        </div>
+      </div>
+
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[700px]">
@@ -844,10 +861,17 @@ function RolesTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {roles.length === 0 ? (
+              {isLoading ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                    No roles created yet.
+                    <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
+                    Loading roles...
+                  </td>
+                </tr>
+              ) : roles.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    No roles found matching your search.
                   </td>
                 </tr>
               ) : (
@@ -918,45 +942,81 @@ function RolesTab({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls (Default Limit: 10) */}
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(0);
+          }}
+        />
       </div>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MODULE RIGHTS TAB COMPONENT
+// TAB 3: MODULE RIGHTS TAB COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 
 function ModuleRightsTab({
-  moduleRights,
   timezone,
-  isLoading,
   onEdit,
   onDelete,
 }: {
-  moduleRights: ModuleRight[];
   timezone: SupportedTimezone;
-  isLoading: boolean;
   onEdit: (mr: ModuleRight) => void;
   onDelete: (mr: ModuleRight) => void;
 }) {
-  if (isLoading) {
-    return (
-      <div className="surface p-12 text-center rounded-xl flex flex-col items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-primary mb-3" />
-        <p className="text-sm text-muted-foreground">Loading module rights...</p>
-      </div>
-    );
-  }
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(0);
+  };
+
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["auth-rights-paged", page, pageSize, search],
+    queryFn: () =>
+      fetchModuleRights({
+        page,
+        size: pageSize,
+        search: search.trim() || undefined,
+      }),
+  });
+
+  const moduleRights = pageData?.content ?? [];
+  const totalElements = pageData?.totalElements ?? 0;
+  const totalPages = pageData?.totalPages ?? 1;
 
   return (
     <div className="space-y-4">
+      {/* Search Input */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search module rights by key or label..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-9 h-10 text-xs sm:text-sm"
+          />
+        </div>
+      </div>
+
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
               <tr>
-                <th className="px-5 py-3.5">Module Right Name</th>
+                <th className="px-5 py-3.5">Module Right (Key)</th>
                 <th className="px-4 py-3.5">Display Label</th>
                 <th className="px-4 py-3.5">Description</th>
                 <th className="px-4 py-3.5">Created</th>
@@ -964,26 +1024,38 @@ function ModuleRightsTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {moduleRights.length === 0 ? (
+              {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                    No module rights defined yet.
+                    <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
+                    Loading module rights...
+                  </td>
+                </tr>
+              ) : moduleRights.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                    No module rights found.
                   </td>
                 </tr>
               ) : (
                 moduleRights.map((mr) => (
-                  <tr key={mr.name} className="hover:bg-muted/30 transition-colors">
+                  <tr key={mr.id || mr.name} className="hover:bg-muted/30 transition-colors">
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <KeyRound className="size-4 text-primary shrink-0" />
-                        <span className="font-mono font-bold text-xs bg-muted px-2 py-0.5 rounded text-foreground">
-                          {mr.name}
-                        </span>
+                      <div className="flex items-center gap-2.5">
+                        <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary font-bold text-xs shrink-0">
+                          <KeyRound className="size-4" />
+                        </div>
+                        <div>
+                          <p className="font-mono font-bold text-xs text-foreground">{mr.name}</p>
+                          <p className="text-[10px] text-muted-foreground">Direct User Permission</p>
+                        </div>
                       </div>
                     </td>
 
-                    <td className="px-4 py-3.5 font-semibold text-foreground text-sm">
-                      {mr.label || mr.name}
+                    <td className="px-4 py-3.5">
+                      <Badge variant="outline" className="font-medium text-xs">
+                        {mr.label || mr.name}
+                      </Badge>
                     </td>
 
                     <td className="px-4 py-3.5 text-muted-foreground max-w-sm">
@@ -1015,13 +1087,26 @@ function ModuleRightsTab({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls (Default Limit: 10) */}
+        <PaginationBar
+          page={page}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(0);
+          }}
+        />
       </div>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// USER ADD / EDIT DIALOG (With Direct User-Level Module Rights Assignment)
+// USER ADD / EDIT DIALOG
 // ══════════════════════════════════════════════════════════════════════════════
 
 function UserFormDialog({
@@ -1045,13 +1130,13 @@ function UserFormDialog({
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [userStatus, setUserStatus] = useState<UserStatus>("ACTIVE");
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [selectedRights, setSelectedRights] = useState<string[]>([]);
+  const [status, setStatus] = useState<UserStatus>("ACTIVE");
   const [userType, setUserType] = useState<UserType>("EMPLOYEE");
-  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
-  const [selectedModuleRights, setSelectedModuleRights] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Sync state on open
+  // Sync Form State when dialog opens or editingUser changes
   useEffect(() => {
     if (open) {
       if (editingUser) {
@@ -1059,36 +1144,41 @@ function UserFormDialog({
         setPassword("");
         setFirstName(editingUser.firstName || "");
         setLastName(editingUser.lastName || "");
-        setUserStatus(editingUser.userStatus || "ACTIVE");
+        setSelectedRoles(editingUser.roleIds || []);
+        setSelectedRights(editingUser.moduleRights || []);
+        setStatus(editingUser.userStatus || "ACTIVE");
         setUserType(editingUser.userType || "EMPLOYEE");
-        setSelectedRoleIds(editingUser.roleIds || []);
-        setSelectedModuleRights(editingUser.moduleRights || []);
       } else {
         setEmail("");
         setPassword("");
         setFirstName("");
         setLastName("");
-        setUserStatus("ACTIVE");
+        setSelectedRoles([]);
+        setSelectedRights([]);
+        setStatus("ACTIVE");
         setUserType("EMPLOYEE");
-        const activeRole = roles.find((r) => r.active);
-        setSelectedRoleIds(activeRole ? [activeRole.roleId] : []);
-        setSelectedModuleRights(["DASHBOARD"]);
       }
     }
   }, [open, editingUser?.id]);
 
+  const toggleRole = (roleId: string) => {
+    setSelectedRoles((prev) =>
+      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
+    );
+  };
+
   const toggleRight = (rightName: string) => {
-    setSelectedModuleRights((prev) =>
+    setSelectedRights((prev) =>
       prev.includes(rightName) ? prev.filter((r) => r !== rightName) : [...prev, rightName]
     );
   };
 
-  const handleSelectAllRights = () => {
-    setSelectedModuleRights(moduleRights.map((mr) => mr.name));
+  const selectAllRights = () => {
+    setSelectedRights(moduleRights.map((mr) => mr.name));
   };
 
-  const handleClearAllRights = () => {
-    setSelectedModuleRights([]);
+  const clearAllRights = () => {
+    setSelectedRights([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1098,7 +1188,7 @@ function UserFormDialog({
       return;
     }
     if (!isEdit && !password.trim()) {
-      toast.error("Password is required for new user");
+      toast.error("Password is required for new users");
       return;
     }
 
@@ -1109,10 +1199,10 @@ function UserFormDialog({
           email: email.trim(),
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          roleIds: selectedRoleIds,
-          moduleRights: selectedModuleRights,
-          userStatus,
-          userType,
+          roleIds: selectedRoles,
+          moduleRights: selectedRights,
+          userStatus: status,
+          userType: userType,
         });
         toast.success("User updated successfully");
       } else {
@@ -1121,10 +1211,10 @@ function UserFormDialog({
           password: password.trim(),
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          roleIds: selectedRoleIds,
-          moduleRights: selectedModuleRights,
-          userStatus,
-          userType,
+          roleIds: selectedRoles,
+          moduleRights: selectedRights,
+          userStatus: status,
+          userType: userType,
         });
         toast.success("User created successfully");
       }
@@ -1139,115 +1229,96 @@ function UserFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-3xl lg:max-w-4xl sm:h-[88vh] sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:max-w-2xl lg:max-w-3xl sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
         {/* Header */}
         <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
-          <DialogTitle className="text-lg font-semibold">
-            {isEdit ? "Edit User & Access Rights" : "Create New User"}
+          <DialogTitle className="text-lg font-bold">
+            {isEdit ? "Edit User Account" : "Create New User Account"}
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            {isEdit
-              ? `Modify profile details and direct module permissions for ${editingUser?.email}`
-              : "Set up a new system user with direct module permissions and role assignment."}
+          <DialogDescription className="text-xs">
+            Manage profile details, system roles, and direct user-level module access rights.
           </DialogDescription>
         </DialogHeader>
 
         {/* Scrollable Form Body */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
           <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
+            {/* Basic Information */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold">Profile & Credentials</legend>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                1. Account & Profile
+              </legend>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">First Name</Label>
-                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="e.g. Ramesh" />
+                  <Input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="e.g. John"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Last Name</Label>
-                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="e.g. Patel" />
+                  <Input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="e.g. Doe"
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Email Address *</Label>
+                  <Label className="text-xs">Email Address (Username) *</Label>
                   <Input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@ncop.com"
+                    placeholder="user@nourishpharma.com"
                     required
                   />
                 </div>
                 {!isEdit && (
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Initial Password *</Label>
+                    <Label className="text-xs">Password *</Label>
                     <Input
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      required
+                      required={!isEdit}
                     />
                   </div>
                 )}
               </div>
-            </fieldset>
 
-            {/* Role & Status */}
-            <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold">Role & Organization Status</legend>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Role Selector */}
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Assigned Role</Label>
-                  <Select
-                    value={selectedRoleIds[0] || "none"}
-                    onValueChange={(v) => setSelectedRoleIds(v === "none" ? [] : [v])}
-                  >
-                    <SelectTrigger className="text-xs">
-                      <SelectValue placeholder="Select a role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Role</SelectItem>
-                      {roles.map((r) => (
-                        <SelectItem key={r.roleId} value={r.roleId}>
-                          {r.name} {!r.active && "(⚠️ Inactive)"}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Account Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Account Status</Label>
-                  <Select value={userStatus} onValueChange={(v) => setUserStatus(v as UserStatus)}>
-                    <SelectTrigger className="text-xs">
+                  <Select value={status} onValueChange={(v) => setStatus(v as UserStatus)}>
+                    <SelectTrigger className="h-10 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="PENDING">Pending</SelectItem>
-                      <SelectItem value="INACTIVE">Inactive</SelectItem>
-                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
+                      <SelectItem value="ACTIVE">Active (Allowed Login)</SelectItem>
+                      <SelectItem value="PENDING">Pending Approval</SelectItem>
+                      <SelectItem value="INACTIVE">Inactive (Disabled)</SelectItem>
+                      <SelectItem value="SUSPENDED">Suspended (Blocked)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
-                {/* User Type */}
                 <div className="space-y-1.5">
                   <Label className="text-xs">User Classification</Label>
                   <Select value={userType} onValueChange={(v) => setUserType(v as UserType)}>
-                    <SelectTrigger className="text-xs">
+                    <SelectTrigger className="h-10 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="MANAGER">Manager</SelectItem>
-                      <SelectItem value="CONTRACTOR">Contractor</SelectItem>
+                      <SelectItem value="ADMIN">Administrator</SelectItem>
+                      <SelectItem value="EMPLOYEE">Standard Employee</SelectItem>
+                      <SelectItem value="MANAGER">Department Manager</SelectItem>
+                      <SelectItem value="CONTRACTOR">Contractor / Auditor</SelectItem>
                       <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -1255,40 +1326,95 @@ function UserFormDialog({
               </div>
             </fieldset>
 
-            {/* Direct Module Rights Assignment (User-Level Only) */}
-            <fieldset className="space-y-4">
-              <div className="flex items-center justify-between">
+            {/* Role Assignment */}
+            <fieldset className="space-y-3 pt-3 border-t border-border/40">
+              <div>
+                <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  2. Organizational Roles
+                </legend>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Assign user to one or more roles. Note: if all assigned roles are inactive, the user will be blocked from logging in.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {roles.map((role) => {
+                  const isChecked = selectedRoles.includes(role.roleId);
+                  return (
+                    <div
+                      key={role.roleId}
+                      onClick={() => toggleRole(role.roleId)}
+                      className={cn(
+                        "flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none",
+                        isChecked
+                          ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+                          : "border-border/60 hover:border-border surface"
+                      )}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={() => toggleRole(role.roleId)}
+                        className="mt-0.5 shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-semibold text-xs text-foreground">{role.name}</p>
+                          {!role.active && (
+                            <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-400 py-0">
+                              Inactive
+                            </Badge>
+                          )}
+                        </div>
+                        {role.description && (
+                          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                            {role.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            {/* Direct Module Rights Assignment */}
+            <fieldset className="space-y-3 pt-3 border-t border-border/40">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div>
-                  <legend className="text-sm font-semibold">User-Level Module Rights</legend>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Assign specific ERP modules this user is authorized to access.
+                  <legend className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    3. Direct User Module Rights ({selectedRights.length}/{moduleRights.length} granted)
+                  </legend>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Module rights are granted directly to the user (independent of roles).
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={handleSelectAllRights} className="text-xs h-7">
+                  <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={selectAllRights}>
                     Select All
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" onClick={handleClearAllRights} className="text-xs h-7">
-                    Clear All
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={clearAllRights}>
+                    Clear
                   </Button>
                 </div>
               </div>
 
               {moduleRights.length === 0 ? (
-                <p className="text-xs text-muted-foreground italic">No system module rights configured.</p>
+                <div className="surface p-6 text-center rounded-xl border border-dashed text-xs text-muted-foreground">
+                  No module rights registered. Register module rights in the "Module Rights" tab first.
+                </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
                   {moduleRights.map((mr) => {
-                    const isChecked = selectedModuleRights.includes(mr.name);
+                    const isChecked = selectedRights.includes(mr.name);
                     return (
                       <div
-                        key={mr.name}
+                        key={mr.id || mr.name}
                         onClick={() => toggleRight(mr.name)}
                         className={cn(
-                          "cursor-pointer surface p-3 rounded-xl border transition-all flex items-start gap-3 select-none",
+                          "flex items-start gap-2.5 p-3 rounded-xl border transition-all cursor-pointer select-none",
                           isChecked
-                            ? "border-primary/50 bg-primary/5 shadow-soft ring-1 ring-primary/20"
-                            : "border-border/60 hover:border-border"
+                            ? "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+                            : "border-border/60 hover:border-border surface"
                         )}
                       >
                         <Checkbox
@@ -1319,7 +1445,7 @@ function UserFormDialog({
         </div>
 
         {/* Footer */}
-        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
           <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -1412,36 +1538,36 @@ function RoleFormDialog({
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-        <form id="role-form" onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Role Name *</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. SALES_MANAGER, QA_LEAD"
-              required
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="text-xs">Description</Label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Oversees commercial export operations"
-            />
-          </div>
-
-          <div className="flex items-center justify-between surface p-3.5 rounded-xl border border-border/60">
-            <div>
-              <Label className="text-xs font-semibold">Active Status</Label>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                If deactivated, users assigned solely to this role will be blocked from logging in.
-              </p>
+          <form id="role-form" onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Role Name *</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. SALES_MANAGER, QA_LEAD"
+                required
+              />
             </div>
-            <Switch checked={active} onCheckedChange={setActive} />
-          </div>
-        </form>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Description</Label>
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Oversees commercial export operations"
+              />
+            </div>
+
+            <div className="flex items-center justify-between surface p-3.5 rounded-xl border border-border/60">
+              <div>
+                <Label className="text-xs font-semibold">Active Status</Label>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  If deactivated, users assigned solely to this role will be blocked from logging in.
+                </p>
+              </div>
+              <Switch checked={active} onCheckedChange={setActive} />
+            </div>
+          </form>
         </div>
 
         <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
@@ -1537,35 +1663,37 @@ function ModuleRightFormDialog({
         </DialogHeader>
 
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-        <form id="right-form" onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">System Identifier (Key) *</Label>
-            <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. INVENTORY_MANAGEMENT"
-              required
-            />
-          </div>
+          <form id="right-form" onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs">System Identifier (Key) *</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. INQUIRY_VIEW, ORDER_APPROVE"
+                disabled={isEdit}
+                required
+              />
+              <p className="text-[10px] text-muted-foreground">Unique code identifier used for navigation & permission checks</p>
+            </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Display Label</Label>
-            <Input
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Inventory Management"
-            />
-          </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Display Label</Label>
+              <Input
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="e.g. View Customer Inquiries"
+              />
+            </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Description</Label>
-            <Input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="e.g. Grants access to warehouse inventory tracking"
-            />
-          </div>
-        </form>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Description</Label>
+              <Input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Grants access to view and manage customer inquiries"
+              />
+            </div>
+          </form>
         </div>
 
         <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
@@ -1574,7 +1702,88 @@ function ModuleRightFormDialog({
           </Button>
           <Button type="submit" form="right-form" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-            {isEdit ? "Update Right" : "Create Right"}
+            {isEdit ? "Update Right" : "Register Right"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DELETE CONFIRMATION DIALOG
+// ══════════════════════════════════════════════════════════════════════════════
+
+function DeleteConfirmDialog({
+  confirmData,
+  onOpenChange,
+  onSuccess,
+}: {
+  confirmData: {
+    type: "user" | "role" | "right";
+    id: string;
+    name: string;
+  } | null;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  if (!confirmData) return null;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      if (confirmData.type === "user") {
+        await deleteUser(confirmData.id);
+        toast.success(`User "${confirmData.name}" deleted successfully`);
+      } else if (confirmData.type === "role") {
+        await deleteRole(confirmData.id);
+        toast.success(`Role "${confirmData.name}" deleted successfully`);
+      } else if (confirmData.type === "right") {
+        await deleteModuleRight(confirmData.id);
+        toast.success(`Module right "${confirmData.name}" deleted successfully`);
+      }
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete item");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const entityName =
+    confirmData.type === "user" ? "User" : confirmData.type === "role" ? "Role" : "Module Right";
+
+  return (
+    <Dialog open={!!confirmData} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md p-6">
+        <DialogHeader>
+          <DialogTitle className="text-destructive flex items-center gap-2">
+            <Trash2 className="size-5" /> Delete {entityName}
+          </DialogTitle>
+          <DialogDescription className="pt-2 text-xs">
+            Are you sure you want to permanently delete <strong>{confirmData.name}</strong>?
+            {confirmData.type === "role" && (
+              <span className="block mt-1 text-amber-600 dark:text-amber-400">
+                ⚠️ This role will be automatically removed from all assigned users.
+              </span>
+            )}
+            {confirmData.type === "right" && (
+              <span className="block mt-1 text-amber-600 dark:text-amber-400">
+                ⚠️ This right will be automatically revoked from all users.
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+            {isDeleting && <Loader2 className="size-4 animate-spin" />}
+            Confirm Delete
           </Button>
         </DialogFooter>
       </DialogContent>
