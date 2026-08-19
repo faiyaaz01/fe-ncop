@@ -40,14 +40,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
-  { label: "Client Master", to: "/clients", icon: Users },
-  { label: "Product Master", to: "/products", icon: Boxes },
-  { label: "Customer Inquiry", to: "/inquiry", icon: ClipboardList },
-  { label: "Final Order", to: "/orders", icon: FileText },
-  { label: "Reports", to: "/reports", icon: PieChart },
+  { label: "Clients", to: "/clients", icon: Users },
+  { label: "Products", to: "/products", icon: Boxes },
+  { label: "RFQs", to: "/inquiry", icon: ClipboardList },
+  // { label: "Final Order", to: "/orders", icon: FileText },
+  // { label: "Reports", to: "/reports", icon: PieChart },
   { label: "User Management", to: "/user-management", icon: UserCog },
-  { label: "Settings", to: "/settings", icon: Settings },
-  { label: "Profile", to: "/profile", icon: UserRound },
+  // { label: "Settings", to: "/settings", icon: Settings },
+  // { label: "Profile", to: "/profile", icon: UserRound },
 ] as const;
 
 const mobileNav = nav.slice(0, 5);
@@ -84,6 +84,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
   const navigate = useNavigate();
 
+  // @ts-ignore
   useEffect(() => {
     return userSessionService.subscribe((u) => setCurrentUser(u));
   }, []);
