@@ -88,16 +88,42 @@ export function AppShell({ children }: { children: ReactNode }) {
     return userSessionService.subscribe((u) => setCurrentUser(u));
   }, []);
 
-  const isAdmin = useMemo(() => isUserAdmin(currentUser), [currentUser]);
-
   const visibleNav = useMemo(() => {
+    if (!currentUser) return nav;
+    const isAdmin =
+      isUserAdmin(currentUser) ||
+      currentUser.userType === "ADMIN" ||
+      currentUser.userType === "SUPER_ADMIN" ||
+      currentUser.role === "ADMIN" ||
+      currentUser.roles?.includes("ADMIN");
+
+    if (isAdmin) return nav;
+
+    // Extract user-level assigned module rights
+    const userRights: string[] = Array.isArray(currentUser.moduleRights)
+      ? (currentUser.moduleRights as any[])
+          .map((r) => (typeof r === "string" ? r : r.hasRight !== false ? r.name : ""))
+          .filter(Boolean)
+      : [];
+
+    const navMapping: Record<string, string[]> = {
+      "/dashboard": ["DASHBOARD"],
+      "/clients": ["CLIENT_MASTER"],
+      "/products": ["PRODUCT_MASTER"],
+      "/inquiry": ["SALES"],
+      "/orders": ["SALES"],
+      "/reports": ["REPORTS", "SALES", "DASHBOARD"],
+      "/user-management": ["USER_MANAGEMENT", "ROLE_MANAGEMENT", "MODULE_RIGHT_MANAGEMENT"],
+      "/settings": [],
+      "/profile": [],
+    };
+
     return nav.filter((item) => {
-      if (item.to === "/user-management") {
-        return isAdmin;
-      }
-      return true;
+      const req = navMapping[item.to];
+      if (!req || req.length === 0) return true;
+      return req.some((r) => userRights.includes(r));
     });
-  }, [isAdmin]);
+  }, [currentUser]);
 
   const userInfo = currentUser;
 

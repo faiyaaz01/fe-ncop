@@ -1,54 +1,46 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import {
   Users,
-  UserPlus,
-  Search,
-  KeyRound,
-  Trash2,
-  Edit,
   Shield,
+  KeyRound,
+  Plus,
+  Search,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  MoreHorizontal,
+  Edit2,
+  Trash2,
   ShieldAlert,
   ShieldCheck,
+  ShieldOff,
+  Ban,
+  Globe,
+  Loader2,
+  Check,
   UserCheck,
   UserX,
-  Lock,
-  Eye,
-  EyeOff,
-  RefreshCw,
-  MoreVertical,
-  CheckCircle2,
-  Clock,
-  Building2,
-  Mail,
-  Calendar,
   Layers,
   Sparkles,
-  Plus,
-  Sliders,
-  CheckSquare,
-  Square,
-  Save,
-  Check,
-  ToggleLeft,
-  ToggleRight,
-  Info,
-  SlidersHorizontal,
-  FolderLock,
 } from "lucide-react";
-import { toast } from "sonner";
-import { userSessionService, isUserAdmin } from "@/lib/user-session";
-
-import { PageHeader, Panel, Reveal, StatusChip, EmptyState } from "@/components/kit";
+import { PageHeader, Panel } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -58,2436 +50,1534 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
 import {
   fetchUsers,
-  fetchRoles,
-  fetchModuleRights,
   createUser,
   updateUser,
   deleteUser,
-  resetUserPassword,
+  fetchRoles,
   createRole,
   updateRole,
   deleteRole,
+  fetchModuleRights,
   createModuleRight,
   updateModuleRight,
   deleteModuleRight,
-  type UserResponse,
-  type RoleResponse,
-  type ModuleRightItem,
-  type UserStatus,
-  type UserType,
-  type CreateUserPayload,
-  type UpdateUserPayload,
-  type CreateRolePayload,
-  type UpdateRolePayload,
-  type CreateModuleRightPayload,
-  type UpdateModuleRightPayload,
-} from "@/lib/user-api";
+} from "@/lib/auth-api";
+import type {
+  UserResponse,
+  RoleResponse,
+  ModuleRight,
+  UserStatus,
+  UserType,
+} from "@/lib/auth-types";
+import {
+  formatDateTime,
+  formatShortDateTime,
+  TIMEZONE_OPTIONS,
+  type SupportedTimezone,
+} from "@/lib/date-utils";
 
 export const Route = createFileRoute("/_shell/user-management")({
   head: () => ({
     meta: [
-      { title: "User & Role Management · NCOP ERP" },
+      { title: "User & Access Management · NCOP ERP" },
       {
         name: "description",
-        content: "Manage system users, roles, security, and granular module access permissions.",
+        content: "Manage users, organizational roles, and user-level module access rights.",
       },
     ],
   }),
   component: UserManagementPage,
 });
 
-// Granular actions for permission matrix
-const ACTIONS = [
-  { key: "VIEW", label: "View", desc: "Read & inspect" },
-  { key: "CREATE", label: "Create", desc: "Add new items" },
-  { key: "EDIT", label: "Edit", desc: "Modify records" },
-  { key: "DELETE", label: "Delete", desc: "Remove items" },
-] as const;
-
-function UserManagementPage() {
+export function UserManagementPage() {
   const queryClient = useQueryClient();
-  const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
+  const [activeTab, setActiveTab] = useState<"users" | "roles" | "rights">("users");
+  const [timezone, setTimezone] = useState<SupportedTimezone>("LOCAL");
 
-  useEffect(() => {
-    return userSessionService.subscribe((u) => setCurrentUser(u));
-  }, []);
-
-  const isAdmin = useMemo(() => isUserAdmin(currentUser), [currentUser]);
-
-  // Active Tab
-  const [activeTab, setActiveTab] = useState<"users" | "roles" | "permissions">("users");
-
-  // Users Tab: Search & Filter state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [roleFilter, setRoleFilter] = useState<string>("ALL");
-
-  // User Modals
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
-  const [resetPasswordUser, setResetPasswordUser] = useState<UserResponse | null>(null);
-  const [deletingUser, setDeletingUser] = useState<UserResponse | null>(null);
-
-  // Role Modals
-  const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<RoleResponse | null>(null);
-  const [deletingRole, setDeletingRole] = useState<RoleResponse | null>(null);
-
-  // Module Right Modals
-  const [isCreateModuleOpen, setIsCreateModuleOpen] = useState(false);
-  const [editingModule, setEditingModule] = useState<ModuleRightItem | null>(null);
-
-  // Permission Matrix State
-  const [selectedMatrixRoleId, setSelectedMatrixRoleId] = useState<string>("");
-  const [matrixPermissions, setMatrixPermissions] = useState<Set<string>>(new Set());
-  const [isMatrixDirty, setIsMatrixDirty] = useState(false);
-
-  // ── Queries ────────────────────────────────────────────────────────────────
-  const {
-    data: users = [],
-    isLoading: isUsersLoading,
-    isRefetching: isUsersRefetching,
-    refetch: refetchUsers,
-  } = useQuery({
-    queryKey: ["users"],
+  // ── Queries ──
+  const { data: users = [], isLoading: loadingUsers } = useQuery({
+    queryKey: ["auth-users"],
     queryFn: fetchUsers,
-    enabled: isAdmin,
   });
 
-  const {
-    data: roles = [],
-    isLoading: isRolesLoading,
-    refetch: refetchRoles,
-  } = useQuery({
-    queryKey: ["roles"],
+  const { data: roles = [], isLoading: loadingRoles } = useQuery({
+    queryKey: ["auth-roles"],
     queryFn: fetchRoles,
-    enabled: isAdmin,
   });
 
-  const {
-    data: moduleRights = [],
-    isLoading: isModulesLoading,
-    refetch: refetchModules,
-  } = useQuery({
-    queryKey: ["moduleRights"],
+  const { data: moduleRights = [], isLoading: loadingRights } = useQuery({
+    queryKey: ["auth-module-rights"],
     queryFn: fetchModuleRights,
-    enabled: isAdmin,
   });
 
-  // Sync initial matrix role selection
-  useEffect(() => {
-    if (roles.length > 0 && !selectedMatrixRoleId) {
-      setSelectedMatrixRoleId(roles[0].roleId);
-    }
-  }, [roles, selectedMatrixRoleId]);
+  // ── Modals State ──
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
 
-  // Sync matrix permissions when selected role changes
-  useEffect(() => {
-    if (selectedMatrixRoleId && roles.length > 0) {
-      const selectedRole = roles.find((r) => r.roleId === selectedMatrixRoleId);
-      if (selectedRole) {
-        setMatrixPermissions(new Set(selectedRole.moduleRights || []));
-        setIsMatrixDirty(false);
-      }
-    }
-  }, [selectedMatrixRoleId, roles]);
+  const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<RoleResponse | null>(null);
 
-  // ── Mutations: Users ───────────────────────────────────────────────────────
-  const createMutation = useMutation({
-    mutationFn: (payload: CreateUserPayload) => createUser(payload),
-    onSuccess: (data) => {
-      toast.success("User created successfully", {
-        description: `User ${data.email} has been added.`,
-      });
-      setIsCreateOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to create user", { description: err.message });
-    },
-  });
+  const [rightModalOpen, setRightModalOpen] = useState(false);
+  const [editingRight, setEditingRight] = useState<ModuleRight | null>(null);
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) =>
-      updateUser(id, payload),
-    onSuccess: (data) => {
-      toast.success("User updated successfully", {
-        description: `Details for ${data.email} have been updated.`,
-      });
-      setEditingUser(null);
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to update user", { description: err.message });
-    },
-  });
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    type: "user" | "role" | "right";
+    id: string;
+    name: string;
+  } | null>(null);
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteUser(id),
-    onSuccess: () => {
-      toast.success("User deleted", {
-        description: "The user account was permanently removed.",
-      });
-      setDeletingUser(null);
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to delete user", { description: err.message });
-    },
-  });
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
-  const resetPasswordMutation = useMutation({
-    mutationFn: ({ id, pass }: { id: string; pass: string }) =>
-      resetUserPassword(id, pass),
-    onSuccess: () => {
-      toast.success("Password reset successfully", {
-        description: "The user's password has been updated.",
-      });
-      setResetPasswordUser(null);
-    },
-    onError: (err: Error) => {
-      toast.error("Password reset failed", { description: err.message });
-    },
-  });
-
-  // ── Mutations: Roles ───────────────────────────────────────────────────────
-  const createRoleMutation = useMutation({
-    mutationFn: (payload: CreateRolePayload) => createRole(payload),
-    onSuccess: (data) => {
-      toast.success("Role created", {
-        description: `Role "${data.name}" was successfully created.`,
-      });
-      setIsCreateRoleOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to create role", { description: err.message });
-    },
-  });
-
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateRolePayload }) =>
-      updateRole(id, payload),
-    onSuccess: (data) => {
-      toast.success("Role updated", {
-        description: `Role "${data.name}" and all assigned users have been updated.`,
-      });
-      setEditingRole(null);
-      setIsMatrixDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to update role", { description: err.message });
-    },
-  });
-
-  const deleteRoleMutation = useMutation({
-    mutationFn: (id: string) => deleteRole(id),
-    onSuccess: () => {
-      toast.success("Role deleted", {
-        description: "The role was removed and unassigned from all users.",
-      });
-      setDeletingRole(null);
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to delete role", { description: err.message });
-    },
-  });
-
-  // ── Mutations: Module Rights ───────────────────────────────────────────────
-  const createModuleMutation = useMutation({
-    mutationFn: (payload: CreateModuleRightPayload) => createModuleRight(payload),
-    onSuccess: (data) => {
-      toast.success("Module right added", {
-        description: `Module "${data.name}" was added to the system permissions.`,
-      });
-      setIsCreateModuleOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["moduleRights"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to add module", { description: err.message });
-    },
-  });
-
-  const updateModuleMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: UpdateModuleRightPayload }) =>
-      updateModuleRight(id, payload),
-    onSuccess: (data) => {
-      toast.success("Module right updated", {
-        description: `Module "${data.name}" was updated and synchronized across all roles & users.`,
-      });
-      setEditingModule(null);
-      queryClient.invalidateQueries({ queryKey: ["moduleRights"] });
-      queryClient.invalidateQueries({ queryKey: ["roles"] });
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
-    onError: (err: Error) => {
-      toast.error("Failed to update module", { description: err.message });
-    },
-  });
-
-  // ── Permission Matrix Helpers ──────────────────────────────────────────────
-  const toggleMatrixPermission = (permissionKey: string) => {
-    setMatrixPermissions((prev) => {
-      const next = new Set(prev);
-      if (next.has(permissionKey)) {
-        next.delete(permissionKey);
-      } else {
-        next.add(permissionKey);
-      }
-      setIsMatrixDirty(true);
-      return next;
-    });
-  };
-
-  const toggleRowAllPermissions = (moduleName: string) => {
-    const rowKeys = [
-      moduleName,
-      ...ACTIONS.map((a) => `${moduleName}_${a.key}`),
-    ];
-    const allSelected = rowKeys.every((k) => matrixPermissions.has(k));
-
-    setMatrixPermissions((prev) => {
-      const next = new Set(prev);
-      if (allSelected) {
-        rowKeys.forEach((k) => next.delete(k));
-      } else {
-        rowKeys.forEach((k) => next.add(k));
-      }
-      setIsMatrixDirty(true);
-      return next;
-    });
-  };
-
-  const handleSelectAllMatrix = () => {
-    const allPossibleKeys: string[] = [];
-    moduleRights.forEach((m) => {
-      allPossibleKeys.push(m.name);
-      ACTIONS.forEach((a) => allPossibleKeys.push(`${m.name}_${a.key}`));
-    });
-
-    const isAll = allPossibleKeys.every((k) => matrixPermissions.has(k));
-    setMatrixPermissions(isAll ? new Set() : new Set(allPossibleKeys));
-    setIsMatrixDirty(true);
-  };
-
-  const handleSaveMatrix = () => {
-    if (!selectedMatrixRoleId) return;
-    const currentRole = roles.find((r) => r.roleId === selectedMatrixRoleId);
-    if (!currentRole) return;
-
-    updateRoleMutation.mutate({
-      id: selectedMatrixRoleId,
-      payload: {
-        name: currentRole.name,
-        description: currentRole.description,
-        active: currentRole.active,
-        moduleRights: Array.from(matrixPermissions),
-      },
-    });
-  };
-
-  // ── Filtered users list ────────────────────────────────────────────────────
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchSearch =
-        !searchTerm ||
-        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.roleNames?.some((r) => r.toLowerCase().includes(searchTerm.toLowerCase()));
-
-      const matchStatus = statusFilter === "ALL" || user.userStatus === statusFilter;
-      const matchRole =
-        roleFilter === "ALL" ||
-        user.roleNames?.includes(roleFilter) ||
-        user.roleIds?.includes(roleFilter);
-
-      return matchSearch && matchStatus && matchRole;
-    });
-  }, [users, searchTerm, statusFilter, roleFilter]);
-
-  // Statistics calculation
+  // ── Summary Stats ──
   const stats = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((u) => u.userStatus === "ACTIVE").length;
-    const pending = users.filter((u) => u.userStatus === "PENDING").length;
-    const adminCount = users.filter((u) =>
-      u.roleNames?.some((r) => r.toUpperCase().includes("ADMIN"))
-    ).length;
+    const totalUsers = users.length;
+    const activeUsers = users.filter((u) => u.effectiveActive).length;
+    const inactiveUsers = users.filter((u) => u.userStatus === "INACTIVE").length;
+    const suspendedUsers = users.filter((u) => u.userStatus === "SUSPENDED").length;
+    const pendingUsers = users.filter((u) => u.userStatus === "PENDING").length;
+    const roleInactiveUsers = users.filter((u) => !u.hasActiveRole && u.roleIds.length > 0).length;
 
-    return { total, active, pending, adminCount };
-  }, [users]);
+    const totalRoles = roles.length;
+    const activeRoles = roles.filter((r) => r.active).length;
+    const inactiveRoles = roles.filter((r) => !r.active).length;
+    const totalRights = moduleRights.length;
 
-  const getInitials = (name?: string, email?: string) => {
-    if (name && name.trim()) {
-      const parts = name.trim().split(" ");
-      if (parts.length >= 2) {
-        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-      }
-      return name.slice(0, 2).toUpperCase();
-    }
-    if (email) {
-      return email.slice(0, 2).toUpperCase();
-    }
-    return "U";
-  };
-
-  if (!isAdmin) {
-    return (
-      <div className="flex min-h-[65vh] flex-col items-center justify-center p-6 text-center">
-        <Panel className="max-w-md items-center space-y-4 rounded-2xl border border-destructive/20 bg-card p-8 text-center shadow-soft">
-          <div className="grid size-14 place-items-center rounded-2xl bg-destructive/10 text-destructive">
-            <ShieldAlert className="size-7" />
-          </div>
-          <div className="space-y-1.5">
-            <h2 className="text-xl font-bold tracking-tight">Administrator Access Required</h2>
-            <p className="text-sm text-muted-foreground">
-              User Management is restricted to system administrators only. If you require access, please contact your organization administrator.
-            </p>
-          </div>
-          <Button asChild variant="outline" className="mt-2">
-            <Link to="/dashboard">Return to Dashboard</Link>
-          </Button>
-        </Panel>
-      </div>
-    );
-  }
-
-  const selectedRoleObj = roles.find((r) => r.roleId === selectedMatrixRoleId);
+    return {
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      suspendedUsers,
+      pendingUsers,
+      roleInactiveUsers,
+      totalRoles,
+      activeRoles,
+      inactiveRoles,
+      totalRights,
+    };
+  }, [users, roles, moduleRights]);
 
   return (
     <div className="space-y-6">
-      {/* ── Page Header ──────────────────────────────────────────────── */}
-      <Reveal>
-        <PageHeader
-          eyebrow="Access Control & Security"
-          title="User & Access Management"
-          description="Manage team accounts, configure system roles, and assign role-based module permission matrices."
-          actions={
-            <div className="flex items-center gap-2">
+      {/* ── Page Header with Timezone Selector ── */}
+      <PageHeader
+        eyebrow="Security & Governance"
+        title="User & Access Management"
+        description="Configure users, organizational roles, and user-level module access rights."
+        actions={
+          <div className="flex items-center gap-3">
+            {/* Timezone Switcher */}
+            <div className="flex items-center gap-1.5 surface px-3 py-1.5 rounded-lg border border-border/60 text-xs">
+              <Globe className="size-3.5 text-muted-foreground shrink-0" />
+              <span className="text-muted-foreground hidden sm:inline">Timezone:</span>
+              <Select value={timezone} onValueChange={(v) => setTimezone(v as SupportedTimezone)}>
+                <SelectTrigger className="h-6 border-0 bg-transparent p-0 text-xs font-semibold focus:ring-0 w-auto gap-1 p-3">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  {TIMEZONE_OPTIONS.map((tz) => (
+                    <SelectItem key={tz.value} value={tz.value} className="text-xs">
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action based on active tab */}
+            {activeTab === "users" && (
               <Button
-                variant="outline"
                 size="sm"
                 onClick={() => {
-                  refetchUsers();
-                  refetchRoles();
-                  refetchModules();
+                  setEditingUser(null);
+                  setUserModalOpen(true);
                 }}
-                disabled={isUsersRefetching}
-                className="gap-1.5"
               >
-                <RefreshCw className={cn("size-3.5", isUsersRefetching && "animate-spin")} />
-                Refresh
+                <Plus className="size-4" /> Add User
               </Button>
+            )}
+            {activeTab === "roles" && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingRole(null);
+                  setRoleModalOpen(true);
+                }}
+              >
+                <Plus className="size-4" /> Add Role
+              </Button>
+            )}
+            {activeTab === "rights" && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingRight(null);
+                  setRightModalOpen(true);
+                }}
+              >
+                <Plus className="size-4" /> Add Module Right
+              </Button>
+            )}
+          </div>
+        }
+      />
 
-              {activeTab === "users" && (
-                <Button
-                  size="sm"
-                  onClick={() => setIsCreateOpen(true)}
-                  className="gap-1.5 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                >
-                  <UserPlus className="size-4" />
-                  Add User
-                </Button>
-              )}
-
-              {activeTab === "roles" && (
-                <Button
-                  size="sm"
-                  onClick={() => setIsCreateRoleOpen(true)}
-                  className="gap-1.5 bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
-                >
-                  <Shield className="size-4" />
-                  Create Role
-                </Button>
-              )}
-
-              {activeTab === "permissions" && (
-                <Button
-                  size="sm"
-                  onClick={() => setIsCreateModuleOpen(true)}
-                  variant="outline"
-                  className="gap-1.5"
-                >
-                  <Plus className="size-4" />
-                  Add Module
-                </Button>
-              )}
+      {/* ── User Metric Summary Cards (Informational Overview) ── */}
+      <div className="space-y-3">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+          {/* Total Users */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Total Users</p>
+              <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+                <Users className="size-4" />
+              </div>
             </div>
-          }
-        />
-      </Reveal>
-
-      {/* ── Navigation Tabs ──────────────────────────────────────────── */}
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as "users" | "roles" | "permissions")}
-        className="space-y-6"
-      >
-        <div className="border-b border-border/70 pb-px">
-          <TabsList className="h-11 rounded-xl bg-secondary/60 p-1 pb-6">
-            <TabsTrigger
-              value="users"
-              className="gap-2 rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-sm"
-            >
-              <Users className="size-4" />
-              Users Directory
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px] font-bold">
-                {users.length}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger
-              value="roles"
-              className="gap-2 rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-sm"
-            >
-              <ShieldCheck className="size-4" />
-              Roles Management
-              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px] font-bold">
-                {roles.length}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger
-              value="permissions"
-              className="gap-2 rounded-lg px-4 py-2 text-xs font-semibold data-[state=active]:bg-card data-[state=active]:shadow-sm"
-            >
-              <SlidersHorizontal className="size-4" />
-              Module Rights & Permissions Matrix
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* TAB 1: USERS DIRECTORY                                          */}
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        <TabsContent value="users" className="space-y-6 focus-visible:outline-none">
-          {/* Stats Overview */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Panel className="gap-1.5 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Total Users
-                </span>
-                <div className="grid size-7 place-items-center rounded-lg bg-primary/10 text-primary">
-                  <Users className="size-3.5" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold tabular-nums">
-                {isUsersLoading ? <Skeleton className="h-7 w-12" /> : stats.total}
-              </p>
-            </Panel>
-
-            <Panel className="gap-1.5 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Active
-                </span>
-                <div className="grid size-7 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                  <UserCheck className="size-3.5" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
-                {isUsersLoading ? <Skeleton className="h-7 w-12" /> : stats.active}
-              </p>
-            </Panel>
-
-            <Panel className="gap-1.5 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Pending / Other
-                </span>
-                <div className="grid size-7 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                  <Clock className="size-3.5" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-                {isUsersLoading ? <Skeleton className="h-7 w-12" /> : stats.pending}
-              </p>
-            </Panel>
-
-            <Panel className="gap-1.5 p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Administrators
-                </span>
-                <div className="grid size-7 place-items-center rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                  <ShieldCheck className="size-3.5" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 tabular-nums">
-                {isUsersLoading ? <Skeleton className="h-7 w-12" /> : stats.adminCount}
-              </p>
-            </Panel>
+            <p className="text-2xl font-bold mt-2">{stats.totalUsers}</p>
           </div>
 
-          {/* Filter Toolbar */}
-          <Panel className="p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, email, or role..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px] text-xs">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Statuses</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
-                    <SelectItem value="LOCKED">Locked</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="w-[140px] text-xs">
-                    <SelectValue placeholder="Role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Roles</SelectItem>
-                    {roles.map((r) => (
-                      <SelectItem key={r.roleId} value={r.name}>
-                        {r.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {(searchTerm || statusFilter !== "ALL" || roleFilter !== "ALL") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setSearchTerm("");
-                      setStatusFilter("ALL");
-                      setRoleFilter("ALL");
-                    }}
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
+          {/* Active Users */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Active Users</p>
+              <div className="grid size-8 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <UserCheck className="size-4" />
               </div>
             </div>
-          </Panel>
+            <p className="text-2xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">{stats.activeUsers}</p>
+          </div>
 
-          {/* Users Table */}
-          <Panel className="overflow-hidden p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border/70 bg-secondary/40">
-                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      User Details
-                    </th>
-                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Roles
-                    </th>
-                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Type
-                    </th>
-                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Module Access
-                    </th>
-                    <th className="px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Last Login
-                    </th>
-                    <th className="px-4 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {isUsersLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td className="px-4 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="size-9 rounded-full" />
-                            <div className="space-y-1.5">
-                              <Skeleton className="h-4 w-32" />
-                              <Skeleton className="h-3 w-44" />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3.5"><Skeleton className="h-5 w-16 rounded-full" /></td>
-                        <td className="px-4 py-3.5"><Skeleton className="h-5 w-20" /></td>
-                        <td className="px-4 py-3.5"><Skeleton className="h-5 w-14 rounded-full" /></td>
-                        <td className="px-4 py-3.5"><Skeleton className="h-5 w-24" /></td>
-                        <td className="px-4 py-3.5"><Skeleton className="h-4 w-28" /></td>
-                        <td className="px-4 py-3.5 text-right"><Skeleton className="ml-auto size-8 rounded-md" /></td>
-                      </tr>
-                    ))
-                  ) : filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center">
-                        <EmptyState
-                          icon={<Users className="size-6" />}
-                          title="No users found"
-                          description={
-                            searchTerm || statusFilter !== "ALL" || roleFilter !== "ALL"
-                              ? "Try adjusting your filters or search criteria."
-                              : "Get started by adding your first user account."
-                          }
-                          action={
-                            !searchTerm && statusFilter === "ALL" && roleFilter === "ALL" ? (
-                              <Button
-                                size="sm"
-                                onClick={() => setIsCreateOpen(true)}
-                                className="mt-2 gap-1.5"
-                              >
-                                <UserPlus className="size-4" />
-                                Add User
-                              </Button>
-                            ) : undefined
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((user) => {
-                      const initials = getInitials(user.fullName, user.email);
-                      const isAdminRole = user.roleNames?.some((r) => r.toUpperCase().includes("ADMIN"));
-
-                      return (
-                        <tr
-                          key={user.id}
-                          className="transition-colors hover:bg-secondary/30"
-                        >
-                          {/* User Identity */}
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-3">
-                              <Avatar className={cn("size-9 text-xs font-semibold", isAdminRole ? "border-2 border-primary/30" : "")}>
-                                <AvatarFallback className={isAdminRole ? "bg-primary/15 text-primary" : "bg-secondary text-foreground"}>
-                                  {initials}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0">
-                                <p className="truncate font-semibold text-foreground">
-                                  {user.fullName || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.username}
-                                </p>
-                                <p className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                                  <Mail className="size-3 shrink-0" />
-                                  {user.email}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Roles */}
-                          <td className="px-4 py-3.5">
-                            <div className="flex flex-wrap gap-1">
-                              {user.roleNames && user.roleNames.length > 0 ? (
-                                user.roleNames.map((roleName) => (
-                                  <Badge
-                                    key={roleName}
-                                    variant="secondary"
-                                    className={cn(
-                                      "text-[11px] font-medium tracking-wide",
-                                      roleName.toUpperCase().includes("ADMIN")
-                                        ? "bg-primary/12 text-primary border-primary/20"
-                                        : "bg-secondary text-muted-foreground"
-                                    )}
-                                  >
-                                    {roleName}
-                                  </Badge>
-                                ))
-                              ) : (
-                                <span className="text-xs text-muted-foreground italic">No roles</span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* User Type */}
-                          <td className="px-4 py-3.5">
-                            <span className="text-xs font-medium capitalize text-muted-foreground">
-                              {user.userType?.toLowerCase() || "Employee"}
-                            </span>
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-4 py-3.5">
-                            <StatusChip status={user.userStatus || "ACTIVE"} />
-                          </td>
-
-                          {/* Module Access Rights */}
-                          <td className="px-4 py-3.5">
-                            <div className="flex items-center gap-1.5">
-                              <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                <Layers className="size-3 text-primary" />
-                                {user.moduleRights?.length ?? 0} modules
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Last Login */}
-                          <td className="px-4 py-3.5">
-                            <div className="space-y-0.5 text-xs text-muted-foreground">
-                              <p>
-                                {user.lastLoginDateCurrentTimezoneDateFormatted ||
-                                user.lastLoginDateUtcDateTimeFormatted ||
-                                (user.lastLoginDate
-                                  ? new Date(user.lastLoginDate).toLocaleDateString()
-                                  : "Never")}
-                              </p>
-                            </div>
-                          </td>
-
-                          {/* Actions Menu */}
-                          <td className="px-4 py-3.5 text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground">
-                                  <MoreVertical className="size-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48 rounded-xl">
-                                <DropdownMenuLabel className="text-xs">User Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => setEditingUser(user)}
-                                  className="gap-2 text-xs cursor-pointer"
-                                >
-                                  <Edit className="size-3.5 text-muted-foreground" />
-                                  Edit Details & Roles
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => setResetPasswordUser(user)}
-                                  className="gap-2 text-xs cursor-pointer"
-                                >
-                                  <KeyRound className="size-3.5 text-muted-foreground" />
-                                  Reset Password
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => setDeletingUser(user)}
-                                  className="gap-2 text-xs text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
-                                >
-                                  <Trash2 className="size-3.5" />
-                                  Delete User
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+          {/* Inactive Users */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Inactive Users</p>
+              <div className="grid size-8 place-items-center rounded-lg bg-slate-500/10 text-slate-600 dark:text-slate-400">
+                <UserX className="size-4" />
+              </div>
             </div>
-          </Panel>
+            <p className="text-2xl font-bold mt-2 text-slate-600 dark:text-slate-400">{stats.inactiveUsers}</p>
+          </div>
+
+          {/* Blocked / Suspended */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Blocked / Suspended</p>
+              <div className="grid size-8 place-items-center rounded-lg bg-destructive/10 text-destructive">
+                <Ban className="size-4" />
+              </div>
+            </div>
+            <p className={cn("text-2xl font-bold mt-2", stats.suspendedUsers > 0 ? "text-destructive" : "text-muted-foreground")}>
+              {stats.suspendedUsers}
+            </p>
+          </div>
+
+          {/* Pending Approval */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Pending Approval</p>
+              <div className="grid size-8 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Clock className="size-4" />
+              </div>
+            </div>
+            <p className={cn("text-2xl font-bold mt-2", stats.pendingUsers > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
+              {stats.pendingUsers}
+            </p>
+          </div>
+
+          {/* Role Inactive Warning */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">Role Inactive</p>
+              <div className="grid size-8 place-items-center rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                <ShieldAlert className="size-4" />
+              </div>
+            </div>
+            <p className={cn("text-2xl font-bold mt-2", stats.roleInactiveUsers > 0 ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground")}>
+              {stats.roleInactiveUsers}
+            </p>
+          </div>
+        </div>
+
+        {/* ── Role & System Rights Secondary Stats ── */}
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          {/* Total Configured Roles */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <Shield className="size-5" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Configured Roles</p>
+                <p className="text-xl font-bold mt-0.5">{stats.totalRoles}</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {stats.activeRoles} Active · {stats.inactiveRoles} Inactive
+            </Badge>
+          </div>
+
+          {/* Active Roles */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid size-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <ShieldCheck className="size-5" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Active Operating Roles</p>
+                <p className="text-xl font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">{stats.activeRoles}</p>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">Allows user login</span>
+          </div>
+
+          {/* Inactive Roles */}
+          <div className="surface p-3.5 rounded-xl border border-border/60 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid size-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+                <ShieldOff className="size-5" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Deactivated Roles</p>
+                <p className={cn("text-xl font-bold mt-0.5", stats.inactiveRoles > 0 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground")}>
+                  {stats.inactiveRoles}
+                </p>
+              </div>
+            </div>
+            <span className="text-xs text-muted-foreground font-medium">Blocks user login</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Tabbed Content ── */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-5">
+        <TabsList className="surface p-1 border border-border/60 h-auto">
+          <TabsTrigger value="users" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Users className="size-3.5" /> Users ({users.length})
+          </TabsTrigger>
+          <TabsTrigger value="roles" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Shield className="size-3.5" /> Roles ({roles.length})
+          </TabsTrigger>
+          <TabsTrigger value="rights" className="gap-2 py-2 px-4 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <KeyRound className="size-3.5" /> Module Rights ({moduleRights.length})
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ══════════════════════════════════════════════════════════════════════
+            TAB 1: USERS
+        ══════════════════════════════════════════════════════════════════════ */}
+        <TabsContent value="users">
+          <UsersTab
+            users={users}
+            roles={roles}
+            moduleRights={moduleRights}
+            timezone={timezone}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            isLoading={loadingUsers}
+            onEdit={(u) => {
+              setEditingUser(u);
+              setUserModalOpen(true);
+            }}
+            onDelete={(u) => {
+              setDeleteConfirm({
+                type: "user",
+                id: u.id,
+                name: u.fullName || u.email,
+              });
+            }}
+          />
         </TabsContent>
 
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* TAB 2: ROLES MANAGEMENT                                         */}
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        <TabsContent value="roles" className="space-y-6 focus-visible:outline-none">
-          <Panel className="overflow-hidden p-0">
-            <div className="border-b border-border/70 bg-secondary/30 px-5 py-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="text-base font-bold">System Roles & Assignment</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Define system roles, toggle active statuses, and configure assigned permission sets.
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => setIsCreateRoleOpen(true)}
-                  className="gap-1.5 self-start sm:self-auto"
-                >
-                  <Plus className="size-4" />
-                  Add New Role
-                </Button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border/70 bg-secondary/40">
-                    <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Role Name
-                    </th>
-                    <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Description
-                    </th>
-                    <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Assigned Users
-                    </th>
-                    <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Status
-                    </th>
-                    <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Permissions Count
-                    </th>
-                    <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {isRolesLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td className="px-5 py-4"><Skeleton className="h-5 w-24" /></td>
-                        <td className="px-5 py-4"><Skeleton className="h-4 w-48" /></td>
-                        <td className="px-5 py-4"><Skeleton className="h-5 w-16" /></td>
-                        <td className="px-5 py-4"><Skeleton className="h-6 w-12 rounded-full" /></td>
-                        <td className="px-5 py-4"><Skeleton className="h-5 w-20" /></td>
-                        <td className="px-5 py-4 text-right"><Skeleton className="ml-auto size-8" /></td>
-                      </tr>
-                    ))
-                  ) : roles.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center">
-                        <EmptyState
-                          icon={<Shield className="size-6" />}
-                          title="No roles created"
-                          description="Add a system role to start grouping access privileges."
-                          action={
-                            <Button
-                              size="sm"
-                              onClick={() => setIsCreateRoleOpen(true)}
-                              className="mt-2 gap-1.5"
-                            >
-                              <Plus className="size-4" />
-                              Create Role
-                            </Button>
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    roles.map((role) => (
-                      <tr key={role.roleId} className="transition-colors hover:bg-secondary/30">
-                        {/* Role Name */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2.5">
-                            <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
-                              <Shield className="size-4" />
-                            </div>
-                            <span className="font-bold text-foreground">{role.name}</span>
-                          </div>
-                        </td>
-
-                        {/* Description */}
-                        <td className="px-5 py-4 text-xs text-muted-foreground">
-                          {role.description || "Standard system role."}
-                        </td>
-
-                        {/* Assigned Users */}
-                        <td className="px-5 py-4">
-                          <Badge variant="secondary" className="gap-1 font-semibold tabular-nums">
-                            <Users className="size-3" />
-                            {role.userCount ?? 0} users
-                          </Badge>
-                        </td>
-
-                        {/* Status Toggle */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2">
-                            <Switch
-                              checked={role.active !== false}
-                              onCheckedChange={(checked) =>
-                                updateRoleMutation.mutate({
-                                  id: role.roleId,
-                                  payload: { active: checked },
-                                })
-                              }
-                            />
-                            <span className="text-xs font-medium">
-                              {role.active !== false ? "Active" : "Inactive"}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Permissions Count */}
-                        <td className="px-5 py-4">
-                          <span className="inline-flex items-center gap-1 rounded-md bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                            <Lock className="size-3 text-primary" />
-                            {role.moduleRights?.length ?? 0} permissions
-                          </span>
-                        </td>
-
-                        {/* Actions */}
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedMatrixRoleId(role.roleId);
-                                setActiveTab("permissions");
-                              }}
-                              className="h-8 text-xs text-primary hover:bg-primary/10"
-                            >
-                              <Sliders className="mr-1 size-3.5" />
-                              Permissions
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setEditingRole(role)}
-                              className="size-8 text-muted-foreground hover:text-foreground"
-                            >
-                              <Edit className="size-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeletingRole(role)}
-                              className="size-8 text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
+        {/* ══════════════════════════════════════════════════════════════════════
+            TAB 2: ROLES
+        ══════════════════════════════════════════════════════════════════════ */}
+        <TabsContent value="roles">
+          <RolesTab
+            roles={roles}
+            timezone={timezone}
+            isLoading={loadingRoles}
+            onEdit={(r) => {
+              setEditingRole(r);
+              setRoleModalOpen(true);
+            }}
+            onDelete={(r) => {
+              setDeleteConfirm({
+                type: "role",
+                id: r.roleId,
+                name: r.name,
+              });
+            }}
+          />
         </TabsContent>
 
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        {/* TAB 3: MODULE RIGHTS & PERMISSION MATRIX                       */}
-        {/* ═══════════════════════════════════════════════════════════════ */}
-        <TabsContent value="permissions" className="space-y-6 focus-visible:outline-none">
-          <Panel className="space-y-5 p-5">
-            {/* Matrix Control Toolbar */}
-            <div className="flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Shield className="size-4 text-primary" />
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Select Target Role:
-                  </Label>
-                </div>
-                <Select
-                  value={selectedMatrixRoleId}
-                  onValueChange={setSelectedMatrixRoleId}
-                >
-                  <SelectTrigger className="w-[200px] font-semibold">
-                    <SelectValue placeholder="Choose Role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roles.map((r) => (
-                      <SelectItem key={r.roleId} value={r.roleId} className="font-medium">
-                        {r.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                {selectedRoleObj && (
-                  <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
-                    {selectedRoleObj.userCount ?? 0} assigned users will inherit changes
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSelectAllMatrix}
-                  className="gap-1.5 text-xs"
-                >
-                  <CheckSquare className="size-3.5" />
-                  Toggle Select All
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSaveMatrix}
-                  disabled={updateRoleMutation.isPending || !selectedMatrixRoleId}
-                  className={cn(
-                    "gap-1.5 transition-all",
-                    isMatrixDirty ? "bg-primary text-primary-foreground shadow-md ring-2 ring-primary/30" : ""
-                  )}
-                >
-                  <Save className="size-3.5" />
-                  {updateRoleMutation.isPending ? "Saving..." : "Save Permissions"}
-                </Button>
-              </div>
-            </div>
-
-            {/* Matrix Table */}
-            <div className="overflow-hidden rounded-xl border border-border/70">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border/70 bg-secondary/50">
-                    <th className="w-1/3 px-5 py-3.5 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Module / Resource
-                    </th>
-                    {ACTIONS.map((action) => (
-                      <th
-                        key={action.key}
-                        className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground"
-                      >
-                        <div>{action.label}</div>
-                        <div className="text-[10px] font-normal lowercase text-muted-foreground/80">
-                          {action.desc}
-                        </div>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3.5 text-center text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Row All
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {isModulesLoading ? (
-                    Array.from({ length: 6 }).map((_, i) => (
-                      <tr key={i} className="animate-pulse">
-                        <td className="px-5 py-4"><Skeleton className="h-5 w-32" /></td>
-                        <td className="px-4 py-4 text-center"><Skeleton className="mx-auto size-5 rounded" /></td>
-                        <td className="px-4 py-4 text-center"><Skeleton className="mx-auto size-5 rounded" /></td>
-                        <td className="px-4 py-4 text-center"><Skeleton className="mx-auto size-5 rounded" /></td>
-                        <td className="px-4 py-4 text-center"><Skeleton className="mx-auto size-5 rounded" /></td>
-                        <td className="px-4 py-4 text-center"><Skeleton className="mx-auto size-5 rounded" /></td>
-                      </tr>
-                    ))
-                  ) : moduleRights.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center">
-                        <EmptyState
-                          icon={<Layers className="size-6" />}
-                          title="No modules registered"
-                          description="Add your ERP module rights to configure the role permission matrix."
-                          action={
-                            <Button
-                              size="sm"
-                              onClick={() => setIsCreateModuleOpen(true)}
-                              className="mt-2 gap-1.5"
-                            >
-                              <Plus className="size-4" />
-                              Add Module
-                            </Button>
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ) : (
-                    moduleRights.map((module) => {
-                      const baseKey = module.name;
-                      const hasBaseOrView =
-                        matrixPermissions.has(baseKey) ||
-                        matrixPermissions.has(`${baseKey}_VIEW`);
-                      const rowKeys = [
-                        baseKey,
-                        ...ACTIONS.map((a) => `${baseKey}_${a.key}`),
-                      ];
-                      const rowAllSelected = rowKeys.every((k) => matrixPermissions.has(k));
-
-                      return (
-                        <tr
-                          key={module.id || module.name}
-                          className="transition-colors hover:bg-secondary/30"
-                        >
-                          {/* Module Identity */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-start gap-2.5">
-                              <div className="mt-0.5 grid size-7 place-items-center rounded-lg bg-primary/10 text-primary">
-                                <Layers className="size-3.5" />
-                              </div>
-                              <div>
-                                <p className="font-bold text-foreground">
-                                  {module.label || module.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {module.description || `Controls access to ${module.name} subsystem`}
-                                </p>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Granular Action Checkboxes */}
-                          {ACTIONS.map((action) => {
-                            const permKey = `${baseKey}_${action.key}`;
-                            // For VIEW, also consider if baseKey itself is in permissions
-                            const isChecked =
-                              action.key === "VIEW"
-                                ? hasBaseOrView
-                                : matrixPermissions.has(permKey);
-
-                            return (
-                              <td key={action.key} className="px-4 py-4 text-center">
-                                <div className="flex justify-center">
-                                  <Checkbox
-                                    checked={isChecked}
-                                    onCheckedChange={() => {
-                                      if (action.key === "VIEW") {
-                                        // Toggle both baseKey and baseKey_VIEW
-                                        toggleMatrixPermission(baseKey);
-                                        toggleMatrixPermission(`${baseKey}_VIEW`);
-                                      } else {
-                                        toggleMatrixPermission(permKey);
-                                      }
-                                    }}
-                                    className="size-5 rounded-md transition-transform active:scale-95"
-                                  />
-                                </div>
-                              </td>
-                            );
-                          })}
-
-                          {/* Row All Toggle */}
-                          <td className="px-4 py-4 text-center">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleRowAllPermissions(baseKey)}
-                              className="h-7 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                            >
-                              {rowAllSelected ? "Clear" : "All"}
-                            </Button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Bottom notification banner */}
-            <div className="flex items-center gap-2 rounded-xl bg-secondary/50 p-3 text-xs text-muted-foreground">
-              <Info className="size-4 shrink-0 text-primary" />
-              <span>
-                Changes saved to a role are automatically synchronized to all users currently assigned that role.
-              </span>
-            </div>
-          </Panel>
+        {/* ══════════════════════════════════════════════════════════════════════
+            TAB 3: MODULE RIGHTS
+        ══════════════════════════════════════════════════════════════════════ */}
+        <TabsContent value="rights">
+          <ModuleRightsTab
+            moduleRights={moduleRights}
+            timezone={timezone}
+            isLoading={loadingRights}
+            onEdit={(mr) => {
+              setEditingRight(mr);
+              setRightModalOpen(true);
+            }}
+            onDelete={(mr) => {
+              setDeleteConfirm({
+                type: "right",
+                id: mr.id || mr.name,
+                name: mr.label || mr.name,
+              });
+            }}
+          />
         </TabsContent>
       </Tabs>
 
-      {/* ── Dialogs: User Management ──────────────────────────────────── */}
-      <CreateUserDialog
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
+      {/* ── User Add/Edit Dialog ── */}
+      <UserFormDialog
+        open={userModalOpen}
+        onOpenChange={setUserModalOpen}
+        editingUser={editingUser}
         roles={roles}
         moduleRights={moduleRights}
-        onSubmit={(payload) => createMutation.mutate(payload)}
-        isLoading={createMutation.isPending}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["auth-users"] })}
       />
 
-      {editingUser && (
-        <EditUserDialog
-          user={editingUser}
-          open={!!editingUser}
-          onOpenChange={(open) => !open && setEditingUser(null)}
-          roles={roles}
-          moduleRights={moduleRights}
-          onSubmit={(payload) =>
-            updateMutation.mutate({ id: editingUser.id, payload })
-          }
-          isLoading={updateMutation.isPending}
-        />
-      )}
-
-      {resetPasswordUser && (
-        <ResetPasswordDialog
-          user={resetPasswordUser}
-          open={!!resetPasswordUser}
-          onOpenChange={(open) => !open && setResetPasswordUser(null)}
-          onSubmit={(newPass) =>
-            resetPasswordMutation.mutate({ id: resetPasswordUser.id, pass: newPass })
-          }
-          isLoading={resetPasswordMutation.isPending}
-        />
-      )}
-
-      {deletingUser && (
-        <AlertDialog
-          open={!!deletingUser}
-          onOpenChange={(open) => !open && setDeletingUser(null)}
-        >
-          <AlertDialogContent className="rounded-2xl">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete User Account</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete{" "}
-                <span className="font-semibold text-foreground">
-                  {deletingUser.fullName || deletingUser.email}
-                </span>
-                ? This action is irreversible and will permanently remove their access.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-3">
-              <AlertDialogCancel disabled={deleteMutation.isPending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteMutation.mutate(deletingUser.id)}
-                disabled={deleteMutation.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {/* ── Dialogs: Role Management ──────────────────────────────────── */}
-      <CreateRoleDialog
-        open={isCreateRoleOpen}
-        onOpenChange={setIsCreateRoleOpen}
-        moduleRights={moduleRights}
-        onSubmit={(payload) => createRoleMutation.mutate(payload)}
-        isLoading={createRoleMutation.isPending}
+      {/* ── Role Add/Edit Dialog ── */}
+      <RoleFormDialog
+        open={roleModalOpen}
+        onOpenChange={setRoleModalOpen}
+        editingRole={editingRole}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["auth-roles"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+        }}
       />
 
-      {editingRole && (
-        <EditRoleDialog
-          role={editingRole}
-          open={!!editingRole}
-          onOpenChange={(open) => !open && setEditingRole(null)}
-          onSubmit={(payload) =>
-            updateRoleMutation.mutate({ id: editingRole.roleId, payload })
-          }
-          isLoading={updateRoleMutation.isPending}
-        />
-      )}
-
-      {deletingRole && (
-        <AlertDialog
-          open={!!deletingRole}
-          onOpenChange={(open) => !open && setDeletingRole(null)}
-        >
-          <AlertDialogContent className="rounded-2xl">
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete System Role</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete the role{" "}
-                <span className="font-semibold text-foreground">
-                  {deletingRole.name}
-                </span>
-                ? Any users assigned to this role will automatically have it unassigned.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="gap-3">
-              <AlertDialogCancel disabled={deleteRoleMutation.isPending}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteRoleMutation.mutate(deletingRole.roleId)}
-                disabled={deleteRoleMutation.isPending}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {deleteRoleMutation.isPending ? "Deleting..." : "Delete Role"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
-
-      {/* ── Dialogs: Module Right Creation ─────────────────────────────── */}
-      <CreateModuleRightDialog
-        open={isCreateModuleOpen}
-        onOpenChange={setIsCreateModuleOpen}
-        onSubmit={(payload) => createModuleMutation.mutate(payload)}
-        isLoading={createModuleMutation.isPending}
+      {/* ── Module Right Add/Edit Dialog ── */}
+      <ModuleRightFormDialog
+        open={rightModalOpen}
+        onOpenChange={setRightModalOpen}
+        editingRight={editingRight}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["auth-module-rights"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+        }}
       />
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="max-w-md p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="size-5" /> Delete {deleteConfirm?.type === "user" ? "User" : deleteConfirm?.type === "role" ? "Role" : "Module Right"}
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm">
+              Are you sure you want to permanently delete <strong className="text-foreground">{deleteConfirm?.name}</strong>?
+              {deleteConfirm?.type === "role" && " Users assigned to this role will lose this role assignment."}
+              {deleteConfirm?.type === "right" && " This permission will be removed from all users who currently have it."}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!deleteConfirm) return;
+                try {
+                  if (deleteConfirm.type === "user") {
+                    await deleteUser(deleteConfirm.id);
+                    toast.success("User deleted successfully");
+                    queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+                  } else if (deleteConfirm.type === "role") {
+                    await deleteRole(deleteConfirm.id);
+                    toast.success("Role deleted successfully");
+                    queryClient.invalidateQueries({ queryKey: ["auth-roles"] });
+                    queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+                  } else if (deleteConfirm.type === "right") {
+                    await deleteModuleRight(deleteConfirm.id);
+                    toast.success("Module right deleted successfully");
+                    queryClient.invalidateQueries({ queryKey: ["auth-module-rights"] });
+                    queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+                  }
+                  setDeleteConfirm(null);
+                } catch (e: any) {
+                  toast.error(e.message || "Failed to delete");
+                }
+              }}
+            >
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// ─── Sub-Component: Create User Dialog ───────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// USERS TAB COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
 
-interface CreateUserDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  roles: RoleResponse[];
-  moduleRights: ModuleRightItem[];
-  onSubmit: (payload: CreateUserPayload) => void;
-  isLoading: boolean;
-}
-
-function CreateUserDialog({
-  open,
-  onOpenChange,
+function UsersTab({
+  users,
   roles,
   moduleRights,
-  onSubmit,
+  timezone,
+  statusFilter,
+  onStatusFilterChange,
   isLoading,
-}: CreateUserDialogProps) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  onEdit,
+  onDelete,
+}: {
+  users: UserResponse[];
+  roles: RoleResponse[];
+  moduleRights: ModuleRight[];
+  timezone: SupportedTimezone;
+  statusFilter: string;
+  onStatusFilterChange: (status: string) => void;
+  isLoading: boolean;
+  onEdit: (user: UserResponse) => void;
+  onDelete: (user: UserResponse) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
+
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      const matchesSearch =
+        search === "" ||
+        u.email.toLowerCase().includes(search.toLowerCase()) ||
+        (u.fullName && u.fullName.toLowerCase().includes(search.toLowerCase())) ||
+        u.roleNames.some((r) => r.toLowerCase().includes(search.toLowerCase()));
+
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ROLE_INACTIVE" ? !u.hasActiveRole && u.roleIds.length > 0 : u.userStatus === statusFilter);
+
+      const matchesRole =
+        roleFilter === "ALL" || u.roleNames.includes(roleFilter);
+
+      return matchesSearch && matchesStatus && matchesRole;
+    });
+  }, [users, search, statusFilter, roleFilter]);
+
+  const roleMap = useMemo(() => {
+    const map = new Map<string, RoleResponse>();
+    roles.forEach((r) => map.set(r.roleId, r));
+    return map;
+  }, [roles]);
+
+  if (isLoading) {
+    return (
+      <div className="surface p-12 text-center rounded-xl flex flex-col items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-primary mb-3" />
+        <p className="text-sm text-muted-foreground">Loading users directory...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* ── Search & Filter Bar ── */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search users by name, email, or role..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-10"
+          />
+        </div>
+
+        <div className="flex gap-2 shrink-0">
+          <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+            <SelectTrigger className="w-38 h-10 text-xs">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Statuses</SelectItem>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="ROLE_INACTIVE">Role Inactive ⚠️</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="INACTIVE">Inactive</SelectItem>
+              <SelectItem value="SUSPENDED">Suspended</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-38 h-10 text-xs">
+              <SelectValue placeholder="All Roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Roles</SelectItem>
+              {roles.map((r) => (
+                <SelectItem key={r.roleId} value={r.name}>
+                  {r.name} {!r.active && "(Inactive)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* ── Users Table ── */}
+      <div className="surface rounded-xl border border-border/60 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th className="px-5 py-3.5">User</th>
+                <th className="px-4 py-3.5">Role</th>
+                <th className="px-4 py-3.5">Status</th>
+                <th className="px-4 py-3.5">Assigned Rights</th>
+                <th className="px-4 py-3.5">Last Login</th>
+                <th className="px-4 py-3.5">Created</th>
+                <th className="px-4 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                    No users found matching your search and filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => {
+                  const initials =
+                    (user.firstName?.[0] || "") + (user.lastName?.[0] || user.email[0] || "U").toUpperCase();
+
+                  return (
+                    <tr key={user.id} className="hover:bg-muted/30 transition-colors">
+                      {/* User Info */}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-9 border border-border shrink-0">
+                            <AvatarFallback className="bg-primary/10 text-xs font-bold text-primary">
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate text-sm">
+                              {user.fullName || user.email.split("@")[0]}
+                            </p>
+                            <p className="text-muted-foreground truncate">{user.email}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Role */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          {user.roleNames.length === 0 ? (
+                            <span className="text-muted-foreground italic text-xs">No role</span>
+                          ) : (
+                            user.roleNames.map((roleName) => (
+                              <Badge key={roleName} variant="secondary" className="font-medium text-[11px]">
+                                {roleName}
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3.5">
+                        <div className="space-y-1">
+                          {/* Role Inactive Warning */}
+                          {!user.hasActiveRole && user.roleIds.length > 0 && (
+                            <div className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5 text-[10px] font-semibold border border-amber-500/30">
+                              <AlertTriangle className="size-3" /> Role Inactive
+                            </div>
+                          )}
+
+                          {/* Account Status Badge */}
+                          <div>
+                            {user.userStatus === "ACTIVE" ? (
+                              <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30 font-medium">
+                                Active
+                              </Badge>
+                            ) : user.userStatus === "PENDING" ? (
+                              <Badge variant="outline" className="text-amber-600 border-amber-400 font-medium">
+                                Pending
+                              </Badge>
+                            ) : user.userStatus === "SUSPENDED" ? (
+                              <Badge variant="destructive" className="font-medium">
+                                Suspended
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="font-medium text-muted-foreground">
+                                Inactive
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Direct Module Rights */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-1.5 flex-wrap max-w-xs">
+                          {user.moduleRights.length === 0 ? (
+                            <span className="text-muted-foreground italic">No rights assigned</span>
+                          ) : (
+                            <>
+                              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[11px] font-semibold">
+                                {user.moduleRights.length} module{user.moduleRights.length > 1 ? "s" : ""}
+                              </Badge>
+                              <span className="text-[11px] text-muted-foreground truncate">
+                                {user.moduleRights.slice(0, 2).join(", ")}
+                                {user.moduleRights.length > 2 ? ` + ${user.moduleRights.length - 2} more` : ""}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Last Login in Selected Timezone */}
+                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                        {formatShortDateTime(user.lastLoginDate, timezone)}
+                      </td>
+
+                      {/* Created in Selected Timezone */}
+                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                        {formatShortDateTime(user.createdOn, timezone)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3.5 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-8">
+                              <MoreHorizontal className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onEdit(user)}>
+                              <Edit2 className="size-3.5 mr-2" /> Edit User & Rights
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => onDelete(user)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="size-3.5 mr-2" /> Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ROLES TAB COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function RolesTab({
+  roles,
+  timezone,
+  isLoading,
+  onEdit,
+  onDelete,
+}: {
+  roles: RoleResponse[];
+  timezone: SupportedTimezone;
+  isLoading: boolean;
+  onEdit: (role: RoleResponse) => void;
+  onDelete: (role: RoleResponse) => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const toggleActiveMutation = useMutation({
+    mutationFn: async ({ roleId, active }: { roleId: string; active: boolean }) => {
+      return updateRole(roleId, { active });
+    },
+    onSuccess: (updated) => {
+      toast.success(`Role "${updated.name}" is now ${updated.active ? "Active" : "Inactive"}`);
+      queryClient.invalidateQueries({ queryKey: ["auth-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["auth-users"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to update role status");
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="surface p-12 text-center rounded-xl flex flex-col items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-primary mb-3" />
+        <p className="text-sm text-muted-foreground">Loading roles...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="surface rounded-xl border border-border/60 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th className="px-5 py-3.5">Role Name</th>
+                <th className="px-4 py-3.5">Description</th>
+                <th className="px-4 py-3.5">Assigned Users</th>
+                <th className="px-4 py-3.5">Active Status</th>
+                <th className="px-4 py-3.5">Last Updated</th>
+                <th className="px-4 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {roles.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                    No roles created yet.
+                  </td>
+                </tr>
+              ) : (
+                roles.map((role) => (
+                  <tr key={role.roleId} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn(
+                          "grid size-8 place-items-center rounded-lg font-bold text-xs shrink-0",
+                          role.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                        )}>
+                          <Shield className="size-4" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-foreground">{role.name}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">ID: {role.roleId.slice(-6)}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3.5 text-muted-foreground max-w-sm">
+                      {role.description || <span className="italic">No description provided</span>}
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <Badge variant="secondary" className="font-medium text-xs">
+                        <Users className="size-3 mr-1 text-muted-foreground" /> {role.userCount} user{role.userCount !== 1 ? "s" : ""}
+                      </Badge>
+                    </td>
+
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={role.active}
+                          onCheckedChange={(checked) =>
+                            toggleActiveMutation.mutate({ roleId: role.roleId, active: checked })
+                          }
+                          disabled={toggleActiveMutation.isPending}
+                        />
+                        <span className={cn("text-xs font-medium", role.active ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
+                          {role.active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                      {formatShortDateTime(role.lastUpdatedOn || role.createdOn, timezone)}
+                    </td>
+
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(role)}>
+                          <Edit2 className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-destructive hover:text-destructive"
+                          onClick={() => onDelete(role)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MODULE RIGHTS TAB COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
+
+function ModuleRightsTab({
+  moduleRights,
+  timezone,
+  isLoading,
+  onEdit,
+  onDelete,
+}: {
+  moduleRights: ModuleRight[];
+  timezone: SupportedTimezone;
+  isLoading: boolean;
+  onEdit: (mr: ModuleRight) => void;
+  onDelete: (mr: ModuleRight) => void;
+}) {
+  if (isLoading) {
+    return (
+      <div className="surface p-12 text-center rounded-xl flex flex-col items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-primary mb-3" />
+        <p className="text-sm text-muted-foreground">Loading module rights...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="surface rounded-xl border border-border/60 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-border/60 bg-muted/40 text-muted-foreground font-semibold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th className="px-5 py-3.5">Module Right Name</th>
+                <th className="px-4 py-3.5">Display Label</th>
+                <th className="px-4 py-3.5">Description</th>
+                <th className="px-4 py-3.5">Created</th>
+                <th className="px-4 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {moduleRights.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
+                    No module rights defined yet.
+                  </td>
+                </tr>
+              ) : (
+                moduleRights.map((mr) => (
+                  <tr key={mr.name} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <KeyRound className="size-4 text-primary shrink-0" />
+                        <span className="font-mono font-bold text-xs bg-muted px-2 py-0.5 rounded text-foreground">
+                          {mr.name}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-3.5 font-semibold text-foreground text-sm">
+                      {mr.label || mr.name}
+                    </td>
+
+                    <td className="px-4 py-3.5 text-muted-foreground max-w-sm">
+                      {mr.description || <span className="italic">No description</span>}
+                    </td>
+
+                    <td className="px-4 py-3.5 text-muted-foreground font-mono text-[11px]">
+                      {formatShortDateTime(mr.createdOn, timezone)}
+                    </td>
+
+                    <td className="px-4 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(mr)}>
+                          <Edit2 className="size-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-destructive hover:text-destructive"
+                          onClick={() => onDelete(mr)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// USER ADD / EDIT DIALOG (With Direct User-Level Module Rights Assignment)
+// ══════════════════════════════════════════════════════════════════════════════
+
+function UserFormDialog({
+  open,
+  onOpenChange,
+  editingUser,
+  roles,
+  moduleRights,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingUser: UserResponse | null;
+  roles: RoleResponse[];
+  moduleRights: ModuleRight[];
+  onSuccess: () => void;
+}) {
+  const isEdit = !!editingUser;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [userStatus, setUserStatus] = useState<UserStatus>("ACTIVE");
   const [userType, setUserType] = useState<UserType>("EMPLOYEE");
+  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([]);
   const [selectedModuleRights, setSelectedModuleRights] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Reset form when dialog opens
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setPassword("");
-      setSelectedRoleIds([]);
-      setUserStatus("ACTIVE");
-      setUserType("EMPLOYEE");
-      setSelectedModuleRights(moduleRights.map((m) => m.name));
+  // Sync state on open
+  useEffect(() => {
+    if (open) {
+      if (editingUser) {
+        setEmail(editingUser.email || "");
+        setPassword("");
+        setFirstName(editingUser.firstName || "");
+        setLastName(editingUser.lastName || "");
+        setUserStatus(editingUser.userStatus || "ACTIVE");
+        setUserType(editingUser.userType || "EMPLOYEE");
+        setSelectedRoleIds(editingUser.roleIds || []);
+        setSelectedModuleRights(editingUser.moduleRights || []);
+      } else {
+        setEmail("");
+        setPassword("");
+        setFirstName("");
+        setLastName("");
+        setUserStatus("ACTIVE");
+        setUserType("EMPLOYEE");
+        const activeRole = roles.find((r) => r.active);
+        setSelectedRoleIds(activeRole ? [activeRole.roleId] : []);
+        setSelectedModuleRights(["DASHBOARD"]);
+      }
     }
-    onOpenChange(isOpen);
-  };
+  }, [open, editingUser?.id]);
 
-  const handleRoleToggle = (roleId: string) => {
-    setSelectedRoleIds((prev) =>
-      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
-    );
-  };
-
-  const handleModuleToggle = (moduleName: string) => {
+  const toggleRight = (rightName: string) => {
     setSelectedModuleRights((prev) =>
-      prev.includes(moduleName)
-        ? prev.filter((name) => name !== moduleName)
-        : [...prev, moduleName]
+      prev.includes(rightName) ? prev.filter((r) => r !== rightName) : [...prev, rightName]
     );
   };
 
-  const handleSelectAllModules = () => {
-    if (selectedModuleRights.length === moduleRights.length) {
-      setSelectedModuleRights([]);
-    } else {
-      setSelectedModuleRights(moduleRights.map((m) => m.name));
-    }
+  const handleSelectAllRights = () => {
+    setSelectedModuleRights(moduleRights.map((mr) => mr.name));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleClearAllRights = () => {
+    setSelectedModuleRights([]);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error("Required fields missing", {
-        description: "Email and password are required.",
-      });
+    if (!email.trim()) {
+      toast.error("Email is required");
       return;
     }
-    onSubmit({
-      email,
-      password,
-      firstName,
-      lastName,
-      roleIds: selectedRoleIds,
-      moduleRights: selectedModuleRights,
-      userStatus,
-      userType,
-    });
+    if (!isEdit && !password.trim()) {
+      toast.error("Password is required for new user");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (isEdit && editingUser) {
+        await updateUser(editingUser.id, {
+          email: email.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          roleIds: selectedRoleIds,
+          moduleRights: selectedModuleRights,
+          userStatus,
+          userType,
+        });
+        toast.success("User updated successfully");
+      } else {
+        await createUser({
+          email: email.trim(),
+          password: password.trim(),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          roleIds: selectedRoleIds,
+          moduleRights: selectedModuleRights,
+          userStatus,
+          userType,
+        });
+        toast.success("User created successfully");
+      }
+      onSuccess();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save user");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl p-6 shadow-xl">
-        <DialogHeader className="space-y-1.5 border-b border-border/60 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <UserPlus className="size-5 text-primary" />
-            Create New User Account
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-3xl lg:max-w-4xl sm:h-[88vh] sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+        {/* Header */}
+        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
+          <DialogTitle className="text-lg font-semibold">
+            {isEdit ? "Edit User & Access Rights" : "Create New User"}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            Fill in the details below to add a new team member and configure their permissions.
+            {isEdit
+              ? `Modify profile details and direct module permissions for ${editingUser?.email}`
+              : "Set up a new system user with direct module permissions and role assignment."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          <ScrollArea className="max-h-[58vh] pr-4">
-            <div className="space-y-4 py-1">
-              {/* Name Fields Grid */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Scrollable Form Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
+            {/* Basic Info */}
+            <fieldset className="space-y-4">
+              <legend className="text-sm font-semibold">Profile & Credentials</legend>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="firstName" className="text-xs font-semibold">
-                    First Name
-                  </Label>
-                  <Input
-                    id="firstName"
-                    placeholder="e.g. John"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="h-9 text-sm"
-                  />
+                  <Label className="text-xs">First Name</Label>
+                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="e.g. Ramesh" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lastName" className="text-xs font-semibold">
-                    Last Name
-                  </Label>
-                  <Input
-                    id="lastName"
-                    placeholder="e.g. Doe"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="h-9 text-sm"
-                  />
+                  <Label className="text-xs">Last Name</Label>
+                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="e.g. Patel" />
                 </div>
               </div>
 
-              {/* Email & Password Grid */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-xs font-semibold">
-                    Email Address <span className="text-destructive">*</span>
-                  </Label>
+                  <Label className="text-xs">Email Address *</Label>
                   <Input
-                    id="email"
                     type="email"
-                    required
-                    placeholder="name@ncop.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-9 text-sm"
+                    placeholder="user@ncop.com"
+                    required
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-xs font-semibold">
-                    Initial Password <span className="text-destructive">*</span>
-                  </Label>
-                  <div className="relative">
+                {!isEdit && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Initial Password *</Label>
                     <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      required
-                      placeholder="Min 6 characters"
+                      type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-9 pr-10 text-sm"
+                      placeholder="••••••••"
+                      required
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    >
-                      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                    </button>
                   </div>
-                </div>
+                )}
               </div>
+            </fieldset>
 
-              {/* Status & User Type */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Role & Status */}
+            <fieldset className="space-y-4">
+              <legend className="text-sm font-semibold">Role & Organization Status</legend>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Role Selector */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">User Type</Label>
-                  <Select value={userType} onValueChange={(val: UserType) => setUserType(val)}>
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue />
+                  <Label className="text-xs">Assigned Role</Label>
+                  <Select
+                    value={selectedRoleIds[0] || "none"}
+                    onValueChange={(v) => setSelectedRoleIds(v === "none" ? [] : [v])}
+                  >
+                    <SelectTrigger className="text-xs">
+                      <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                      <SelectItem value="CLIENT">Client</SelectItem>
+                      <SelectItem value="none">No Role</SelectItem>
+                      {roles.map((r) => (
+                        <SelectItem key={r.roleId} value={r.roleId}>
+                          {r.name} {!r.active && "(⚠️ Inactive)"}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Account Status */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Account Status</Label>
-                  <Select value={userStatus} onValueChange={(val: UserStatus) => setUserStatus(val)}>
-                    <SelectTrigger className="h-9 text-xs font-medium">
+                  <Label className="text-xs">Account Status</Label>
+                  <Select value={userStatus} onValueChange={(v) => setUserStatus(v as UserStatus)}>
+                    <SelectTrigger className="text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="PENDING">Pending Approval</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
                       <SelectItem value="INACTIVE">Inactive</SelectItem>
-                      <SelectItem value="LOCKED">Locked</SelectItem>
+                      <SelectItem value="SUSPENDED">Suspended</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
 
-              {/* Assign Roles */}
-              <div className="space-y-2 rounded-xl border border-border/70 bg-secondary/20 p-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
-                    Assigned Roles
-                  </Label>
-                  <span className="text-[11px] text-muted-foreground">Select one or more</span>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {roles.map((role) => {
-                    const isSelected = selectedRoleIds.includes(role.roleId);
-                    return (
-                      <button
-                        key={role.roleId}
-                        type="button"
-                        onClick={() => handleRoleToggle(role.roleId)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                          isSelected
-                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                            : "border-border/80 bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        )}
-                      >
-                        <Shield className="size-3" />
-                        {role.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Module Access Rights */}
-              <div className="space-y-2 rounded-xl border border-border/70 bg-secondary/20 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
-                      Module Rights & Visibility
-                    </Label>
-                    <p className="text-[11px] text-muted-foreground">
-                      Configure specific system tabs visible to this user
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSelectAllModules}
-                    className="h-7 text-[11px] text-primary hover:bg-primary/10"
-                  >
-                    {selectedModuleRights.length === moduleRights.length ? "Deselect All" : "Select All"}
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-3">
-                  {moduleRights.map((module) => {
-                    const isChecked = selectedModuleRights.includes(module.name);
-                    return (
-                      <label
-                        key={module.id || module.name}
-                        className={cn(
-                          "flex items-center gap-2 rounded-lg border p-2 text-xs transition-colors cursor-pointer",
-                          isChecked
-                            ? "border-primary/40 bg-primary/10 text-foreground font-semibold"
-                            : "border-border/60 bg-background text-muted-foreground hover:bg-secondary/60"
-                        )}
-                      >
-                        <Checkbox
-                          checked={isChecked}
-                          onCheckedChange={() => handleModuleToggle(module.name)}
-                        />
-                        <span className="truncate">{module.label || module.name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </ScrollArea>
-
-          {/* Dialog Footer with explicit spacing */}
-          <DialogFooter className="flex items-center justify-end gap-3 border-t border-border/60 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="px-4"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-1.5 px-5">
-              {isLoading ? "Creating..." : "Create User"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Sub-Component: Edit User Dialog ─────────────────────────────────────────
-
-interface EditUserDialogProps {
-  user: UserResponse;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  roles: RoleResponse[];
-  moduleRights: ModuleRightItem[];
-  onSubmit: (payload: UpdateUserPayload) => void;
-  isLoading: boolean;
-}
-
-function EditUserDialog({
-  user,
-  open,
-  onOpenChange,
-  roles,
-  moduleRights,
-  onSubmit,
-  isLoading,
-}: EditUserDialogProps) {
-  const [firstName, setFirstName] = useState(user.firstName || "");
-  const [lastName, setLastName] = useState(user.lastName || "");
-  const [email, setEmail] = useState(user.email || "");
-  const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>(user.roleIds || []);
-  const [userStatus, setUserStatus] = useState<UserStatus>(user.userStatus || "ACTIVE");
-  const [userType, setUserType] = useState<UserType>(user.userType || "EMPLOYEE");
-  const [selectedModuleRights, setSelectedModuleRights] = useState<string[]>(
-    user.moduleRights || []
-  );
-
-  const handleRoleToggle = (roleId: string) => {
-    setSelectedRoleIds((prev) =>
-      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId]
-    );
-  };
-
-  const handleModuleToggle = (moduleName: string) => {
-    setSelectedModuleRights((prev) =>
-      prev.includes(moduleName)
-        ? prev.filter((name) => name !== moduleName)
-        : [...prev, moduleName]
-    );
-  };
-
-  const handleSelectAllModules = () => {
-    if (selectedModuleRights.length === moduleRights.length) {
-      setSelectedModuleRights([]);
-    } else {
-      setSelectedModuleRights(moduleRights.map((m) => m.name));
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error("Email required");
-      return;
-    }
-    onSubmit({
-      email,
-      firstName,
-      lastName,
-      roleIds: selectedRoleIds,
-      moduleRights: selectedModuleRights,
-      userStatus,
-      userType,
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl rounded-2xl p-6 shadow-xl">
-        <DialogHeader className="space-y-1.5 border-b border-border/60 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <Edit className="size-5 text-primary" />
-            Edit User: {user.fullName || user.email}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Update user information, assigned roles, and module access permissions.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          <ScrollArea className="max-h-[58vh] pr-4">
-            <div className="space-y-4 py-1">
-              {/* Name Fields Grid */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {/* User Type */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="edit-firstName" className="text-xs font-semibold">
-                    First Name
-                  </Label>
-                  <Input
-                    id="edit-firstName"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-lastName" className="text-xs font-semibold">
-                    Last Name
-                  </Label>
-                  <Input
-                    id="edit-lastName"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Email Address */}
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-email" className="text-xs font-semibold">
-                  Email Address
-                </Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </div>
-
-              {/* Status & User Type */}
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">User Type</Label>
-                  <Select value={userType} onValueChange={(val: UserType) => setUserType(val)}>
-                    <SelectTrigger className="h-9 text-xs font-medium">
+                  <Label className="text-xs">User Classification</Label>
+                  <Select value={userType} onValueChange={(v) => setUserType(v as UserType)}>
+                    <SelectTrigger className="text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
                       <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                      <SelectItem value="CLIENT">Client</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Account Status</Label>
-                  <Select value={userStatus} onValueChange={(val: UserStatus) => setUserStatus(val)}>
-                    <SelectTrigger className="h-9 text-xs font-medium">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ACTIVE">Active</SelectItem>
-                      <SelectItem value="PENDING">Pending Approval</SelectItem>
-                      <SelectItem value="INACTIVE">Inactive</SelectItem>
-                      <SelectItem value="LOCKED">Locked</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="MANAGER">Manager</SelectItem>
+                      <SelectItem value="CONTRACTOR">Contractor</SelectItem>
+                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+            </fieldset>
 
-              {/* Assign Roles */}
-              <div className="space-y-2 rounded-xl border border-border/70 bg-secondary/20 p-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
-                    Assigned Roles
-                  </Label>
-                  <span className="text-[11px] text-muted-foreground">Select roles</span>
+            {/* Direct Module Rights Assignment (User-Level Only) */}
+            <fieldset className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <legend className="text-sm font-semibold">User-Level Module Rights</legend>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Assign specific ERP modules this user is authorized to access.
+                  </p>
                 </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {roles.map((role) => {
-                    const isSelected = selectedRoleIds.includes(role.roleId);
-                    return (
-                      <button
-                        key={role.roleId}
-                        type="button"
-                        onClick={() => handleRoleToggle(role.roleId)}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                          isSelected
-                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                            : "border-border/80 bg-background text-muted-foreground hover:bg-secondary hover:text-foreground"
-                        )}
-                      >
-                        <Shield className="size-3" />
-                        {role.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Module Access Rights */}
-              <div className="space-y-2 rounded-xl border border-border/70 bg-secondary/20 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
-                      Module Rights & Visibility
-                    </Label>
-                    <p className="text-[11px] text-muted-foreground">
-                      Configure specific system tabs visible to this user
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSelectAllModules}
-                    className="h-7 text-[11px] text-primary hover:bg-primary/10"
-                  >
-                    {selectedModuleRights.length === moduleRights.length ? "Deselect All" : "Select All"}
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleSelectAllRights} className="text-xs h-7">
+                    Select All
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={handleClearAllRights} className="text-xs h-7">
+                    Clear All
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-2 sm:grid-cols-3">
-                  {moduleRights.map((module) => {
-                    const isChecked = selectedModuleRights.includes(module.name);
+              </div>
+
+              {moduleRights.length === 0 ? (
+                <p className="text-xs text-muted-foreground italic">No system module rights configured.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {moduleRights.map((mr) => {
+                    const isChecked = selectedModuleRights.includes(mr.name);
                     return (
-                      <label
-                        key={module.id || module.name}
+                      <div
+                        key={mr.name}
+                        onClick={() => toggleRight(mr.name)}
                         className={cn(
-                          "flex items-center gap-2 rounded-lg border p-2 text-xs transition-colors cursor-pointer",
+                          "cursor-pointer surface p-3 rounded-xl border transition-all flex items-start gap-3 select-none",
                           isChecked
-                            ? "border-primary/40 bg-primary/10 text-foreground font-semibold"
-                            : "border-border/60 bg-background text-muted-foreground hover:bg-secondary/60"
+                            ? "border-primary/50 bg-primary/5 shadow-soft ring-1 ring-primary/20"
+                            : "border-border/60 hover:border-border"
                         )}
                       >
                         <Checkbox
                           checked={isChecked}
-                          onCheckedChange={() => handleModuleToggle(module.name)}
+                          onCheckedChange={() => toggleRight(mr.name)}
+                          className="mt-0.5 shrink-0"
                         />
-                        <span className="truncate">{module.label || module.name}</span>
-                      </label>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs text-foreground leading-tight">
+                            {mr.label || mr.name}
+                          </p>
+                          <p className="font-mono text-[10px] text-muted-foreground truncate mt-0.5">
+                            {mr.name}
+                          </p>
+                          {mr.description && (
+                            <p className="text-[11px] text-muted-foreground/80 mt-1 line-clamp-2">
+                              {mr.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
-              </div>
-            </div>
-          </ScrollArea>
+              )}
+            </fieldset>
+          </form>
+        </div>
 
-          {/* Dialog Footer with explicit spacing */}
-          <DialogFooter className="flex items-center justify-end gap-3 border-t border-border/60 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="px-4"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-1.5 px-5">
-              {isLoading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
-        </form>
+        {/* Footer */}
+        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" form="user-form" disabled={isSubmitting} className="w-full sm:w-auto">
+            {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+            {isEdit ? "Update User" : "Create User"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-// ─── Sub-Component: Reset Password Dialog ────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// ROLE ADD / EDIT DIALOG
+// ══════════════════════════════════════════════════════════════════════════════
 
-interface ResetPasswordDialogProps {
-  user: UserResponse;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (password: string) => void;
-  isLoading: boolean;
-}
-
-function ResetPasswordDialog({
-  user,
+function RoleFormDialog({
   open,
   onOpenChange,
-  onSubmit,
-  isLoading,
-}: ResetPasswordDialogProps) {
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password.length < 6) {
-      toast.error("Password too short", {
-        description: "Password must be at least 6 characters.",
-      });
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match", {
-        description: "Please confirm the password again.",
-      });
-      return;
-    }
-    onSubmit(password);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl p-6 shadow-xl">
-        <DialogHeader className="space-y-1.5 border-b border-border/60 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <KeyRound className="size-5 text-primary" />
-            Reset Password
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Set a new secure password for{" "}
-            <span className="font-semibold text-foreground">{user.email}</span>.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="new-password" className="text-xs font-semibold">
-              New Password
-            </Label>
-            <div className="relative">
-              <Input
-                id="new-password"
-                type={showPassword ? "text" : "password"}
-                required
-                placeholder="Enter new password (min 6 chars)"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="h-9 pr-10 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="confirm-password" className="text-xs font-semibold">
-              Confirm Password
-            </Label>
-            <Input
-              id="confirm-password"
-              type={showPassword ? "text" : "password"}
-              required
-              placeholder="Confirm new password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="h-9 text-sm"
-            />
-          </div>
-
-          <DialogFooter className="flex items-center justify-end gap-3 border-t border-border/60 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="px-4"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-1.5 px-5">
-              {isLoading ? "Resetting..." : "Reset Password"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Sub-Component: Create Role Dialog ───────────────────────────────────────
-
-interface CreateRoleDialogProps {
+  editingRole,
+  onSuccess,
+}: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  moduleRights: ModuleRightItem[];
-  onSubmit: (payload: CreateRolePayload) => void;
-  isLoading: boolean;
-}
-
-function CreateRoleDialog({
-  open,
-  onOpenChange,
-  moduleRights,
-  onSubmit,
-  isLoading,
-}: CreateRoleDialogProps) {
+  editingRole: RoleResponse | null;
+  onSuccess: () => void;
+}) {
+  const isEdit = !!editingRole;
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [active, setActive] = useState(true);
-  const [selectedRights, setSelectedRights] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
-      setName("");
-      setDescription("");
-      setActive(true);
-      setSelectedRights([]);
+  useEffect(() => {
+    if (open) {
+      if (editingRole) {
+        setName(editingRole.name || "");
+        setDescription(editingRole.description || "");
+        setActive(editingRole.active ?? true);
+      } else {
+        setName("");
+        setDescription("");
+        setActive(true);
+      }
     }
-    onOpenChange(isOpen);
-  };
+  }, [open, editingRole?.roleId]);
 
-  const handleRightToggle = (rightKey: string) => {
-    setSelectedRights((prev) =>
-      prev.includes(rightKey)
-        ? prev.filter((r) => r !== rightKey)
-        : [...prev, rightKey]
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error("Role name is required");
       return;
     }
-    onSubmit({
-      name: name.trim().toUpperCase(),
-      description: description.trim(),
-      active,
-      moduleRights: selectedRights,
-    });
-  };
 
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg rounded-2xl p-6 shadow-xl">
-        <DialogHeader className="space-y-1.5 border-b border-border/60 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <Shield className="size-5 text-primary" />
-            Create New Role
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Define a new system role and assign initial module permissions.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
-          <div className="space-y-1.5">
-            <Label htmlFor="role-name" className="text-xs font-semibold">
-              Role Name <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="role-name"
-              required
-              placeholder="e.g. WAREHOUSE_MANAGER, REGULATORY"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="h-9 font-medium uppercase"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="role-desc" className="text-xs font-semibold">
-              Description
-            </Label>
-            <Input
-              id="role-desc"
-              placeholder="e.g. Manages warehouse shipments and logistics"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="h-9 text-sm"
-            />
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl border border-border/70 p-3 bg-secondary/20">
-            <div className="space-y-0.5">
-              <Label className="text-xs font-bold">Role Status</Label>
-              <p className="text-[11px] text-muted-foreground">Active roles can be assigned to users</p>
-            </div>
-            <Switch checked={active} onCheckedChange={setActive} />
-          </div>
-
-          <div className="space-y-2 rounded-xl border border-border/70 p-3 bg-secondary/20">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
-                Initial Module Access
-              </Label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  if (selectedRights.length === moduleRights.length) {
-                    setSelectedRights([]);
-                  } else {
-                    setSelectedRights(moduleRights.map((m) => m.name));
-                  }
-                }}
-                className="h-6 text-[10px] text-primary"
-              >
-                {selectedRights.length === moduleRights.length ? "Deselect" : "All"}
-              </Button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-              {moduleRights.map((m) => (
-                <label
-                  key={m.id || m.name}
-                  className="flex items-center gap-2 rounded-lg border p-1.5 text-xs bg-background cursor-pointer"
-                >
-                  <Checkbox
-                    checked={selectedRights.includes(m.name)}
-                    onCheckedChange={() => handleRightToggle(m.name)}
-                  />
-                  <span className="truncate">{m.label || m.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <DialogFooter className="flex items-center justify-end gap-3 border-t border-border/60 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="px-4"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-1.5 px-5">
-              {isLoading ? "Creating..." : "Create Role"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Sub-Component: Edit Role Dialog ─────────────────────────────────────────
-
-interface EditRoleDialogProps {
-  role: RoleResponse;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (payload: UpdateRolePayload) => void;
-  isLoading: boolean;
-}
-
-function EditRoleDialog({
-  role,
-  open,
-  onOpenChange,
-  onSubmit,
-  isLoading,
-}: EditRoleDialogProps) {
-  const [name, setName] = useState(role.name || "");
-  const [description, setDescription] = useState(role.description || "");
-  const [active, setActive] = useState(role.active !== false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      toast.error("Role name is required");
-      return;
+    setIsSubmitting(true);
+    try {
+      if (isEdit && editingRole) {
+        await updateRole(editingRole.roleId, {
+          name: name.trim().toUpperCase(),
+          description: description.trim(),
+          active,
+        });
+        toast.success("Role updated successfully");
+      } else {
+        await createRole({
+          name: name.trim().toUpperCase(),
+          description: description.trim(),
+          active,
+        });
+        toast.success("Role created successfully");
+      }
+      onSuccess();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save role");
+    } finally {
+      setIsSubmitting(false);
     }
-    onSubmit({
-      name: name.trim().toUpperCase(),
-      description: description.trim(),
-      active,
-    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl p-6 shadow-xl">
-        <DialogHeader className="space-y-1.5 border-b border-border/60 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <Edit className="size-5 text-primary" />
-            Edit Role: {role.name}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Update role name, description, and status. Assigned users will automatically update.
+      <DialogContent className="max-w-lg p-6">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Organizational Role" : "Create New Role"}</DialogTitle>
+          <DialogDescription className="text-xs">
+            Roles categorize team members. Note: Specific module rights are assigned directly per user.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
+        <form id="role-form" onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="edit-role-name" className="text-xs font-semibold">
-              Role Name <span className="text-destructive">*</span>
-            </Label>
+            <Label className="text-xs">Role Name *</Label>
             <Input
-              id="edit-role-name"
-              required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-9 font-medium uppercase"
+              placeholder="e.g. SALES_MANAGER, QA_LEAD"
+              required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="edit-role-desc" className="text-xs font-semibold">
-              Description
-            </Label>
+            <Label className="text-xs">Description</Label>
             <Input
-              id="edit-role-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="h-9 text-sm"
+              placeholder="e.g. Oversees commercial export operations"
             />
           </div>
 
-          <div className="flex items-center justify-between rounded-xl border border-border/70 p-3 bg-secondary/20">
-            <div className="space-y-0.5">
-              <Label className="text-xs font-bold">Role Status</Label>
-              <p className="text-[11px] text-muted-foreground">Active roles can be assigned to users</p>
+          <div className="flex items-center justify-between surface p-3.5 rounded-xl border border-border/60">
+            <div>
+              <Label className="text-xs font-semibold">Active Status</Label>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                If deactivated, users assigned solely to this role will be blocked from logging in.
+              </p>
             </div>
             <Switch checked={active} onCheckedChange={setActive} />
           </div>
-
-          <DialogFooter className="flex items-center justify-end gap-3 border-t border-border/60 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="px-4"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-1.5 px-5">
-              {isLoading ? "Saving..." : "Save Changes"}
-            </Button>
-          </DialogFooter>
         </form>
+
+        <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" form="role-form" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+            {isEdit ? "Update Role" : "Create Role"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-// ─── Sub-Component: Create Module Right Dialog ───────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// MODULE RIGHT ADD / EDIT DIALOG
+// ══════════════════════════════════════════════════════════════════════════════
 
-interface CreateModuleRightDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (payload: CreateModuleRightPayload) => void;
-  isLoading: boolean;
-}
-
-function CreateModuleRightDialog({
+function ModuleRightFormDialog({
   open,
   onOpenChange,
-  onSubmit,
-  isLoading,
-}: CreateModuleRightDialogProps) {
+  editingRight,
+  onSuccess,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  editingRight: ModuleRight | null;
+  onSuccess: () => void;
+}) {
+  const isEdit = !!editingRight;
   const [name, setName] = useState("");
   const [label, setLabel] = useState("");
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen) {
-      setName("");
-      setLabel("");
-      setDescription("");
+  useEffect(() => {
+    if (open) {
+      if (editingRight) {
+        setName(editingRight.name || "");
+        setLabel(editingRight.label || "");
+        setDescription(editingRight.description || "");
+      } else {
+        setName("");
+        setLabel("");
+        setDescription("");
+      }
     }
-    onOpenChange(isOpen);
-  };
+  }, [open, editingRight?.id, editingRight?.name]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Module key name is required");
+      toast.error("Module right identifier is required");
       return;
     }
-    onSubmit({
-      name: name.trim().toUpperCase(),
-      label: label.trim() || undefined,
-      description: description.trim() || undefined,
-    });
+
+    setIsSubmitting(true);
+    try {
+      if (isEdit && editingRight?.id) {
+        await updateModuleRight(editingRight.id, {
+          name: name.trim().toUpperCase(),
+          label: label.trim(),
+          description: description.trim(),
+        });
+        toast.success("Module right updated successfully");
+      } else {
+        await createModuleRight({
+          name: name.trim().toUpperCase(),
+          label: label.trim(),
+          description: description.trim(),
+        });
+        toast.success("Module right created successfully");
+      }
+      onSuccess();
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save module right");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md rounded-2xl p-6 shadow-xl">
-        <DialogHeader className="space-y-1.5 border-b border-border/60 pb-4">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <Layers className="size-5 text-primary" />
-            Add New System Module
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Register a new subsystem module key for permission matrix mapping.
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg p-6">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? "Edit Module Right" : "Register New Module Right"}</DialogTitle>
+          <DialogDescription className="text-xs">
+            Module rights represent features or pages that can be directly granted to users.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-3">
+        <form id="right-form" onSubmit={handleSubmit} className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label htmlFor="mod-name" className="text-xs font-semibold">
-              Module Key Name <span className="text-destructive">*</span>
-            </Label>
+            <Label className="text-xs">System Identifier (Key) *</Label>
             <Input
-              id="mod-name"
-              required
-              placeholder="e.g. INVENTORY_MANAGEMENT"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="h-9 font-mono text-sm uppercase"
+              placeholder="e.g. INVENTORY_MANAGEMENT"
+              required
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="mod-label" className="text-xs font-semibold">
-              Display Label
-            </Label>
+            <Label className="text-xs">Display Label</Label>
             <Input
-              id="mod-label"
-              placeholder="e.g. Inventory Management"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              className="h-9 text-sm"
+              placeholder="e.g. Inventory Management"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="mod-desc" className="text-xs font-semibold">
-              Description
-            </Label>
+            <Label className="text-xs">Description</Label>
             <Input
-              id="mod-desc"
-              placeholder="e.g. Manages warehouse stock and batches"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="h-9 text-sm"
+              placeholder="e.g. Grants access to warehouse inventory tracking"
             />
           </div>
-
-          <DialogFooter className="flex items-center justify-end gap-3 border-t border-border/60 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-              className="px-4"
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading} className="gap-1.5 px-5">
-              {isLoading ? "Adding..." : "Add Module"}
-            </Button>
-          </DialogFooter>
         </form>
+
+        <DialogFooter className="mt-4 flex gap-2 sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" form="right-form" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+            {isEdit ? "Update Right" : "Create Right"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
