@@ -410,33 +410,33 @@ function LoginPage() {
         </motion.section>
 
         {sessionExpiredReason && (
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="glass-dark mt-4 w-full rounded-[18px] p-5 text-white lg:col-start-2"
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.96 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-sm"
           >
-            <div className="flex items-start gap-3">
-              <div className="grid size-10 shrink-0 place-items-center rounded-full bg-rose-500/15">
-                <ShieldAlert className="size-5 text-rose-400" />
+            <div className="glass-dark flex items-start gap-3 rounded-2xl p-4 text-white shadow-2xl ring-1 ring-rose-500/25">
+              <div className="grid size-9 shrink-0 place-items-center rounded-full bg-rose-500/20">
+                <ShieldAlert className="size-4 text-rose-400" />
               </div>
-              <div className="space-y-1">
-                <p className="text-sm font-semibold text-rose-300">Your session has expired</p>
-                <p className="text-xs leading-relaxed text-white/60">
-                  For your security, you were logged out due to inactivity or session timeout.
-                  Please sign in again to continue.
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <p className="text-sm font-semibold text-rose-300 leading-snug">Your session has expired</p>
+                <p className="text-xs leading-relaxed text-white/55">
+                  For your security, you were logged out due to inactivity or session timeout. Please sign in again.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setSessionExpiredReason(null)}
-                className="ml-auto shrink-0 rounded-lg p-1 text-white/40 transition-colors hover:bg-white/10 hover:text-white/70"
+                className="ml-1 shrink-0 rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white/70"
                 aria-label="Dismiss"
               >
                 ✕
               </button>
             </div>
-          </motion.section>
+          </motion.div>
         )}
       </main>
     </div>
