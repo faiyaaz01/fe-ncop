@@ -232,8 +232,8 @@ function ProductMaster() {
       {/* ── Page Header ── */}
       <PageHeader
         title="Products"
-        subtitle="Manage pharmaceutical catalog, dosage forms, active pharmaceutical ingredients (APIs), and dossiers."
-        action={
+        description="Manage pharmaceutical catalog, dosage forms, active pharmaceutical ingredients (APIs), and dossiers."
+        actions={
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -400,7 +400,7 @@ function ProductMaster() {
       {/* ── Products Table ── */}
       <div className="surface rounded-xl border border-border/70 overflow-hidden">
         {productsLoading ? (
-          <SectionLoader label="Loading products..." />
+          <SectionLoader />
         ) : productList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <div className="size-12 rounded-full bg-secondary/80 flex items-center justify-center mb-3">
@@ -663,7 +663,6 @@ function ProductFormDialog({
   dosageForms: DosageForm[];
   onSaved: () => void;
 }) {
-  const [productCode, setProductCode] = useState("");
   const [brandName, setBrandName] = useState("");
   const [category, setCategory] = useState("Analgesics & Antipyretics");
   const [therapeuticClass, setTherapeuticClass] = useState("");
@@ -686,7 +685,6 @@ function ProductFormDialog({
   // Initialize or reset form
   useEffect(() => {
     if (editingProduct) {
-      setProductCode(editingProduct.productCode || "");
       setBrandName(editingProduct.brandName || "");
       setCategory(editingProduct.category || "General");
       setTherapeuticClass(editingProduct.therapeuticClass || "");
@@ -707,7 +705,6 @@ function ProductFormDialog({
       setDescription(editingProduct.description || "");
       setStatus(editingProduct.status || "ACTIVE");
     } else {
-      setProductCode("");
       setBrandName("");
       setCategory("");
       setTherapeuticClass("");
@@ -775,7 +772,6 @@ function ProductFormDialog({
     const validIngredients = ingredients.filter((ing) => ing.api?.trim());
 
     const dto: ProductRequestDto = {
-      productCode: productCode.trim() || undefined,
       brandName: brandName.trim(),
       category: category.trim(),
       therapeuticClass: therapeuticClass.trim() || undefined,
@@ -835,13 +831,13 @@ function ProductFormDialog({
             <fieldset className="space-y-4">
               <legend className="text-sm font-semibold">Product Classification</legend>
 
-              {editingProduct && (
-                <div className="surface flex items-center gap-3 p-3 rounded-lg">
+              <div className="surface flex items-center gap-3 p-3 rounded-lg">
                   <span className="text-xs font-medium text-muted-foreground">Product Code</span>
-                  <span className="text-sm font-semibold">{editingProduct.productCode}</span>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Auto-generated</span>
+                  <span className="text-sm font-semibold font-mono">{editingProduct ? editingProduct.productCode : "—"}</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                    {editingProduct ? "MongoDB Document ID" : "Auto-assigned on save"}
+                  </span>
                 </div>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
