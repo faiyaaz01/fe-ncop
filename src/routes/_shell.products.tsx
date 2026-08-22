@@ -24,10 +24,11 @@ import {
   ExternalLink,
   RefreshCw,
   FolderOpen,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PageHeader, StatusChip } from "@/components/kit";
+import { PageHeader, StatusChip, SectionLoader } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +54,7 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import {
   fetchProducts,
@@ -398,9 +400,7 @@ function ProductMaster() {
       {/* ── Products Table ── */}
       <div className="surface rounded-xl border border-border/70 overflow-hidden">
         {productsLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <RefreshCw className="size-6 animate-spin text-primary" />
-          </div>
+          <SectionLoader label="Loading products..." />
         ) : productList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <div className="size-12 rounded-full bg-secondary/80 flex items-center justify-center mb-3">
@@ -709,20 +709,18 @@ function ProductFormDialog({
     } else {
       setProductCode("");
       setBrandName("");
-      setCategory("Analgesics & Antipyretics");
+      setCategory("");
       setTherapeuticClass("");
-      const firstForm = dosageForms[0]?.name || "Tablet";
-      setDosageForm(firstForm);
-      const firstVariant = dosageForms[0]?.variants?.[0]?.name || "";
-      setDosageVariant(firstVariant);
+      setDosageForm("");
+      setDosageVariant("");
       setIngredients([{ api: "", strength: "", unit: "mg", pharmacopeia: "BP" }]);
       setCustomComposition("");
-      setPackaging("10x10 Alu-Alu Blister");
-      setMoq(5000);
+      setPackaging("");
+      setMoq("");
       setUnitPrice("");
       setCurrency("USD");
-      setShelfLife("24 Months");
-      setStorageCondition("Store below 25°C in a dry place. Protect from light.");
+      setShelfLife("");
+      setStorageCondition("");
       setDescription("");
       setStatus("ACTIVE");
     }
@@ -816,367 +814,345 @@ function ProductFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <Pill className="size-5 text-primary" />
-            {editingProduct ? "Edit Product Specification" : "Create New Product Master"}
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-2xl sm:h-[88vh] sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+        {/* Fixed Header */}
+        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
+          <DialogTitle className="text-lg font-semibold">
+            {editingProduct ? "Edit Product" : "Add New Product"}
           </DialogTitle>
-          <DialogDescription>
-            Configure product classification, hierarchical dosage forms from database, active ingredients formulation, and commercial terms.
+          <DialogDescription className="text-xs text-muted-foreground">
+            {editingProduct
+              ? `Editing ${editingProduct.brandName} (${editingProduct.productCode})`
+              : "Fill in the details below. Product code will be auto-generated."}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 pt-2">
-          {/* ── Section 1: Classification & Dosage ── */}
-          <div className="space-y-4 rounded-xl border border-border/70 p-4 surface">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Boxes className="size-3.5 text-primary" /> 1. Product Classification & Dosage Hierarchy
-            </h4>
+        {/* Scrollable Form Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+          <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="brandName" className="text-xs">
-                  Brand / Trade Name <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="brandName"
-                  value={brandName}
-                  onChange={(e) => setBrandName(e.target.value)}
-                  placeholder="e.g. Nourish-Paraxil Extra"
-                  required
-                />
-              </div>
+            {/* ── Section 1: Product Classification ── */}
+            <fieldset className="space-y-4">
+              <legend className="text-sm font-semibold">Product Classification</legend>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="productCode" className="text-xs">
-                  Product Code / SKU (Auto-generated if left blank)
-                </Label>
-                <Input
-                  id="productCode"
-                  value={productCode}
-                  onChange={(e) => setProductCode(e.target.value)}
-                  placeholder="e.g. PROD-000001"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="category" className="text-xs">
-                  Therapeutic Category
-                </Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger id="category">
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DEFAULT_CATEGORIES.map((cat) => (
-                      <SelectItem key={cat} value={cat}>
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="therapeuticClass" className="text-xs">
-                  Therapeutic Sub-Class / ATC
-                </Label>
-                <Input
-                  id="therapeuticClass"
-                  value={therapeuticClass}
-                  onChange={(e) => setTherapeuticClass(e.target.value)}
-                  placeholder="e.g. NSAID / Antipyretic"
-                />
-              </div>
-            </div>
-
-            {/* Hierarchical DB-driven Dosage Form & Variant */}
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 pt-1 border-t border-border/50">
-              <div className="space-y-1.5">
-                <Label htmlFor="dosageForm" className="text-xs flex items-center justify-between">
-                  <span>Dosage Form (Level 1) <span className="text-destructive">*</span></span>
-                  <span className="text-[10px] text-muted-foreground">From BE Database</span>
-                </Label>
-                <Select
-                  value={dosageForm}
-                  onValueChange={(val) => {
-                    setDosageForm(val);
-                    const found = dosageForms.find((df) => df.name.toLowerCase() === val.toLowerCase());
-                    setDosageVariant(found?.variants?.[0]?.name || "");
-                  }}
-                >
-                  <SelectTrigger id="dosageForm">
-                    <SelectValue placeholder="Select Dosage Form" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {dosageForms.map((df) => (
-                      <SelectItem key={df.id || df.name} value={df.name}>
-                        {df.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="dosageVariant" className="text-xs flex items-center justify-between">
-                  <span>Dosage Variant (Level 2)</span>
-                  <span className="text-[10px] text-muted-foreground">Cascaded</span>
-                </Label>
-                <Select
-                  value={dosageVariant}
-                  onValueChange={setDosageVariant}
-                  disabled={currentVariants.length === 0}
-                >
-                  <SelectTrigger id="dosageVariant">
-                    <SelectValue placeholder={currentVariants.length === 0 ? "No variants available" : "Select Variant"} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60">
-                    {currentVariants.map((v) => (
-                      <SelectItem key={v.name} value={v.name}>
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Section 2: Active API Ingredients & Composition ── */}
-          <div className="space-y-4 rounded-xl border border-border/70 p-4 surface">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <FlaskConical className="size-3.5 text-primary" /> 2. Active Ingredients (APIs) & Formulation
-              </h4>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addIngredient}
-                className="h-7 text-xs gap-1"
-              >
-                <Plus className="size-3.5" /> Add API Ingredient
-              </Button>
-            </div>
-
-            {/* Interactive Ingredient Table */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-12 gap-2 text-[11px] font-semibold text-muted-foreground px-1 uppercase tracking-wider">
-                <div className="col-span-4">API (Active Drug Name) *</div>
-                <div className="col-span-3">Strength</div>
-                <div className="col-span-2">Unit</div>
-                <div className="col-span-2">Pharmacopeia</div>
-                <div className="col-span-1 text-center">Del</div>
-              </div>
-
-              {ingredients.map((ing, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                  <div className="col-span-4">
-                    <Input
-                      value={ing.api}
-                      onChange={(e) => updateIngredient(idx, "api", e.target.value)}
-                      placeholder="e.g. Paracetamol"
-                      className="h-8 text-xs"
-                      required
-                    />
-                  </div>
-                  <div className="col-span-3">
-                    <Input
-                      value={ing.strength}
-                      onChange={(e) => updateIngredient(idx, "strength", e.target.value)}
-                      placeholder="e.g. 500"
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                  <div className="col-span-2">
-                    <Select
-                      value={ing.unit || "mg"}
-                      onValueChange={(val) => updateIngredient(idx, "unit", val)}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {UNIT_OPTIONS.map((u) => (
-                          <SelectItem key={u} value={u} className="text-xs">
-                            {u}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-2">
-                    <Select
-                      value={ing.pharmacopeia || "BP"}
-                      onValueChange={(val) => updateIngredient(idx, "pharmacopeia", val)}
-                    >
-                      <SelectTrigger className="h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PHARMACOPEIA_OPTIONS.map((p) => (
-                          <SelectItem key={p} value={p} className="text-xs">
-                            {p}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="col-span-1 flex justify-center">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="size-7 text-muted-foreground hover:text-destructive"
-                      disabled={ingredients.length <= 1}
-                      onClick={() => removeIngredient(idx)}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
-                  </div>
+              {editingProduct && (
+                <div className="surface flex items-center gap-3 p-3 rounded-lg">
+                  <span className="text-xs font-medium text-muted-foreground">Product Code</span>
+                  <span className="text-sm font-semibold">{editingProduct.productCode}</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Auto-generated</span>
                 </div>
-              ))}
-            </div>
+              )}
 
-            {/* Live Auto-Reflected Composition Banner */}
-            <div className="mt-3 rounded-lg bg-primary/5 border border-primary/20 p-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="brandName">Brand / Trade Name *</Label>
+                  <Input
+                    id="brandName"
+                    value={brandName}
+                    onChange={(e) => setBrandName(e.target.value)}
+                    placeholder="e.g. Nourish-Paraxil Extra"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Therapeutic Category</Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger id="category">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DEFAULT_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="therapeuticClass">Therapeutic Sub-Class / ATC</Label>
+                  <Input
+                    id="therapeuticClass"
+                    value={therapeuticClass}
+                    onChange={(e) => setTherapeuticClass(e.target.value)}
+                    placeholder="e.g. NSAID / Antipyretic"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="status">Product Status</Label>
+                  <Select value={status} onValueChange={(val) => setStatus(val as ProductStatus)}>
+                    <SelectTrigger id="status">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ACTIVE">Active</SelectItem>
+                      <SelectItem value="UNDER_DEVELOPMENT">In Development</SelectItem>
+                      <SelectItem value="DISCONTINUED">Discontinued</SelectItem>
+                      <SelectItem value="DRAFT">Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </fieldset>
+
+            <Separator />
+
+            {/* ── Section 2: Dosage Form ── */}
+            <fieldset className="space-y-4">
+              <legend className="text-sm font-semibold">Dosage Form *</legend>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="dosageForm">Dosage Form (Level 1)</Label>
+                  <Select
+                    value={dosageForm}
+                    onValueChange={(val) => {
+                      setDosageForm(val);
+                      const found = dosageForms.find((df) => df.name.toLowerCase() === val.toLowerCase());
+                      setDosageVariant(found?.variants?.[0]?.name || "");
+                    }}
+                  >
+                    <SelectTrigger id="dosageForm">
+                      <SelectValue placeholder="Choose from the drop down" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {dosageForms.map((df) => (
+                        <SelectItem key={df.id || df.name} value={df.name}>{df.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dosageVariant">Dosage Variant (Level 2)</Label>
+                  <Select
+                    value={dosageVariant}
+                    onValueChange={setDosageVariant}
+                    disabled={currentVariants.length === 0}
+                  >
+                    <SelectTrigger id="dosageVariant">
+                      <SelectValue placeholder={currentVariants.length === 0 ? "Select dosage form first" : "Choose variant"} />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {currentVariants.map((v) => (
+                        <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </fieldset>
+
+            <Separator />
+
+            {/* ── Section 3: Generic Name / APIs ── */}
+            <fieldset className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                  <Sparkles className="size-3.5" /> Auto-Generated Composition Formula
-                </span>
-                <span className="text-[10px] text-muted-foreground">Auto-calculated from Dosage + Ingredients</span>
+                <legend className="text-sm font-semibold">Generic Name *</legend>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addIngredient}
+                  className="h-8 text-xs gap-1.5"
+                >
+                  <Plus className="size-3.5" /> Add API
+                </Button>
               </div>
-              <p className="mt-1 text-sm font-semibold text-foreground">
-                {liveComposition || "Enter API ingredients and select dosage form to generate formula"}
-              </p>
-            </div>
-          </div>
 
-          {/* ── Section 3: Commercial Terms & Packaging ── */}
-          <div className="space-y-4 rounded-xl border border-border/70 p-4 surface">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Package className="size-3.5 text-primary" /> 3. Packaging & Commercial Terms
-            </h4>
+              {/* Table header */}
+              <div className="rounded-xl border border-border/60 overflow-hidden">
+                <div className="grid grid-cols-12 gap-0 bg-muted/40 border-b border-border/60 px-4 py-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="col-span-4">API (Active Drug Name)</div>
+                  <div className="col-span-3">Strength</div>
+                  <div className="col-span-2">Unit</div>
+                  <div className="col-span-2">Pharmacopeia</div>
+                  <div className="col-span-1"></div>
+                </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="packaging" className="text-xs">Packaging Presentation</Label>
+                <div className="divide-y divide-border/40">
+                  {ingredients.map((ing, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center px-3 py-2.5">
+                      <div className="col-span-4">
+                        <Input
+                          value={ing.api}
+                          onChange={(e) => updateIngredient(idx, "api", e.target.value)}
+                          placeholder="e.g. Paracetamol"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <Input
+                          value={ing.strength}
+                          onChange={(e) => updateIngredient(idx, "strength", e.target.value)}
+                          placeholder="e.g. 500"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Select
+                          value={ing.unit || "mg"}
+                          onValueChange={(val) => updateIngredient(idx, "unit", val)}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {UNIT_OPTIONS.map((u) => (
+                              <SelectItem key={u} value={u} className="text-xs">{u}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Select
+                          value={ing.pharmacopeia || "BP"}
+                          onValueChange={(val) => updateIngredient(idx, "pharmacopeia", val)}
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PHARMACOPEIA_OPTIONS.map((p) => (
+                              <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-1 flex justify-center">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-muted-foreground hover:text-destructive"
+                          disabled={ingredients.length <= 1}
+                          onClick={() => removeIngredient(idx)}
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Auto-generated Composition */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">
+                  Composition (if)
+                  <span className="ml-2 text-xs font-normal text-muted-foreground">
+                    Auto-generated from Dosage Form + Variant + Generic Name
+                  </span>
+                </Label>
+                <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium text-foreground min-h-[40px]">
+                  {liveComposition || (
+                    <span className="text-muted-foreground italic text-xs">
+                      Will auto-generate once you select dosage form and enter API ingredients
+                    </span>
+                  )}
+                </div>
+              </div>
+            </fieldset>
+
+            <Separator />
+
+            {/* ── Section 4: Packaging & Commercial Terms ── */}
+            <fieldset className="space-y-4">
+              <legend className="text-sm font-semibold">Packaging & Commercial Terms</legend>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="packaging">Packaging Presentation</Label>
+                  <Input
+                    id="packaging"
+                    value={packaging}
+                    onChange={(e) => setPackaging(e.target.value)}
+                    placeholder="e.g. 10x10 Alu-Alu Blister"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="shelfLife">Shelf Life</Label>
+                  <Input
+                    id="shelfLife"
+                    value={shelfLife}
+                    onChange={(e) => setShelfLife(e.target.value)}
+                    placeholder="e.g. 24 Months"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="moq">Minimum Order Qty (MOQ)</Label>
+                  <Input
+                    id="moq"
+                    type="number"
+                    value={moq}
+                    onChange={(e) => setMoq(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="e.g. 5000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="unitPrice">Unit Price</Label>
+                  <Input
+                    id="unitPrice"
+                    type="number"
+                    step="0.01"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="e.g. 1.25"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currency">Currency</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger id="currency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRENCY_OPTIONS.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="storageCondition">Storage Conditions</Label>
                 <Input
-                  id="packaging"
-                  value={packaging}
-                  onChange={(e) => setPackaging(e.target.value)}
-                  placeholder="e.g. 10x10 Alu-Alu Blister"
+                  id="storageCondition"
+                  value={storageCondition}
+                  onChange={(e) => setStorageCondition(e.target.value)}
+                  placeholder="e.g. Store below 25°C in a dry place. Protect from light."
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="moq" className="text-xs">Minimum Order Quantity (MOQ)</Label>
-                <Input
-                  id="moq"
-                  type="number"
-                  value={moq}
-                  onChange={(e) => setMoq(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="e.g. 5000"
+              <div className="space-y-2">
+                <Label htmlFor="description">Clinical Indications / Notes</Label>
+                <Textarea
+                  id="description"
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Key indications, pharmacology notes, or export compliance criteria..."
                 />
               </div>
+            </fieldset>
+          </form>
+        </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="shelfLife" className="text-xs">Shelf Life</Label>
-                <Input
-                  id="shelfLife"
-                  value={shelfLife}
-                  onChange={(e) => setShelfLife(e.target.value)}
-                  placeholder="e.g. 24 Months"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="unitPrice" className="text-xs">Unit Commercial Price</Label>
-                <Input
-                  id="unitPrice"
-                  type="number"
-                  step="0.01"
-                  value={unitPrice}
-                  onChange={(e) => setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="e.g. 1.25"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="currency" className="text-xs">Currency</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger id="currency">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCY_OPTIONS.map((c) => (
-                      <SelectItem key={c} value={c}>
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="status" className="text-xs">Product Status</Label>
-                <Select value={status} onValueChange={(val) => setStatus(val as ProductStatus)}>
-                  <SelectTrigger id="status">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="UNDER_DEVELOPMENT">In Development</SelectItem>
-                    <SelectItem value="DISCONTINUED">Discontinued</SelectItem>
-                    <SelectItem value="DRAFT">Draft</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="storageCondition" className="text-xs">Storage Conditions</Label>
-              <Input
-                id="storageCondition"
-                value={storageCondition}
-                onChange={(e) => setStorageCondition(e.target.value)}
-                placeholder="e.g. Store below 25°C in a dry place. Protect from light."
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="description" className="text-xs">Clinical Indications / Notes</Label>
-              <Textarea
-                id="description"
-                rows={2}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Key indications, pharmacology notes, or export compliance criteria..."
-              />
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? "Saving…"
-                : editingProduct
-                ? "Save Changes"
-                : "Create Product"}
-            </Button>
-          </DialogFooter>
-        </form>
+        {/* Fixed Footer */}
+        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button type="submit" form="product-form" disabled={isSubmitting} className="w-full sm:w-auto gap-1.5">
+            {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+            {isSubmitting ? "Saving…" : editingProduct ? "Save Changes" : "Create Product"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

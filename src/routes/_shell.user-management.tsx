@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader, Panel } from "@/components/kit";
+import { PageHeader, Panel, TableRowLoader } from "@/components/kit";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -626,12 +626,7 @@ function UsersTab({
             </thead>
             <tbody className="divide-y divide-border/40">
               {isLoading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                    <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
-                    Loading users...
-                  </td>
-                </tr>
+                <TableRowLoader colSpan={7} label="Loading users..." />
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
@@ -863,12 +858,7 @@ function RolesTab({
             </thead>
             <tbody className="divide-y divide-border/40">
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
-                    <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
-                    Loading roles...
-                  </td>
-                </tr>
+                <TableRowLoader colSpan={6} label="Loading roles..." />
               ) : roles.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
@@ -1026,12 +1016,7 @@ function ModuleRightsTab({
             </thead>
             <tbody className="divide-y divide-border/40">
               {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
-                    <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
-                    Loading module rights...
-                  </td>
-                </tr>
+                <TableRowLoader colSpan={5} label="Loading module rights..." />
               ) : moduleRights.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">

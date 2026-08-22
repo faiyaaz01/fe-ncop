@@ -2,6 +2,89 @@ import { motion, useInView, useMotionValue, useSpring } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
+// ── Shared Skeleton Loading States ───────────────────────────────────────────
+
+function SkeletonBox({ className }: { className?: string }) {
+  return (
+    <div className={cn("animate-pulse rounded-md bg-primary/10", className)} />
+  );
+}
+
+/**
+ * Consistent section-level skeleton — use inside a `<div>` container
+ * (e.g. product table div wrapper)
+ */
+export function SectionLoader({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="divide-y divide-border/40">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center gap-4 px-5 py-4">
+          <SkeletonBox className="size-9 rounded-lg shrink-0" />
+          <div className="flex-1 space-y-2">
+            <SkeletonBox className="h-3.5 w-2/5" />
+            <SkeletonBox className="h-2.5 w-1/4" />
+          </div>
+          <SkeletonBox className="h-3 w-24 hidden sm:block" />
+          <SkeletonBox className="h-3 w-16 hidden md:block" />
+          <SkeletonBox className="h-6 w-16 rounded-full hidden lg:block" />
+          <SkeletonBox className="h-7 w-20 rounded-lg" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Consistent table-row skeleton — drop inside `<tbody>` as the only rows
+ * when `isLoading` is true. Renders `rows` skeleton rows with `colSpan` cells.
+ */
+export function TableRowLoader({
+  colSpan,
+  rows = 5,
+}: {
+  colSpan: number;
+  rows?: number;
+}) {
+  // Build per-cell widths for a natural look
+  const cellWidths: Record<number, string[]> = {
+    7: ["w-32", "w-20", "w-16", "w-24", "w-20", "w-20", "w-16"],
+    6: ["w-32", "w-40", "w-16", "w-16", "w-24", "w-16"],
+    5: ["w-32", "w-28", "w-40", "w-20", "w-16"],
+  };
+  const widths = cellWidths[colSpan] ?? Array(colSpan).fill("w-24");
+
+  return (
+    <>
+      {Array.from({ length: rows }).map((_, rowIdx) => (
+        <tr key={rowIdx} className="border-b border-border/40 last:border-0">
+          {widths.map((w, colIdx) => (
+            <td key={colIdx} className="px-5 py-4">
+              {colIdx === 0 ? (
+                <div className="flex items-center gap-3">
+                  <SkeletonBox className="size-8 rounded-lg shrink-0" />
+                  <div className="space-y-1.5">
+                    <SkeletonBox className={cn("h-3", w)} />
+                    <SkeletonBox className="h-2.5 w-16" />
+                  </div>
+                </div>
+              ) : (
+                <SkeletonBox
+                  className={cn(
+                    "h-3 rounded",
+                    w,
+                    // vary opacity slightly per row for a natural stagger
+                    rowIdx % 2 === 0 ? "opacity-80" : "opacity-60"
+                  )}
+                />
+              )}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </>
+  );
+}
+
 export function PageHeader({
   eyebrow,
   title,
