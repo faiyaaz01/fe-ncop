@@ -1500,7 +1500,7 @@ function DosageConfigDialog({
 
   useEffect(() => {
     if (dosageForms.length > 0 && !selectedForm && !isCreatingNew) {
-      setSelectedForm(dosageForms[0]);
+      setSelectedForm(dosageForms[0] ?? null);
     }
   }, [dosageForms, selectedForm, isCreatingNew]);
 
