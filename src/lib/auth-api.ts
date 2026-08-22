@@ -166,21 +166,21 @@ export async function fetchModuleRights(params: {
   query.set("size", String(params.size ?? 10));
   if (params.search) query.set("search", params.search);
 
-  const res = await fetch(apiUrl(`/auth/module-rights?${query.toString()}`), {
+  const res = await fetch(apiUrl(`/api/v1/auth/module-rights?${query.toString()}`), {
     headers: getAuthHeaders(),
   });
   return handleResponse<PageResponse<ModuleRight>>(res);
 }
 
 export async function fetchAllModuleRights(): Promise<ModuleRight[]> {
-  const res = await fetch(apiUrl("/auth/module-rights/all"), {
+  const res = await fetch(apiUrl("/api/v1/auth/module-rights/all"), {
     headers: getAuthHeaders(),
   });
   return handleResponse<ModuleRight[]>(res);
 }
 
 export async function createModuleRight(data: { name: string; label?: string | undefined; description?: string | undefined }): Promise<ModuleRight> {
-  const res = await fetch(apiUrl("/auth/module-rights"), {
+  const res = await fetch(apiUrl("/api/v1/auth/module-rights"), {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -189,7 +189,7 @@ export async function createModuleRight(data: { name: string; label?: string | u
 }
 
 export async function updateModuleRight(id: string, data: { name?: string | undefined; label?: string | undefined; description?: string | undefined }): Promise<ModuleRight> {
-  const res = await fetch(apiUrl(`/auth/module-rights/${id}`), {
+  const res = await fetch(apiUrl(`/api/v1/auth/module-rights/${id}`), {
     method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(data),
@@ -198,7 +198,7 @@ export async function updateModuleRight(id: string, data: { name?: string | unde
 }
 
 export async function deleteModuleRight(id: string): Promise<void> {
-  const res = await fetch(apiUrl(`/auth/module-rights/${id}`), {
+  const res = await fetch(apiUrl(`/api/v1/auth/module-rights/${id}`), {
     method: "DELETE",
     headers: getAuthHeaders(),
   });

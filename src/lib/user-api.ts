@@ -236,7 +236,7 @@ export async function deleteRole(id: string): Promise<void> {
 
 /** GET /auth/module-rights — fetch all module rights */
 export async function fetchModuleRights(): Promise<ModuleRightItem[]> {
-  const res = await fetch(apiUrl("/auth/module-rights"), {
+  const res = await fetch(apiUrl("/api/v1/auth/module-rights"), {
     method: "GET",
     headers: authHeaders(),
   });
@@ -245,7 +245,7 @@ export async function fetchModuleRights(): Promise<ModuleRightItem[]> {
 
 /** POST /auth/module-rights — create a new module right */
 export async function createModuleRight(payload: CreateModuleRightPayload): Promise<ModuleRightItem> {
-  const res = await fetch(apiUrl("/auth/module-rights"), {
+  const res = await fetch(apiUrl("/api/v1/auth/module-rights"), {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -255,7 +255,7 @@ export async function createModuleRight(payload: CreateModuleRightPayload): Prom
 
 /** PUT /auth/module-rights/:id — update a module right */
 export async function updateModuleRight(id: string, payload: UpdateModuleRightPayload): Promise<ModuleRightItem> {
-  const res = await fetch(apiUrl(`/auth/module-rights/${id}`), {
+  const res = await fetch(apiUrl(`/api/v1/auth/module-rights/${id}`), {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(payload),
@@ -265,7 +265,7 @@ export async function updateModuleRight(id: string, payload: UpdateModuleRightPa
 
 /** DELETE /auth/module-rights/:id — delete a module right */
 export async function deleteModuleRight(id: string): Promise<void> {
-  const res = await fetch(apiUrl(`/auth/module-rights/${id}`), {
+  const res = await fetch(apiUrl(`/api/v1/auth/module-rights/${id}`), {
     method: "DELETE",
     headers: authHeaders(),
   });

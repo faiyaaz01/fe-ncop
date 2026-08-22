@@ -38,13 +38,13 @@ export const Route = createFileRoute("/register-client/$id")({
 // ─── API calls (no auth — public endpoints) ─────────────────────────────────
 
 async function fetchClientPublic(id: string): Promise<Client> {
-  const res = await fetch(apiUrl(`/api/clients/${id}`));
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}`));
   if (!res.ok) throw new Error("Client not found");
   return res.json();
 }
 
 async function submitBankDetails(id: string, bankDetail: BankDetail): Promise<Client> {
-  const res = await fetch(apiUrl(`/api/clients/${id}/register`), {
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}/register`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ bankDetail }),
@@ -57,7 +57,7 @@ async function uploadDocument(id: string, file: File, documentType: DocumentType
   const formData = new FormData();
   formData.append("file", file);
   formData.append("documentType", documentType);
-  const res = await fetch(apiUrl(`/api/clients/${id}/documents`), {
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}/documents`), {
     method: "POST",
     body: formData,
   });

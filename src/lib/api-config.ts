@@ -13,7 +13,7 @@ export const API_BASE_URL: string =
 
 /**
  * Build a full API endpoint URL.
- * @example apiUrl("/auth/login") → "http://localhost:8080/auth/login"
+ * @example apiUrl("/api/v1/auth/login") → "http://localhost:8080/auth/login"
  */
 export function apiUrl(path: string): string {
   // Ensure no double slashes between base and path

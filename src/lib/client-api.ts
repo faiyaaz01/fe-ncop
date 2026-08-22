@@ -38,7 +38,7 @@ export async function fetchClients(params: {
   query.set("size", String(params.size ?? 10));
   if (params.search) query.set("search", params.search);
 
-  const res = await fetch(apiUrl(`/api/clients?${query.toString()}`), {
+  const res = await fetch(apiUrl(`/api/v1/clients?${query.toString()}`), {
     method: "GET",
     headers: authHeaders(),
   });
@@ -47,7 +47,7 @@ export async function fetchClients(params: {
 
 /** GET /api/clients/all — fetch all clients (unpaginated for select dropdowns) */
 export async function fetchAllClients(): Promise<Client[]> {
-  const res = await fetch(apiUrl("/api/clients/all"), {
+  const res = await fetch(apiUrl("/api/v1/clients/all"), {
     method: "GET",
     headers: authHeaders(),
   });
@@ -56,7 +56,7 @@ export async function fetchAllClients(): Promise<Client[]> {
 
 /** GET /api/clients/count — fetch total client count */
 export async function fetchClientCount(): Promise<number> {
-  const res = await fetch(apiUrl("/api/clients/count"), {
+  const res = await fetch(apiUrl("/api/v1/clients/count"), {
     method: "GET",
     headers: authHeaders(),
   });
@@ -65,7 +65,7 @@ export async function fetchClientCount(): Promise<number> {
 
 /** GET /api/clients/level-counts — fetch client count per level */
 export async function fetchClientLevelCounts(): Promise<Record<string, number>> {
-  const res = await fetch(apiUrl("/api/clients/level-counts"), {
+  const res = await fetch(apiUrl("/api/v1/clients/level-counts"), {
     method: "GET",
     headers: authHeaders(),
   });
@@ -74,7 +74,7 @@ export async function fetchClientLevelCounts(): Promise<Record<string, number>> 
 
 /** GET /api/clients/:id — fetch a single client */
 export async function fetchClient(id: string): Promise<Client> {
-  const res = await fetch(apiUrl(`/api/clients/${id}`), {
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}`), {
     method: "GET",
     headers: authHeaders(),
   });
@@ -83,7 +83,7 @@ export async function fetchClient(id: string): Promise<Client> {
 
 /** POST /api/clients — create a new client */
 export async function createClient(dto: ClientRequestDto): Promise<Client> {
-  const res = await fetch(apiUrl("/api/clients"), {
+  const res = await fetch(apiUrl("/api/v1/clients"), {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify(dto),
@@ -96,7 +96,7 @@ export async function updateClient(
   id: string,
   dto: ClientRequestDto,
 ): Promise<Client> {
-  const res = await fetch(apiUrl(`/api/clients/${id}`), {
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}`), {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify(dto),
@@ -106,7 +106,7 @@ export async function updateClient(
 
 /** POST /api/clients/:id/send-email — resend registration email to all POCs */
 export async function resendRegistrationEmail(id: string): Promise<void> {
-  const res = await fetch(apiUrl(`/api/clients/${id}/send-email`), {
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}/send-email`), {
     method: "POST",
     headers: authHeaders(),
   });
@@ -130,7 +130,7 @@ export async function uploadDocument(
   const token = authToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(apiUrl(`/api/clients/${id}/documents`), {
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}/documents`), {
     method: "POST",
     headers,
     body: formData,
@@ -140,12 +140,12 @@ export async function uploadDocument(
 
 /** Get relative URL for viewing/streaming document */
 export function getDocumentViewUrl(clientId: string, docId: string): string {
-  return apiUrl(`/api/clients/${clientId}/documents/${docId}/view`);
+  return apiUrl(`/api/v1/clients/${clientId}/documents/${docId}/view`);
 }
 
 /** Get relative URL for downloading document */
 export function getDocumentDownloadUrl(clientId: string, docId: string): string {
-  return apiUrl(`/api/clients/${clientId}/documents/${docId}/download`);
+  return apiUrl(`/api/v1/clients/${clientId}/documents/${docId}/download`);
 }
 
 /** DELETE /api/clients/:id/documents/:docId — delete a document */
@@ -154,7 +154,7 @@ export async function deleteDocument(
   docId: string,
 ): Promise<Client> {
   const headers: HeadersInit = authHeaders();
-  const res = await fetch(apiUrl(`/api/clients/${clientId}/documents/${docId}`), {
+  const res = await fetch(apiUrl(`/api/v1/clients/${clientId}/documents/${docId}`), {
     method: "DELETE",
     headers,
   });

@@ -182,7 +182,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     // @ts-ignore
     userSessionService.registerRefreshTokenFunction(async (refreshToken) => {
       try {
-        const resp = await fetch(apiUrl("/auth/refresh"), {
+        const resp = await fetch(apiUrl("/api/v1/auth/refresh"), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
