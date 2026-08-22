@@ -826,18 +826,21 @@ function ProductFormDialog({
         {/* Scrollable Form Body */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
           <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
-
             {/* ── Section 1: Product Classification ── */}
             <fieldset className="space-y-4">
               <legend className="text-sm font-semibold">Product Classification</legend>
 
               <div className="surface flex items-center gap-3 p-3 rounded-lg">
-                  <span className="text-xs font-medium text-muted-foreground">Product Code</span>
-                  <span className="text-sm font-semibold font-mono">{editingProduct ? editingProduct.productCode : "—"}</span>
+                <span className="text-xs font-medium text-muted-foreground">Product Code</span>
+                <span className="text-sm font-semibold font-mono">
+                  {editingProduct ? editingProduct.productCode : "—"}
+                </span>
+                {!editingProduct && (
                   <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                    {editingProduct ? "MongoDB Document ID" : "Auto-assigned on save"}
+                    {"Auto-assigned on save"}
                   </span>
-                </div>
+                )}
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -858,7 +861,9 @@ function ProductFormDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {DEFAULT_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -905,7 +910,9 @@ function ProductFormDialog({
                     value={dosageForm}
                     onValueChange={(val) => {
                       setDosageForm(val);
-                      const found = dosageForms.find((df) => df.name.toLowerCase() === val.toLowerCase());
+                      const found = dosageForms.find(
+                        (df) => df.name.toLowerCase() === val.toLowerCase(),
+                      );
                       setDosageVariant(found?.variants?.[0]?.name || "");
                     }}
                   >
@@ -914,7 +921,9 @@ function ProductFormDialog({
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
                       {dosageForms.map((df) => (
-                        <SelectItem key={df.id || df.name} value={df.name}>{df.name}</SelectItem>
+                        <SelectItem key={df.id || df.name} value={df.name}>
+                          {df.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -928,11 +937,19 @@ function ProductFormDialog({
                     disabled={currentVariants.length === 0}
                   >
                     <SelectTrigger id="dosageVariant">
-                      <SelectValue placeholder={currentVariants.length === 0 ? "Select dosage form first" : "Choose variant"} />
+                      <SelectValue
+                        placeholder={
+                          currentVariants.length === 0
+                            ? "Select dosage form first"
+                            : "Choose variant"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
                       {currentVariants.map((v) => (
-                        <SelectItem key={v.name} value={v.name}>{v.name}</SelectItem>
+                        <SelectItem key={v.name} value={v.name}>
+                          {v.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -996,7 +1013,9 @@ function ProductFormDialog({
                           </SelectTrigger>
                           <SelectContent>
                             {UNIT_OPTIONS.map((u) => (
-                              <SelectItem key={u} value={u} className="text-xs">{u}</SelectItem>
+                              <SelectItem key={u} value={u} className="text-xs">
+                                {u}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1011,7 +1030,9 @@ function ProductFormDialog({
                           </SelectTrigger>
                           <SelectContent>
                             {PHARMACOPEIA_OPTIONS.map((p) => (
-                              <SelectItem key={p} value={p} className="text-xs">{p}</SelectItem>
+                              <SelectItem key={p} value={p} className="text-xs">
+                                {p}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -1096,7 +1117,9 @@ function ProductFormDialog({
                     type="number"
                     step="0.01"
                     value={unitPrice}
-                    onChange={(e) => setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))}
+                    onChange={(e) =>
+                      setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))
+                    }
                     placeholder="e.g. 1.25"
                   />
                 </div>
@@ -1108,7 +1131,9 @@ function ProductFormDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {CURRENCY_OPTIONS.map((c) => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1141,10 +1166,20 @@ function ProductFormDialog({
 
         {/* Fixed Footer */}
         <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
-          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
-          <Button type="submit" form="product-form" disabled={isSubmitting} className="w-full sm:w-auto gap-1.5">
+          <Button
+            type="submit"
+            form="product-form"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto gap-1.5"
+          >
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             {isSubmitting ? "Saving…" : editingProduct ? "Save Changes" : "Create Product"}
           </Button>
