@@ -357,6 +357,7 @@ function ClientMaster() {
   } = useQuery({
     queryKey: ["clients", page, pageSize, query],
     queryFn: () => fetchClients({ page, size: pageSize, search: query.trim() || undefined }),
+    refetchInterval: 3000,
   });
 
   const clients = pageData?.content ?? [];

@@ -22,6 +22,7 @@ import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellUserManagementRouteImport } from './routes/_shell.user-management'
 import { Route as IndexLoginRouteImport } from './routes/index/login'
 import { Route as RegisterClientIdRouteImport } from './routes/register-client/$id'
+import { Route as ShellProductsProductIdRouteImport } from './routes/_shell.products_.$productId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -87,6 +88,11 @@ const RegisterClientIdRoute = RegisterClientIdRouteImport.update({
   path: '/register-client/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShellProductsProductIdRoute = ShellProductsProductIdRouteImport.update({
+  id: '/products_/$productId',
+  path: '/products/$productId',
+  getParentRoute: () => ShellRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/user-management': typeof ShellUserManagementRoute
   '/index/login': typeof IndexLoginRoute
   '/register-client/$id': typeof RegisterClientIdRoute
+  '/products/$productId': typeof ShellProductsProductIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/user-management': typeof ShellUserManagementRoute
   '/index/login': typeof IndexLoginRoute
   '/register-client/$id': typeof RegisterClientIdRoute
+  '/products/$productId': typeof ShellProductsProductIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/_shell/user-management': typeof ShellUserManagementRoute
   '/index/login': typeof IndexLoginRoute
   '/register-client/$id': typeof RegisterClientIdRoute
+  '/_shell/products_/$productId': typeof ShellProductsProductIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/user-management'
     | '/index/login'
     | '/register-client/$id'
+    | '/products/$productId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/user-management'
     | '/index/login'
     | '/register-client/$id'
+    | '/products/$productId'
   id:
     | '__root__'
     | '/'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/_shell/user-management'
     | '/index/login'
     | '/register-client/$id'
+    | '/_shell/products_/$productId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -278,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterClientIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_shell/products_/$productId': {
+      id: '/_shell/products_/$productId'
+      path: '/products/$productId'
+      fullPath: '/products/$productId'
+      preLoaderRoute: typeof ShellProductsProductIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
   }
 }
 
@@ -291,6 +310,7 @@ interface ShellRouteChildren {
   ShellReportsRoute: typeof ShellReportsRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
   ShellUserManagementRoute: typeof ShellUserManagementRoute
+  ShellProductsProductIdRoute: typeof ShellProductsProductIdRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
@@ -303,6 +323,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellReportsRoute: ShellReportsRoute,
   ShellSettingsRoute: ShellSettingsRoute,
   ShellUserManagementRoute: ShellUserManagementRoute,
+  ShellProductsProductIdRoute: ShellProductsProductIdRoute,
 }
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)

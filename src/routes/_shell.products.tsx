@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -163,6 +163,7 @@ function computeLiveComposition(
 
 function ProductMaster() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Filters & Pagination State
   const [search, setSearch] = useState("");
@@ -175,7 +176,7 @@ function ProductMaster() {
   // Modals & Drawers
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+
   const [dosageConfigOpen, setDosageConfigOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
@@ -183,11 +184,13 @@ function ProductMaster() {
   const { data: dosageForms = [] } = useQuery<DosageForm[]>({
     queryKey: ["dosage-forms"],
     queryFn: () => fetchDosageForms(false),
+    refetchInterval: 3000,
   });
 
   const { data: metrics } = useQuery({
     queryKey: ["product-metrics"],
     queryFn: fetchProductMetrics,
+    refetchInterval: 3000,
   });
 
   const {
@@ -204,6 +207,7 @@ function ProductMaster() {
         dosageForm: dosageFilter,
         status: statusFilter,
       }),
+    refetchInterval: 3000,
   });
 
   // Delete Mutation
@@ -214,9 +218,7 @@ function ProductMaster() {
       queryClient.invalidateQueries({ queryKey: ["product-metrics"] });
       toast.success("Product deleted successfully");
       setDeleteConfirm(null);
-      if (detailProduct?.id === deleteConfirm?.id) {
-        setDetailProduct(null);
-      }
+
     },
     onError: (err: Error) => {
       toast.error("Failed to delete product: " + err.message);
@@ -295,7 +297,7 @@ function ProductMaster() {
           </div>
           <div>
             <p className="text-2xl font-bold tracking-tight">{dosageForms.length}</p>
-            <p className="text-xs text-muted-foreground font-medium">Dosage Forms (DB)</p>
+            <p className="text-xs text-muted-foreground font-medium">Dosage Forms</p>
           </div>
         </div>
       </div>
@@ -439,7 +441,7 @@ function ProductMaster() {
                 {productList.map((product) => (
                   <tr
                     key={product.id}
-                    onClick={() => setDetailProduct(product)}
+                    onClick={() => navigate({ to: `/products/${product.id}` })}
                     className="hover:bg-secondary/40 transition-colors cursor-pointer"
                   >
                     {/* Product & SKU */}
@@ -527,7 +529,10 @@ function ProductMaster() {
                           size="icon"
                           className="size-8 text-muted-foreground hover:text-foreground"
                           title="View Details & Dossier"
-                          onClick={() => setDetailProduct(product)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({ to: `/products/${product.id}` });
+                          }}
                         >
                           <Eye className="size-4" />
                         </Button>
@@ -536,7 +541,8 @@ function ProductMaster() {
                           size="icon"
                           className="size-8 text-muted-foreground hover:text-foreground"
                           title="Edit Product"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setEditingProduct(product);
                             setProductModalOpen(true);
                           }}
@@ -592,20 +598,6 @@ function ProductMaster() {
         }}
       />
 
-      {/* ── Slide-Over Product Detail Drawer ── */}
-      <ProductDetailSheet
-        product={detailProduct}
-        onClose={() => setDetailProduct(null)}
-        onEdit={(p) => {
-          setDetailProduct(null);
-          setEditingProduct(p);
-          setProductModalOpen(true);
-        }}
-        onDelete={(p) => {
-          setDeleteConfirm({ id: p.id, name: p.brandName });
-        }}
-      />
-
       {/* ── Manage Dosage Forms & Variants Modal ── */}
       <DosageConfigDialog
         open={dosageConfigOpen}
@@ -650,7 +642,7 @@ function ProductMaster() {
 // PRODUCT FORM DIALOG (Add / Edit)
 // ══════════════════════════════════════════════════════════════════════════════
 
-function ProductFormDialog({
+export function ProductFormDialog({
   open,
   onOpenChange,
   editingProduct,
@@ -1189,298 +1181,7 @@ function ProductFormDialog({
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// PRODUCT DETAIL SLIDE-OVER SHEET
-// ══════════════════════════════════════════════════════════════════════════════
 
-function ProductDetailSheet({
-  product,
-  onClose,
-  onEdit,
-  onDelete,
-}: {
-  product: Product | null;
-  onClose: () => void;
-  onEdit: (product: Product) => void;
-  onDelete: (product: Product) => void;
-}) {
-  const queryClient = useQueryClient();
-  const [uploadDocType, setUploadDocType] = useState<ProductDocumentType>("ARTWORK");
-  const [isUploading, setIsUploading] = useState(false);
-
-  if (!product) return null;
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      await uploadProductDocument(product.id, file, uploadDocType);
-      toast.success(DOCUMENT_TYPE_LABELS[uploadDocType] + " uploaded successfully");
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Upload failed";
-      toast.error("Failed to upload document: " + msg);
-    } finally {
-      setIsUploading(false);
-      e.target.value = "";
-    }
-  };
-
-  const handleDeleteDocument = async (docId: string) => {
-    try {
-      await deleteProductDocument(product.id, docId);
-      toast.success("Document removed from dossier");
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Delete failed";
-      toast.error("Failed to delete document: " + msg);
-    }
-  };
-
-  return (
-    <Sheet open={!!product} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="glass w-full overflow-y-auto sm:max-w-xl p-0">
-        {/* Header */}
-        <div className="border-b border-border/70 p-6 space-y-3 bg-secondary/30">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Badge variant="outline" className="text-xs mb-1">
-                {product.productCode}
-              </Badge>
-              <SheetTitle className="text-xl font-bold">{product.brandName}</SheetTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {product.category || "General"} · {product.therapeuticClass || "Pharmaceutical"}
-              </p>
-            </div>
-            <StatusChip status={product.status as any} />
-          </div>
-
-          <div className="flex items-center gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs"
-              onClick={() => onEdit(product)}
-            >
-              <Pencil className="size-3.5" /> Edit Product
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs text-destructive hover:bg-destructive/10"
-              onClick={() => onDelete(product)}
-            >
-              <Trash2 className="size-3.5" /> Delete
-            </Button>
-          </div>
-        </div>
-
-        {/* Content Body */}
-        <div className="p-6 space-y-6">
-          {/* Composition & Formulation */}
-          <div className="surface p-4 rounded-xl border border-border/70 space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <FlaskConical className="size-4 text-primary" /> Active Formulation & Composition
-            </h4>
-            <div className="rounded-lg bg-secondary/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Calculated Formula</p>
-              <p className="text-sm font-semibold text-foreground mt-0.5">{product.composition || "—"}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <div className="surface p-2.5 rounded-lg border border-border/60">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Dosage Form (Level 1)</p>
-                <p className="text-xs font-semibold text-foreground mt-0.5">{product.dosageForm}</p>
-              </div>
-              <div className="surface p-2.5 rounded-lg border border-border/60">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Dosage Variant (Level 2)</p>
-                <p className="text-xs font-semibold text-foreground mt-0.5">{product.dosageVariant || "Standard"}</p>
-              </div>
-            </div>
-
-            {/* Ingredients Table */}
-            {product.ingredients && product.ingredients.length > 0 && (
-              <div className="pt-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2">
-                  Active Drug Breakdown ({product.ingredients.length})
-                </p>
-                <div className="space-y-1.5">
-                  {product.ingredients.map((ing, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between p-2 rounded-lg bg-secondary/40 text-xs"
-                    >
-                      <span className="font-semibold text-foreground">{ing.api}</span>
-                      <span className="text-muted-foreground">
-                        {ing.strength} {ing.unit} · <strong className="text-foreground">{ing.pharmacopeia}</strong>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Commercial & Packaging */}
-          <div className="surface p-4 rounded-xl border border-border/70 space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Package className="size-4 text-primary" /> Packaging & Commercial Terms
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="surface p-2.5 rounded-lg border border-border/60">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Packaging Spec</p>
-                <p className="text-xs font-semibold text-foreground mt-0.5">{product.packaging || "—"}</p>
-              </div>
-
-              <div className="surface p-2.5 rounded-lg border border-border/60">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Minimum Order (MOQ)</p>
-                <p className="text-xs font-semibold text-foreground mt-0.5">
-                  {product.moq ? product.moq.toLocaleString() : "—"}
-                </p>
-              </div>
-
-              <div className="surface p-2.5 rounded-lg border border-border/60">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Unit Commercial Price</p>
-                <p className="text-xs font-semibold text-foreground mt-0.5">
-                  {product.unitPrice !== undefined ? (product.currency || "USD") + " " + product.unitPrice.toFixed(2) : "—"}
-                </p>
-              </div>
-
-              <div className="surface p-2.5 rounded-lg border border-border/60">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Shelf Life</p>
-                <p className="text-xs font-semibold text-foreground mt-0.5">{product.shelfLife || "—"}</p>
-              </div>
-            </div>
-
-            {product.storageCondition && (
-              <div className="rounded-lg bg-secondary/40 p-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Storage Conditions</p>
-                <p className="text-xs text-foreground mt-0.5">{product.storageCondition}</p>
-              </div>
-            )}
-
-            {product.description && (
-              <div className="rounded-lg bg-secondary/40 p-2.5">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Indications / Description</p>
-                <p className="text-xs text-foreground mt-0.5">{product.description}</p>
-              </div>
-            )}
-          </div>
-
-          {/* ── Document Dossier & Attachments (GCS) ── */}
-          <div className="surface p-4 rounded-xl border border-border/70 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                <FolderOpen className="size-4 text-primary" /> Regulatory Dossier & Documents
-              </h4>
-              <Badge variant="outline" className="text-[10px]">
-                {product.documents?.length || 0} Attached
-              </Badge>
-            </div>
-
-            {/* Document Upload Control */}
-            <div className="flex items-center gap-2 pt-1">
-              <Select
-                value={uploadDocType}
-                onValueChange={(val) => setUploadDocType(val as ProductDocumentType)}
-              >
-                <SelectTrigger className="h-8 text-xs flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key} className="text-xs">
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs gap-1.5 pointer-events-none"
-                  disabled={isUploading}
-                >
-                  <Upload className="size-3.5" />
-                  {isUploading ? "Uploading…" : "Upload"}
-                </Button>
-              </label>
-            </div>
-
-            {/* Attached Documents List */}
-            {product.documents && product.documents.length > 0 ? (
-              <div className="space-y-2 pt-2">
-                {product.documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between p-2.5 rounded-lg border border-border/60 surface text-xs"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <FileText className="size-4 text-primary shrink-0" />
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {doc.originalFileName || doc.fileName} · {(doc.fileSize / 1024).toFixed(1)} KB
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <a
-                        href={doc.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex size-7 items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
-                        title="View Document inline"
-                      >
-                        <ExternalLink className="size-3.5" />
-                      </a>
-                      <a
-                        href={"/api/v1/products/" + product.id + "/documents/" + doc.id + "/download"}
-                        download
-                        className="inline-flex size-7 items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
-                        title="Download Document"
-                      >
-                        <Download className="size-3.5" />
-                      </a>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDeleteDocument(doc.id)}
-                        title="Delete Document"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground py-2 text-center">
-                No dossier files attached yet. Select a document type and click Upload.
-              </p>
-            )}
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // DOSAGE FORM & VARIANT DATABASE CONFIGURATION MODAL
@@ -1546,6 +1247,7 @@ function DosageConfigDialog({
       description: formDesc.trim() || undefined,
       active: true,
       variants: variantsList.map((v) => ({ name: v, active: true })),
+      sortOrder: selectedForm ? selectedForm.sortOrder : 0,
     };
 
     setIsSaving(true);
@@ -1569,7 +1271,7 @@ function DosageConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] w-[95vw] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <SlidersHorizontal className="size-5 text-primary" />
@@ -1582,7 +1284,7 @@ function DosageConfigDialog({
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">
           {/* Left Column: List of Forms in DB */}
-          <div className="md:col-span-5 rounded-xl border border-border/70 surface p-3 flex flex-col h-[380px]">
+          <div className="md:col-span-5 rounded-xl border border-border/70 surface p-3 flex flex-col h-[260px] md:h-[480px]">
             <div className="flex items-center justify-between pb-2 border-b border-border/60">
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Dosage Forms ({dosageForms.length})
@@ -1629,7 +1331,7 @@ function DosageConfigDialog({
           </div>
 
           {/* Right Column: Edit selected form & variants */}
-          <div className="md:col-span-7 rounded-xl border border-border/70 surface p-4 flex flex-col justify-between space-y-4">
+          <div className="md:col-span-7 rounded-xl border border-border/70 surface p-4 flex flex-col justify-between space-y-4 md:h-[480px]">
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
