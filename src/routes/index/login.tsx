@@ -287,157 +287,158 @@ function LoginPage() {
           </div>
         </motion.section>
 
-        <motion.section
-          initial={{ opacity: 0, y: 32, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-          className="glass-dark w-full rounded-[18px] p-6 text-white sm:p-7"
-        >
-          <h2 className="text-xl font-bold">Welcome back</h2>
-          <p className="mt-1 text-sm text-white/65">Sign in to your NCOP workspace.</p>
-
-          <form
-            className="mt-6 space-y-4"
-            noValidate
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleOnLogin();
-            }}
-          >
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs text-white/70">
-                Work email
-              </Label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  required
-                  aria-invalid={Boolean(errors.email)}
-                  aria-describedby={errors.email ? "email-error" : undefined}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) {
-                      setErrors((prev) => ({ ...prev, email: undefined }));
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!email.trim()) {
-                      setErrors((prev) => ({ ...prev, email: "Email is required." }));
-                    } else if (!EMAIL_REGEX.test(email.trim())) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        email: "Enter a valid email address.",
-                      }));
-                    }
-                  }}
-                  placeholder="you@company.com"
-                  className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
-                />
-              </div>
-              {errors.email ? (
-                <p id="email-error" className="text-xs text-rose-300">
-                  {errors.email}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs text-white/70">
-                Password
-              </Label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  required
-                  aria-invalid={Boolean(errors.password)}
-                  aria-describedby={errors.password ? "password-error" : undefined}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) {
-                      setErrors((prev) => ({ ...prev, password: undefined }));
-                    }
-                  }}
-                  onBlur={() => {
-                    if (!password.trim()) {
-                      setErrors((prev) => ({ ...prev, password: "Password is required." }));
-                    }
-                  }}
-                  placeholder="••••••••"
-                  className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
-                />
-              </div>
-              {errors.password ? (
-                <p id="password-error" className="text-xs text-rose-300">
-                  {errors.password}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="flex items-center justify-between text-xs text-white/60">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="size-3.5 accent-white"
-                  checked={keepSignedIn}
-                  onChange={(e) => setKeepSignedIn(e.target.checked)}
-                />
-                Keep me signed in
-              </label>
-              <span className="cursor-pointer hover:text-white">Forgot password?</span>
-            </div>
-
-            {apiError ? (
-              <p className="rounded-lg bg-rose-500/15 px-3 py-2 text-xs text-rose-200 ring-1 ring-rose-400/30">
-                {apiError}
-              </p>
-            ) : null}
-
-            <Button
-              type="submit"
-              disabled={!isFormValid || isSubmitting}
-              className="h-11 w-full bg-white text-slate-900 hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/70"
-            >
-              {isSubmitting ? "Signing in..." : "Login"}
-              {!isSubmitting && <ArrowRight className="size-4" />}
-            </Button>
-          </form>
-        </motion.section>
-
-        {sessionExpiredReason && (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        <div className="flex flex-col gap-4">
+          <motion.section
+            initial={{ opacity: 0, y: 32, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.96 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] max-w-sm"
+            transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+            className="glass-dark w-full rounded-[18px] p-6 text-white sm:p-7"
           >
-            <div className="glass-dark flex items-start gap-3 rounded-2xl p-4 text-white shadow-2xl ring-1 ring-rose-500/25">
-              <div className="grid size-9 shrink-0 place-items-center rounded-full bg-rose-500/20">
-                <ShieldAlert className="size-4 text-rose-400" />
+            <h2 className="text-xl font-bold">Welcome back</h2>
+            <p className="mt-1 text-sm text-white/65">Sign in to your NCOP workspace.</p>
+
+            <form
+              className="mt-6 space-y-4"
+              noValidate
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleOnLogin();
+              }}
+            >
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-xs text-white/70">
+                  Work email
+                </Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    required
+                    aria-invalid={Boolean(errors.email)}
+                    aria-describedby={errors.email ? "email-error" : undefined}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) {
+                        setErrors((prev) => ({ ...prev, email: undefined }));
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!email.trim()) {
+                        setErrors((prev) => ({ ...prev, email: "Email is required." }));
+                      } else if (!EMAIL_REGEX.test(email.trim())) {
+                        setErrors((prev) => ({
+                          ...prev,
+                          email: "Enter a valid email address.",
+                        }));
+                      }
+                    }}
+                    placeholder="you@company.com"
+                    className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
+                  />
+                </div>
+                {errors.email ? (
+                  <p id="email-error" className="text-xs text-rose-300">
+                    {errors.email}
+                  </p>
+                ) : null}
               </div>
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <p className="text-sm font-semibold text-rose-300 leading-snug">Your session has expired</p>
-                <p className="text-xs leading-relaxed text-white/55">
-                  For your security, you were logged out due to inactivity or session timeout. Please sign in again.
+
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-xs text-white/70">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/45" />
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    required
+                    aria-invalid={Boolean(errors.password)}
+                    aria-describedby={errors.password ? "password-error" : undefined}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (errors.password) {
+                        setErrors((prev) => ({ ...prev, password: undefined }));
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!password.trim()) {
+                        setErrors((prev) => ({ ...prev, password: "Password is required." }));
+                      }
+                    }}
+                    placeholder="••••••••"
+                    className="h-11 border-white/15 bg-white/10 pl-9 text-white placeholder:text-white/40 focus-visible:ring-white/40"
+                  />
+                </div>
+                {errors.password ? (
+                  <p id="password-error" className="text-xs text-rose-300">
+                    {errors.password}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex items-center justify-between text-xs text-white/60">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    className="size-3.5 accent-white"
+                    checked={keepSignedIn}
+                    onChange={(e) => setKeepSignedIn(e.target.checked)}
+                  />
+                  Keep me signed in
+                </label>
+                <span className="cursor-pointer hover:text-white">Forgot password?</span>
+              </div>
+
+              {apiError ? (
+                <p className="rounded-lg bg-rose-500/15 px-3 py-2 text-xs text-rose-200 ring-1 ring-rose-400/30">
+                  {apiError}
                 </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSessionExpiredReason(null)}
-                className="ml-1 shrink-0 rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white/70"
-                aria-label="Dismiss"
+              ) : null}
+
+              <Button
+                type="submit"
+                disabled={!isFormValid || isSubmitting}
+                className="h-11 w-full bg-white text-slate-900 hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/70"
               >
-                ✕
-              </button>
-            </div>
-          </motion.div>
-        )}
+                {isSubmitting ? "Signing in..." : "Login"}
+                {!isSubmitting && <ArrowRight className="size-4" />}
+              </Button>
+            </form>
+          </motion.section>
+
+          {sessionExpiredReason && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="glass-dark flex items-start gap-3 rounded-2xl p-4 text-white ring-1 ring-rose-500/25">
+                <div className="grid size-9 shrink-0 place-items-center rounded-full bg-rose-500/20">
+                  <ShieldAlert className="size-4 text-rose-400" />
+                </div>
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <p className="text-sm font-semibold text-rose-300 leading-snug">Your session has expired</p>
+                  <p className="text-xs leading-relaxed text-white/55">
+                    For your security, you were logged out due to inactivity or session timeout. Please sign in again.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSessionExpiredReason(null)}
+                  className="ml-1 shrink-0 rounded-lg p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white/70"
+                  aria-label="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </div>
       </main>
     </div>
   );
