@@ -36,6 +36,16 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { userSessionService, isUserAdmin } from "@/lib/user-session.ts";
 import { apiUrl } from "@/lib/api-config.ts";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 const nav = [
@@ -83,6 +93,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
   const navigate = useNavigate();
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   // @ts-ignore
   useEffect(() => {
@@ -334,11 +345,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
         <div className="space-y-1 border-t border-border/70 p-3">
           <button
-            onClick={async () => {
-              await userSessionService.logout();
-              // navigate to login
-              navigate({ to: "/index/login" });
-            }}
+            onClick={() => setIsLogoutDialogOpen(true)}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="size-[18px] shrink-0" />
@@ -449,13 +456,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={async () => {
-                    await userSessionService.logout();
-                    // navigate to login
-                    navigate({ to: "/index/login" });
-                  }}
-                >
+                <DropdownMenuItem onClick={() => setIsLogoutDialogOpen(true)}>
                   <LogOut className="size-4" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -567,6 +568,29 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
+              onClick={async () => {
+                await userSessionService.logout();
+                navigate({ to: "/index/login" });
+              }}
+            >
+              Logout <LogOut className="size-4" />
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/80 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <ul className="flex items-center justify-between">
