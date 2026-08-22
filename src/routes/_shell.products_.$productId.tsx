@@ -7,8 +7,10 @@ import {
   uploadProductDocument,
   deleteProductDocument,
   fetchDosageForms,
+  getProductDocumentViewUrl,
+  getProductDocumentDownloadUrl,
 } from "@/lib/product-api";
-import type { Product, ProductDocumentType, DosageForm } from "@/lib/product-types";
+import type { Product, ProductDocument, ProductDocumentType, DosageForm } from "@/lib/product-types";
 import { toast } from "sonner";
 import { PageHeader, StatusChip, SectionLoader, Panel } from "@/components/kit";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,7 @@ import {
 
 // We import the ProductFormDialog from the main products page to reuse the edit modal
 import { ProductFormDialog } from "./_shell.products";
+import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
 
 export const Route = createFileRoute("/_shell/products_/$productId")({
   component: ProductDetail,
@@ -54,6 +57,7 @@ function ProductDetail() {
   
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [viewingDoc, setViewingDoc] = useState<ProductDocument | null>(null);
 
   // Queries
   const { data: product, isLoading, isError } = useQuery({
@@ -83,7 +87,7 @@ function ProductDetail() {
     },
   });
 
-  if (isLoading) return <SectionLoader text="Loading product details..." />;
+  if (isLoading) return <SectionLoader />;
   if (isError || !product) {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
@@ -128,28 +132,30 @@ function ProductDetail() {
     <div className="space-y-6 pb-12">
       {/* Breadcrumb Navigation */}
       <div className="flex items-center gap-2 mb-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/products" })} className="h-8 w-8 hover:bg-secondary">
-          <ArrowLeft className="size-4" />
-        </Button>
-        <span className="text-muted-foreground text-sm font-medium tracking-tight">Back to Catalog</span>
+        {" "}
+        <div className="flex items-center gap-2 mb-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate({ to: "/products" })}
+            className="h-8 w-8 hover:bg-secondary"
+          >
+            <ArrowLeft className="size-4" />
+          </Button>
+          <span className="text-muted-foreground text-sm font-medium tracking-tight">
+            Back to Catalog
+          </span>
+        </div>
       </div>
 
       <PageHeader
+        eyebrow={product.productCode}
         title={product.brandName}
-        description={
-          <span className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-[10px]">{product.productCode}</Badge>
-            <span>{`${product.category || "General"} · ${product.therapeuticClass || "Pharmaceutical"}`}</span>
-          </span>
-        }
+        description={`${product.category || "General"} · ${product.therapeuticClass || "Pharmaceutical"}`}
         actions={
           <div className="flex items-center gap-3">
             <StatusChip status={product.status as any} />
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => setEditModalOpen(true)}
-            >
+            <Button variant="outline" className="gap-2" onClick={() => setEditModalOpen(true)}>
               <Pencil className="size-4" /> Edit
             </Button>
             <Button
@@ -164,27 +170,38 @@ function ProductDetail() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
         {/* Left Column (Information) */}
         <div className="lg:col-span-7 space-y-6">
           <Panel>
             <div className="flex items-center gap-2 mb-4">
               <FlaskConical className="size-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Active Formulation & Composition</h3>
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                Active Formulation & Composition
+              </h3>
             </div>
             <div className="rounded-lg bg-secondary/60 p-4 border border-border/40">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Calculated Formula</p>
-              <p className="text-base font-medium text-foreground mt-1">{product.composition || "—"}</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                Calculated Formula
+              </p>
+              <p className="text-base font-medium text-foreground mt-1">
+                {product.composition || "—"}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-4">
               <div className="surface p-4 rounded-xl border border-border/60 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Dosage Form (Level 1)</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Dosage Form (Level 1)
+                </p>
                 <p className="text-sm font-medium text-foreground mt-1">{product.dosageForm}</p>
               </div>
               <div className="surface p-4 rounded-xl border border-border/60 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Dosage Variant (Level 2)</p>
-                <p className="text-sm font-medium text-foreground mt-1">{product.dosageVariant || "Standard"}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Dosage Variant (Level 2)
+                </p>
+                <p className="text-sm font-medium text-foreground mt-1">
+                  {product.dosageVariant || "Standard"}
+                </p>
               </div>
             </div>
 
@@ -202,7 +219,8 @@ function ProductDetail() {
                     >
                       <span className="font-semibold text-foreground">{ing.api}</span>
                       <span className="text-muted-foreground font-medium">
-                        {ing.strength} {ing.unit} · <strong className="text-foreground">{ing.pharmacopeia}</strong>
+                        {ing.strength} {ing.unit} ·{" "}
+                        <strong className="text-foreground">{ing.pharmacopeia}</strong>
                       </span>
                     </div>
                   ))}
@@ -214,45 +232,69 @@ function ProductDetail() {
           <Panel>
             <div className="flex items-center gap-2 mb-4">
               <Package className="size-4 text-primary" />
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Packaging & Commercial Terms</h3>
+              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                Packaging & Commercial Terms
+              </h3>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="surface p-4 rounded-xl border border-border/60 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Packaging Spec</p>
-                <p className="text-sm font-medium text-foreground mt-1">{product.packaging || "—"}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Packaging Spec
+                </p>
+                <p className="text-sm font-medium text-foreground mt-1">
+                  {product.packaging || "—"}
+                </p>
               </div>
 
               <div className="surface p-4 rounded-xl border border-border/60 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Minimum Order (MOQ)</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Minimum Order (MOQ)
+                </p>
                 <p className="text-sm font-medium text-foreground mt-1">
                   {product.moq ? product.moq.toLocaleString() : "—"}
                 </p>
               </div>
 
               <div className="surface p-4 rounded-xl border border-border/60 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Unit Commercial Price</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Unit Commercial Price
+                </p>
                 <p className="text-sm font-medium text-foreground mt-1">
-                  {product.unitPrice != null ? (product.currency || "USD") + " " + product.unitPrice.toFixed(2) : "—"}
+                  {product.unitPrice != null
+                    ? (product.currency || "USD") + " " + product.unitPrice.toFixed(2)
+                    : "—"}
                 </p>
               </div>
 
               <div className="surface p-4 rounded-xl border border-border/60 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Shelf Life</p>
-                <p className="text-sm font-medium text-foreground mt-1">{product.shelfLife || "—"}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Shelf Life
+                </p>
+                <p className="text-sm font-medium text-foreground mt-1">
+                  {product.shelfLife || "—"}
+                </p>
               </div>
             </div>
 
             {product.storageCondition && (
               <div className="mt-4 rounded-xl bg-secondary/40 border border-border/40 p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Storage Conditions</p>
-                <p className="text-sm font-medium text-foreground mt-1">{product.storageCondition}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Storage Conditions
+                </p>
+                <p className="text-sm font-medium text-foreground mt-1">
+                  {product.storageCondition}
+                </p>
               </div>
             )}
 
             {product.description && (
               <div className="mt-4 rounded-xl bg-secondary/40 border border-border/40 p-4 shadow-sm">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">Indications / Description</p>
-                <p className="text-sm text-foreground mt-1 leading-relaxed">{product.description}</p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground font-semibold">
+                  Indications / Description
+                </p>
+                <p className="text-sm text-foreground mt-1 leading-relaxed">
+                  {product.description}
+                </p>
               </div>
             )}
           </Panel>
@@ -264,16 +306,20 @@ function ProductDetail() {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <FolderOpen className="size-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Regulatory Dossier & Documents</h3>
+                <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">
+                  Regulatory Dossier & Documents
+                </h3>
               </div>
               <Badge variant="outline" className="text-xs font-semibold py-0.5">
                 {product.documents?.length || 0} Attached
               </Badge>
             </div>
-            
+
             {/* Document Upload Control */}
             <div className="flex flex-col gap-3 mb-6">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Upload New Document</label>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Upload New Document
+              </label>
               <div className="flex items-center gap-2">
                 <Select
                   value={uploadDocType}
@@ -304,7 +350,11 @@ function ProductDetail() {
                     className="h-10 px-4 text-sm gap-2 pointer-events-none whitespace-nowrap bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
                     disabled={isUploading}
                   >
-                    {isUploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+                    {isUploading ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Upload className="size-4" />
+                    )}
                     {isUploading ? "Uploading..." : "Upload"}
                   </Button>
                 </label>
@@ -314,7 +364,9 @@ function ProductDetail() {
             {/* Attached Documents List */}
             {product.documents && product.documents.length > 0 ? (
               <div className="space-y-3">
-                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Attached Files</h5>
+                <h5 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Attached Files
+                </h5>
                 {product.documents.map((doc) => (
                   <div
                     key={doc.id}
@@ -325,27 +377,34 @@ function ProductDetail() {
                         <FileText className="size-5" />
                       </div>
                       <div className="min-w-0 flex-1 pr-2">
-                        <p className="text-sm font-semibold text-foreground truncate" title={DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}>
+                        <p
+                          className="text-sm font-semibold text-foreground truncate"
+                          title={DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
+                        >
                           {DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate" title={doc.originalFileName || doc.fileName}>
-                          {doc.originalFileName || doc.fileName} <span className="opacity-50 mx-1">•</span> {(doc.fileSize / 1024).toFixed(1)} KB
+                        <p
+                          className="text-xs text-muted-foreground truncate"
+                          title={doc.originalFileName || doc.fileName}
+                        >
+                          {doc.originalFileName || doc.fileName}{" "}
+                          <span className="opacity-50 mx-1">•</span>{" "}
+                          {(doc.fileSize / 1024).toFixed(1)} KB
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0 bg-secondary/50 rounded-lg p-0.5 border border-border/40">
-                      <a
-                        href={doc.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                      <button
+                        type="button"
+                        onClick={() => setViewingDoc(doc)}
                         className="inline-flex size-8 items-center justify-center rounded-md hover:bg-background hover:shadow-sm text-muted-foreground hover:text-foreground transition-all"
                         title="View Document inline"
                       >
                         <ExternalLink className="size-4" />
-                      </a>
+                      </button>
                       <a
-                        href={"/api/v1/products/" + product.id + "/documents/" + doc.id + "/download"}
+                        href={getProductDocumentDownloadUrl(product.id, doc.id)}
                         download
                         className="inline-flex size-8 items-center justify-center rounded-md hover:bg-background hover:shadow-sm text-muted-foreground hover:text-foreground transition-all"
                         title="Download Document"
@@ -369,7 +428,9 @@ function ProductDetail() {
               <div className="flex flex-col items-center justify-center py-10 px-4 text-center border-2 border-dashed border-border/60 rounded-xl bg-secondary/20">
                 <FolderOpen className="size-10 text-muted-foreground/30 mb-3" />
                 <p className="text-sm font-medium text-foreground">No dossier files attached</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">Select a document type and upload relevant files to build the dossier.</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+                  Select a document type and upload relevant files to build the dossier.
+                </p>
               </div>
             )}
           </Panel>
@@ -393,20 +454,45 @@ function ProductDetail() {
           <div className="bg-background rounded-xl p-6 shadow-xl w-[90vw] max-w-md border border-border/60">
             <h3 className="text-lg font-bold text-foreground mb-2">Delete Product</h3>
             <p className="text-sm text-muted-foreground mb-6">
-              Are you sure you want to delete <strong>{product.brandName}</strong>? This action cannot be undone and will remove all associated dossier documents.
+              Are you sure you want to delete <strong>{product.brandName}</strong>? This action
+              cannot be undone and will remove all associated dossier documents.
             </p>
             <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={deleteMutation.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={deleteMutation.isPending}
+              >
                 Cancel
               </Button>
-              <Button variant="destructive" onClick={() => deleteMutation.mutate(product.id)} disabled={deleteMutation.isPending}>
-                {deleteMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : <Trash2 className="size-4 mr-2" />}
+              <Button
+                variant="destructive"
+                onClick={() => deleteMutation.mutate(product.id)}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <Trash2 className="size-4 mr-2" />
+                )}
                 Yes, Delete
               </Button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Document Viewer Modal */}
+      <DocumentViewerDialog
+        open={!!viewingDoc}
+        onOpenChange={(o) => !o && setViewingDoc(null)}
+        viewUrl={viewingDoc ? getProductDocumentViewUrl(product.id, viewingDoc.id) : undefined}
+        downloadUrl={
+          viewingDoc ? getProductDocumentDownloadUrl(product.id, viewingDoc.id) : undefined
+        }
+        document={viewingDoc}
+        typeLabel={viewingDoc ? DOCUMENT_TYPE_LABELS[viewingDoc.documentType] : undefined}
+      />
     </div>
   );
 }

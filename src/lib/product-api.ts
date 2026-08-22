@@ -212,3 +212,13 @@ export async function deleteDosageForm(id: string): Promise<void> {
     throw new Error(body || `API error ${res.status}`);
   }
 }
+
+/** Helper to get document view URL */
+export function getProductDocumentViewUrl(productId: string, docId: string): string {
+  return apiUrl("/api/v1/products/" + productId + "/documents/" + docId + "/view");
+}
+
+/** Helper to get document download URL */
+export function getProductDocumentDownloadUrl(productId: string, docId: string): string {
+  return apiUrl("/api/v1/products/" + productId + "/documents/" + docId + "/download");
+}

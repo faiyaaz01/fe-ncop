@@ -626,7 +626,7 @@ function UsersTab({
             </thead>
             <tbody className="divide-y divide-border/40">
               {isLoading ? (
-                <TableRowLoader colSpan={7} label="Loading users..." />
+                <TableRowLoader colSpan={7} />
               ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
@@ -859,7 +859,7 @@ function RolesTab({
             </thead>
             <tbody className="divide-y divide-border/40">
               {isLoading ? (
-                <TableRowLoader colSpan={6} label="Loading roles..." />
+                <TableRowLoader colSpan={6} />
               ) : roles.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
@@ -1017,7 +1017,7 @@ function ModuleRightsTab({
             </thead>
             <tbody className="divide-y divide-border/40">
               {isLoading ? (
-                <TableRowLoader colSpan={5} label="Loading module rights..." />
+                <TableRowLoader colSpan={5} />
               ) : moduleRights.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">

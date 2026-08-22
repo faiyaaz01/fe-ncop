@@ -33,8 +33,20 @@ import { userSessionService } from "@/lib/user-session";
 interface DocumentViewerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  clientId: string;
-  document: ClientDocument | null;
+  clientId?: string;
+  viewUrl?: string;
+  downloadUrl?: string;
+  typeLabel?: string;
+  document: {
+    id?: string;
+    documentType: string;
+    contentType?: string;
+    originalFileName?: string;
+    fileName?: string;
+    fileSize?: number;
+    storageType?: string;
+    uploadedAt?: string | Date;
+  } | null;
 }
 
 function formatBytes(bytes?: number): string {
@@ -49,6 +61,9 @@ export function DocumentViewerDialog({
   open,
   onOpenChange,
   clientId,
+  viewUrl: providedViewUrl,
+  downloadUrl: providedDownloadUrl,
+  typeLabel,
   document,
 }: DocumentViewerDialogProps) {
   const [zoom, setZoom] = useState(100);
@@ -60,8 +75,8 @@ export function DocumentViewerDialog({
   const [reloadKey, setReloadKey] = useState(0);
 
   const docId = document?.id || "";
-  const viewUrl = document ? getDocumentViewUrl(clientId, docId) : "";
-  const downloadUrl = document ? getDocumentDownloadUrl(clientId, docId) : "";
+  const finalViewUrl = providedViewUrl || (clientId && document ? getDocumentViewUrl(clientId, docId) : "");
+  const finalDownloadUrl = providedDownloadUrl || (clientId && document ? getDocumentDownloadUrl(clientId, docId) : "");
 
   const rawFilename =
     document?.originalFileName || document?.fileName || "Document";
@@ -83,7 +98,7 @@ export function DocumentViewerDialog({
     [".xls", ".xlsx", ".csv"].includes(ext);
 
   const docTypeLabel = document
-    ? DOCUMENT_TYPE_LABELS[document.documentType] || document.documentType
+    ? typeLabel || (DOCUMENT_TYPE_LABELS as Record<string, string>)[document.documentType] || document.documentType
     : "";
 
   // Fetch document bytes into a local Blob URL with Auth headers
@@ -106,7 +121,7 @@ export function DocumentViewerDialog({
       headers["Authorization"] = `Bearer ${session.token}`;
     }
 
-    fetch(viewUrl, { headers })
+    fetch(finalViewUrl, { headers })
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.text().catch(() => "");
@@ -254,7 +269,7 @@ export function DocumentViewerDialog({
               </a>
             )}
 
-            <a href={downloadUrl} download={rawFilename} title="Download file">
+            <a href={finalDownloadUrl} download={rawFilename} title="Download file">
               <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
                 <Download className="size-3.5" />
                 Download
@@ -294,7 +309,7 @@ export function DocumentViewerDialog({
                 >
                   <RefreshCw className="size-3.5" /> Retry
                 </Button>
-                <a href={downloadUrl} download={rawFilename}>
+                <a href={finalDownloadUrl} download={rawFilename}>
                   <Button size="sm" className="gap-1.5">
                     <Download className="size-3.5" /> Download File
                   </Button>
@@ -354,7 +369,7 @@ export function DocumentViewerDialog({
                 Word documents can be downloaded to view in Microsoft Word, or opened via Office viewer.
               </p>
               <div className="flex justify-center gap-3 pt-2">
-                <a href={downloadUrl} download={rawFilename}>
+                <a href={finalDownloadUrl} download={rawFilename}>
                   <Button className="gap-2">
                     <Download className="size-4" /> Download to View
                   </Button>
@@ -379,7 +394,7 @@ export function DocumentViewerDialog({
                 Spreadsheet data can be downloaded and opened in Microsoft Excel or Google Sheets.
               </p>
               <div className="flex justify-center gap-3 pt-2">
-                <a href={downloadUrl} download={rawFilename}>
+                <a href={finalDownloadUrl} download={rawFilename}>
                   <Button className="gap-2">
                     <Download className="size-4" /> Download Spreadsheet
                   </Button>
@@ -404,7 +419,7 @@ export function DocumentViewerDialog({
                 Preview is not supported for this file format in browser. Please download the file to inspect its content.
               </p>
               <div className="flex justify-center gap-3 pt-2">
-                <a href={downloadUrl} download={rawFilename}>
+                <a href={finalDownloadUrl} download={rawFilename}>
                   <Button className="gap-2">
                     <Download className="size-4" /> Download File
                   </Button>
