@@ -628,7 +628,7 @@ function ProductMaster() {
               Are you sure you want to delete <strong className="text-foreground">{deleteConfirm?.name}</strong>? This action will permanently remove the product and its attached dossiers from the database.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="gap-3 sm:gap-3 pt-2">
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
               Cancel
             </Button>
@@ -1719,7 +1719,7 @@ function DosageConfigDialog({
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-3 border-t border-border/60">
+            <DialogFooter className="gap-3 sm:gap-3 pt-3 border-t border-border/60">
               <Button
                 type="button"
                 variant="outline"
