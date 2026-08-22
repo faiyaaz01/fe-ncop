@@ -81,7 +81,7 @@ import type {
 export const Route = createFileRoute("/_shell/products")({
   head: () => ({
     meta: [
-      { title: "Product Master · NCOP ERP" },
+      { title: "Products · NCOP ERP" },
       {
         name: "description",
         content:
@@ -231,7 +231,7 @@ function ProductMaster() {
     <div className="space-y-6 pb-12">
       {/* ── Page Header ── */}
       <PageHeader
-        title="Product Master"
+        title="Products"
         subtitle="Manage pharmaceutical catalog, dosage forms, active pharmaceutical ingredients (APIs), and dossiers."
         action={
           <div className="flex items-center gap-2">

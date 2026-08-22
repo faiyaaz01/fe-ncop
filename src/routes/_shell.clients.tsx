@@ -97,7 +97,7 @@ import {
 export const Route = createFileRoute("/_shell/clients")({
   head: () => ({
     meta: [
-      { title: "Client Master · NCOP ERP" },
+      { title: "Clients · NCOP ERP" },
       {
         name: "description",
         content:
@@ -422,7 +422,7 @@ function ClientMaster() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="ERP"
-        title="Client Master"
+        title="Clients"
         description={
           isLoading
             ? "Loading clients…"
