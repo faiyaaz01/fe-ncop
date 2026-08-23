@@ -46,7 +46,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -63,16 +70,19 @@ const nav = [
 const mobileNav = nav.slice(0, 5);
 
 function Brand({ collapsed }: { collapsed: boolean }) {
-
   const navigate = useNavigate();
 
   const handleOnClickOfBranding = () => {
     // Navigate to the dashboard route
     navigate({ to: "/dashboard" });
-  }
+  };
 
   return (
-    <div onClick={handleOnClickOfBranding} className="flex items-center gap-2.5 overflow-hidden cursor-pointer" title="NCOP Pharma Dashboard">
+    <div
+      onClick={handleOnClickOfBranding}
+      className="flex items-center gap-2.5 overflow-hidden cursor-pointer"
+      title="NCOP Pharma Dashboard"
+    >
       <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-soft">
         <ShieldCheck className="size-[18px]" />
       </div>
@@ -117,9 +127,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           .map((r) => (typeof r === "string" ? r : r.hasRight !== false ? r.name : ""))
           .filter(Boolean)
       : [];
+    const userRoles = [currentUser.role, ...(currentUser.roles || [])]
+      .filter(Boolean)
+      .map((role) => String(role).toUpperCase());
 
     const navMapping: Record<string, string[]> = {
-      "/dashboard": ["DASHBOARD"],
+      "/dashboard": [],
       "/clients": ["CLIENT_MASTER"],
       "/products": ["PRODUCT_MASTER"],
       "/inquiry": ["SALES"],
@@ -129,11 +142,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       "/settings": [],
       "/profile": [],
     };
+    const roleNavigation: Record<string, string[]> = {
+      "/inquiry": ["SALES", "QA", "QC"],
+    };
 
     return nav.filter((item) => {
       const req = navMapping[item.to];
       if (!req || req.length === 0) return true;
-      return req.some((r) => userRights.includes(r));
+      const permittedByRole = (roleNavigation[item.to] || []).some((role) =>
+        userRoles.includes(role),
+      );
+      return permittedByRole || req.some((r) => userRights.includes(r));
     });
   }, [currentUser]);
 
@@ -197,7 +216,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${refreshToken}`,
+            Authorization: `Bearer ${refreshToken}`,
           },
         });
         if (resp.ok) {
@@ -281,7 +300,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     // Immediate check (covers the case where the service initialized earlier and set a reason)
     const currentUser = userSessionService.getCurrentUser();
     const initialReason = userSessionService.getLastLogoutReason();
-    console.debug && console.debug("AppShell: initial session check", { currentUser: !!currentUser, initialReason });
+    console.debug &&
+      console.debug("AppShell: initial session check", {
+        currentUser: !!currentUser,
+        initialReason,
+      });
     if (!currentUser && (initialReason === "expired" || initialReason === "invalid")) {
       setIsWarningOpen(false);
     }
@@ -292,7 +315,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       if (!user && (reason === "expired" || reason === "invalid")) {
         // Ensure the pre-expiry warning isn't visible
         setIsWarningOpen(false);
-        navigate({ to: '/index/login' });
+        navigate({ to: "/index/login" });
       }
     });
 
@@ -479,92 +502,117 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Session expiry warning dialog */}
-      <Dialog open={isWarningOpen} onOpenChange={(open) => {
-        if (!open) {
-          if (resolveRef.current) {
-            resolveRef.current(false);
-            resolveRef.current = null;
+      <Dialog
+        open={isWarningOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (resolveRef.current) {
+              resolveRef.current(false);
+              resolveRef.current = null;
+            }
+            setIsWarningOpen(false);
+            if (countdownRef.current) {
+              clearInterval(countdownRef.current);
+              countdownRef.current = null;
+            }
           }
-          setIsWarningOpen(false);
-          if (countdownRef.current) {
-            clearInterval(countdownRef.current);
-            countdownRef.current = null;
-          }
-        }
-      }}>
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Session expiring soon</DialogTitle>
 
-            <DialogDescription>Your session will expire in {Math.floor(remainingSecs / 60)}:{String(remainingSecs % 60).padStart(2, '0')}. Refresh to continue your session.</DialogDescription>
+            <DialogDescription>
+              Your session will expire in {Math.floor(remainingSecs / 60)}:
+              {String(remainingSecs % 60).padStart(2, "0")}. Refresh to continue your session.
+            </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => {
-              if (resolveRef.current) {
-                resolveRef.current(false);
-                resolveRef.current = null;
-              }
-              setIsWarningOpen(false);
-              if (countdownRef.current) {
-                clearInterval(countdownRef.current);
-                countdownRef.current = null;
-              }
-            }}>Logout</Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                if (resolveRef.current) {
+                  resolveRef.current(false);
+                  resolveRef.current = null;
+                }
+                setIsWarningOpen(false);
+                if (countdownRef.current) {
+                  clearInterval(countdownRef.current);
+                  countdownRef.current = null;
+                }
+              }}
+            >
+              Logout
+            </Button>
 
-            <Button onClick={async () => {
-              const refreshed = await userSessionService.refreshSession();
+            <Button
+              onClick={async () => {
+                const refreshed = await userSessionService.refreshSession();
 
-              if (resolveRef.current) {
-                resolveRef.current(refreshed);
-                resolveRef.current = null;
-              }
-              setIsWarningOpen(false);
-              if (countdownRef.current) {
-                clearInterval(countdownRef.current);
-                countdownRef.current = null;
-              }
-            }}>Refresh</Button>
+                if (resolveRef.current) {
+                  resolveRef.current(refreshed);
+                  resolveRef.current = null;
+                }
+                setIsWarningOpen(false);
+                if (countdownRef.current) {
+                  clearInterval(countdownRef.current);
+                  countdownRef.current = null;
+                }
+              }}
+            >
+              Refresh
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Inactivity warning dialog */}
-      <Dialog open={isInactivityWarningOpen} onOpenChange={(open) => {
-        if (!open) {
-          // Dismissing the dialog = user is still here → stay signed in
-          if (inactivityResolveRef.current) {
-            inactivityResolveRef.current(true);
-            inactivityResolveRef.current = null;
+      <Dialog
+        open={isInactivityWarningOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            // Dismissing the dialog = user is still here → stay signed in
+            if (inactivityResolveRef.current) {
+              inactivityResolveRef.current(true);
+              inactivityResolveRef.current = null;
+            }
+            setIsInactivityWarningOpen(false);
+            if (inactivityCountdownRef.current) {
+              clearInterval(inactivityCountdownRef.current);
+              inactivityCountdownRef.current = null;
+            }
           }
-          setIsInactivityWarningOpen(false);
-          if (inactivityCountdownRef.current) {
-            clearInterval(inactivityCountdownRef.current);
-            inactivityCountdownRef.current = null;
-          }
-        }
-      }}>
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Are you still there?</DialogTitle>
             <DialogDescription>
-              You&apos;ve been inactive. For your security, you&apos;ll be automatically logged out in{" "}
+              You&apos;ve been inactive. For your security, you&apos;ll be automatically logged out
+              in{" "}
               <span className="font-semibold tabular-nums">
-                {Math.floor(inactivityRemainingSecs / 60)}:{String(inactivityRemainingSecs % 60).padStart(2, "0")}
-              </span>.
+                {Math.floor(inactivityRemainingSecs / 60)}:
+                {String(inactivityRemainingSecs % 60).padStart(2, "0")}
+              </span>
+              .
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex justify-end">
-            <Button onClick={() => {
-              if (inactivityResolveRef.current) {
-                inactivityResolveRef.current(true);
-                inactivityResolveRef.current = null;
-              }
-              setIsInactivityWarningOpen(false);
-              if (inactivityCountdownRef.current) {
-                clearInterval(inactivityCountdownRef.current);
-                inactivityCountdownRef.current = null;
-              }
-            }}>Stay signed in</Button>
+            <Button
+              onClick={() => {
+                if (inactivityResolveRef.current) {
+                  inactivityResolveRef.current(true);
+                  inactivityResolveRef.current = null;
+                }
+                setIsInactivityWarningOpen(false);
+                if (inactivityCountdownRef.current) {
+                  clearInterval(inactivityCountdownRef.current);
+                  inactivityCountdownRef.current = null;
+                }
+              }}
+            >
+              Stay signed in
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

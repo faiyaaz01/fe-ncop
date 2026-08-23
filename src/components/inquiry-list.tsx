@@ -8,21 +8,31 @@ export function InquiryList({
   inquiries,
   loading,
   onAdd,
+  assignedOnly = false,
+  canCreate = true,
 }: {
   inquiries: CustomerInquiry[];
   loading: boolean;
   onAdd: () => void;
+  assignedOnly?: boolean;
+  canCreate?: boolean;
 }) {
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Pipeline"
-        title="Customer Inquiries"
-        description="Submitted RFQs and their QA/QC review routing."
+        title={assignedOnly ? "My Inquiries" : "Customer Inquiries"}
+        description={
+          assignedOnly
+            ? "RFQs you raised or that are assigned to you."
+            : "Submitted RFQs and their QA/QC review routing."
+        }
         actions={
-          <Button onClick={onAdd}>
-            <Plus className="size-4" /> Add Inquiry
-          </Button>
+          canCreate ? (
+            <Button onClick={onAdd}>
+              <Plus className="size-4" /> Add Inquiry
+            </Button>
+          ) : undefined
         }
       />
       <Panel className="overflow-hidden p-0">
@@ -36,12 +46,16 @@ export function InquiryList({
             <div>
               <h2 className="font-semibold">No inquiries submitted yet</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Create the first customer RFQ to begin the review workflow.
+                {assignedOnly
+                  ? "You have not raised or been assigned any RFQs yet."
+                  : "Create the first customer RFQ to begin the review workflow."}
               </p>
             </div>
-            <Button onClick={onAdd}>
-              <Plus className="size-4" /> Add Inquiry
-            </Button>
+            {canCreate && (
+              <Button onClick={onAdd}>
+                <Plus className="size-4" /> Add Inquiry
+              </Button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -52,6 +66,7 @@ export function InquiryList({
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Customer / Contact</th>
                   <th className="px-4 py-3">Products</th>
+                  <th className="px-4 py-3">Sales owner</th>
                   <th className="px-4 py-3">Priority</th>
                   <th className="px-4 py-3">Status</th>
                 </tr>
@@ -73,11 +88,16 @@ export function InquiryList({
                             <span className="text-muted-foreground">
                               {" "}
                               · {line.sourcing === "OUTSOURCED" ? "QC" : "QA"}:{" "}
-                              {line.qualityAssigneeName}
+                              {line.sourcing === "OUTSOURCED"
+                                ? inquiry.qcAssigneeName
+                                : inquiry.qaAssigneeName}
                             </span>
                           </p>
                         ))}
                       </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {inquiry.salesAssigneeName || inquiry.raisedByUserName || "—"}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="outline">{inquiry.priority}</Badge>

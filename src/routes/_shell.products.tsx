@@ -672,8 +672,7 @@ export function ProductFormDialog({
     "Store below 25°C in a dry place. Protect from light.",
   );
   const [description, setDescription] = useState("");
-  const [sourcing, setSourcing] = useState<ProductSourcing>("IN_HOUSE");
-  const [status, setStatus] = useState<ProductStatus>("ACTIVE");
+    const [status, setStatus] = useState<ProductStatus>("ACTIVE");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize or reset form
@@ -697,8 +696,7 @@ export function ProductFormDialog({
       setShelfLife(editingProduct.shelfLife || "24 Months");
       setStorageCondition(editingProduct.storageCondition || "");
       setDescription(editingProduct.description || "");
-      setSourcing(editingProduct.sourcing || "IN_HOUSE");
-      setStatus(editingProduct.status || "ACTIVE");
+            setStatus(editingProduct.status || "ACTIVE");
     } else {
       setBrandName("");
       setCategory("");
@@ -714,8 +712,7 @@ export function ProductFormDialog({
       setShelfLife("");
       setStorageCondition("");
       setDescription("");
-      setSourcing("IN_HOUSE");
-      setStatus("ACTIVE");
+            setStatus("ACTIVE");
     }
   }, [editingProduct, open, dosageForms]);
 
@@ -771,7 +768,6 @@ export function ProductFormDialog({
       shelfLife: shelfLife.trim() || undefined,
       storageCondition: storageCondition.trim() || undefined,
       description: description.trim() || undefined,
-      sourcing,
       status,
     };
 
@@ -881,21 +877,7 @@ export function ProductFormDialog({
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sourcing">Is outsourced or in-house? *</Label>
-                  <Select
-                    value={sourcing}
-                    onValueChange={(value) => setSourcing(value as ProductSourcing)}
-                  >
-                    <SelectTrigger id="sourcing">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="IN_HOUSE">In-house — route RFQs to QA</SelectItem>
-                      <SelectItem value="OUTSOURCED">Outsourced — route RFQs to QC</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                
               </div>
             </fieldset>
 

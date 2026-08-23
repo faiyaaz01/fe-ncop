@@ -36,3 +36,12 @@ export async function fetchInquiries(page = 0, size = 20): Promise<PageResponse<
     }),
   );
 }
+
+export async function fetchMyInquiries(
+  page = 0,
+  size = 20,
+): Promise<PageResponse<CustomerInquiry>> {
+  return response<PageResponse<CustomerInquiry>>(
+    await fetch(apiUrl(`/api/v1/inquiries/my?page=${page}&size=${size}`), { headers: headers() }),
+  );
+}

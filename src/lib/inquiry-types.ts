@@ -15,7 +15,7 @@ export type InquiryPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export interface InquiryLineRequestDto {
   productId: string;
-  qualityAssigneeId: string;
+  sourcing: ProductSourcing;
   quantityRequired: number;
   shipperPackRequired?: number;
   tertiaryPackRequired?: number;
@@ -34,6 +34,9 @@ export interface CustomerInquiryRequestDto {
   priority: InquiryPriority;
   targetQuoteDate?: string;
   notes?: string;
+  qaAssigneeId?: string;
+  qcAssigneeId?: string;
+  salesAssigneeId?: string;
   lines: InquiryLineRequestDto[];
 }
 
@@ -44,6 +47,12 @@ export interface CustomerInquiry extends CustomerInquiryRequestDto {
   customerName: string;
   contactPersonName: string;
   status: string;
+  qaAssigneeName?: string;
+  qcAssigneeName?: string;
+  raisedByUserId?: string;
+  raisedByUserName?: string;
+  salesAssigneeId?: string;
+  salesAssigneeName?: string;
   lines: Array<
     InquiryLineRequestDto & {
       productName: string;
@@ -53,7 +62,6 @@ export interface CustomerInquiry extends CustomerInquiryRequestDto {
       strength?: string;
       pharmacopeia?: string;
       sourcing: ProductSourcing;
-      qualityAssigneeName: string;
     }
   >;
 }

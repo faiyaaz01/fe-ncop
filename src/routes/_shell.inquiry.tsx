@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Plus, Send, Trash2 } from "lucide-react";
+import { ChevronLeft, Plus, Send, Trash2, CalendarIcon } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { PageHeader, Panel } from "@/components/kit";
 import { Button } from "@/components/ui/button";
@@ -19,7 +22,8 @@ import { cn } from "@/lib/utils";
 import { fetchAllClients } from "@/lib/client-api";
 import { fetchAllProducts, fetchDosageForms } from "@/lib/product-api";
 import { fetchAllUsers } from "@/lib/auth-api";
-import { createInquiry, fetchInquiries } from "@/lib/inquiry-api";
+import { createInquiry, fetchInquiries, fetchMyInquiries } from "@/lib/inquiry-api";
+import { userSessionService } from "@/lib/user-session";
 import { InquiryList } from "@/components/inquiry-list";
 import type { InquiryLineRequestDto, InquiryPriority, InquirySource } from "@/lib/inquiry-types";
 import type { Product } from "@/lib/product-types";
@@ -60,7 +64,6 @@ type EditableLine = Omit<InquiryLineRequestDto, "sourcing"> & {
 const emptyLine = (): EditableLine => ({
   key: crypto.randomUUID(),
   productId: "",
-  qualityAssigneeId: "",
   quantityRequired: 0,
   sourcing: "",
 });
@@ -79,11 +82,22 @@ function InquiryWizard() {
   const [priority, setPriority] = useState<InquiryPriority>("MEDIUM");
   const [targetQuoteDate, setTargetQuoteDate] = useState(defaultTargetQuoteDate);
   const [notes, setNotes] = useState("");
+  const [qaAssigneeId, setQaAssigneeId] = useState("");
+  const [qcAssigneeId, setQcAssigneeId] = useState("");
+  const [salesAssigneeId, setSalesAssigneeId] = useState("");
   const [lines, setLines] = useState<EditableLine[]>([emptyLine()]);
   const [submitting, setSubmitting] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [lineAddingProduct, setLineAddingProduct] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const sessionUser = userSessionService.getCurrentUser();
+  const sessionRoles = [sessionUser?.role, ...(sessionUser?.roles || [])]
+    .filter(Boolean)
+    .map((role) => String(role).toUpperCase());
+  const isQualityReviewer = sessionRoles.includes("QA") || sessionRoles.includes("QC");
+  const isSalesUser = sessionRoles.includes("SALES");
+  const isAdminUser = sessionRoles.includes("ADMIN") || sessionRoles.includes("SUPER_ADMIN");
+  const showMyInquiries = isQualityReviewer || isSalesUser;
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients", "all"],
@@ -99,8 +113,8 @@ function InquiryWizard() {
   });
   const { data: users = [] } = useQuery({ queryKey: ["users", "all"], queryFn: fetchAllUsers });
   const { data: inquiryPage, isLoading: inquiriesLoading } = useQuery({
-    queryKey: ["inquiries"],
-    queryFn: () => fetchInquiries(),
+    queryKey: ["inquiries", showMyInquiries ? "mine" : "all"],
+    queryFn: () => (showMyInquiries ? fetchMyInquiries() : fetchInquiries()),
   });
   const selectedCustomer = clients.find((client) => client.id === customerId);
 
@@ -111,27 +125,38 @@ function InquiryWizard() {
   };
   const productFor = (line: EditableLine): Product | undefined =>
     products.find((product) => product.id === line.productId);
-  const qualityUsers = (sourcing: ProductSourcing | "") => {
-    const requiredRole = sourcing === "OUTSOURCED" ? "QC" : "QA";
-    return users.filter(
-      (user) =>
-        user.effectiveActive && user.roleNames.some((role) => role.toUpperCase() === requiredRole),
-    );
-  };
   const allLinesComplete = useMemo(
-    () =>
-      lines.every(
-        (line) =>
-          line.productId && line.sourcing && line.qualityAssigneeId && line.quantityRequired > 0,
-      ),
+    () => lines.every((line) => line.productId && line.sourcing && line.quantityRequired > 0),
     [lines],
+  );
+
+  const hasQa = lines.some((l) => l.sourcing === "IN_HOUSE");
+  const hasQc = lines.some((l) => l.sourcing === "OUTSOURCED");
+  const qaUsers = users.filter(
+    (u) => u.effectiveActive && u.roleNames.some((r) => r.toUpperCase() === "QA"),
+  );
+  const qcUsers = users.filter(
+    (u) => u.effectiveActive && u.roleNames.some((r) => r.toUpperCase() === "QC"),
+  );
+  const salesUsers = users.filter(
+    (u) => u.effectiveActive && u.roleNames.some((r) => r.toUpperCase() === "SALES"),
   );
 
   const submit = async () => {
     if (!customerId || !contactPersonId || !allLinesComplete) {
-      toast.error(
-        "Select a customer and contact, then complete each product, quantity and QA/QC assignee.",
-      );
+      toast.error("Select a customer and contact, then complete each product and quantity.");
+      return;
+    }
+    if (hasQa && !qaAssigneeId) {
+      toast.error("Please select a QA Reviewer for the in-house products.");
+      return;
+    }
+    if (hasQc && !qcAssigneeId) {
+      toast.error("Please select a QC Reviewer for the outsourced products.");
+      return;
+    }
+    if (isAdminUser && !salesAssigneeId) {
+      toast.error("Please select the sales representative for this inquiry.");
       return;
     }
     setSubmitting(true);
@@ -143,6 +168,9 @@ function InquiryWizard() {
         priority,
         targetQuoteDate: targetQuoteDate || undefined,
         notes: notes.trim() || undefined,
+        qaAssigneeId: hasQa ? qaAssigneeId : undefined,
+        qcAssigneeId: hasQc ? qcAssigneeId : undefined,
+        salesAssigneeId: isAdminUser ? salesAssigneeId : undefined,
         lines: lines.map(({ key: _key, ...line }) => line as InquiryLineRequestDto),
       });
       await queryClient.invalidateQueries({ queryKey: ["inquiries"] });
@@ -162,6 +190,9 @@ function InquiryWizard() {
     setPriority("MEDIUM");
     setTargetQuoteDate(defaultTargetQuoteDate());
     setNotes("");
+    setQaAssigneeId("");
+    setQcAssigneeId("");
+    setSalesAssigneeId("");
     setLines([emptyLine()]);
   };
 
@@ -170,6 +201,8 @@ function InquiryWizard() {
       <InquiryList
         inquiries={inquiryPage?.content ?? []}
         loading={inquiriesLoading}
+        assignedOnly={showMyInquiries}
+        canCreate={!isQualityReviewer || isSalesUser}
         onAdd={() => {
           resetForm();
           setView("create");
@@ -257,11 +290,40 @@ function InquiryWizard() {
               </Select>
             </Field>
             <Field label="Target quote date">
-              <Input
-                type="date"
-                value={targetQuoteDate}
-                onChange={(event) => setTargetQuoteDate(event.target.value)}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-between text-left font-normal",
+                      !targetQuoteDate && "text-muted-foreground",
+                    )}
+                  >
+                    {targetQuoteDate ? (
+                      format(parseISO(targetQuoteDate), "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                    <CalendarIcon className="h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={targetQuoteDate ? parseISO(targetQuoteDate) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        const offset = date.getTimezoneOffset();
+                        const adjustedDate = new Date(date.getTime() - offset * 60 * 1000);
+                        setTargetQuoteDate(adjustedDate.toISOString().split("T")[0]);
+                      } else {
+                        setTargetQuoteDate("");
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </Field>
           </div>
         </section>
@@ -285,8 +347,6 @@ function InquiryWizard() {
           </div>
           {lines.map((line, index) => {
             const product = productFor(line);
-            const reviewers = qualityUsers(line.sourcing);
-            const isOutsourced = line.sourcing === "OUTSOURCED";
             return (
               <div
                 key={line.key}
@@ -312,9 +372,7 @@ function InquiryWizard() {
                     <div className="flex gap-2">
                       <LookupInput
                         value={line.productId}
-                        onChange={(value) =>
-                          updateLine(line.key, { productId: value, qualityAssigneeId: "" })
-                        }
+                        onChange={(value) => updateLine(line.key, { productId: value })}
                         placeholder="Search and select product"
                         options={products.map((item) => ({
                           value: item.id,
@@ -337,7 +395,7 @@ function InquiryWizard() {
                   <Field label="Generic name">
                     <Input
                       value={
-                        product?.ingredients.map((ingredient) => ingredient.api).join(" + ") || ""
+                        product?.ingredients?.map((ingredient) => ingredient.api).join(" + ") || ""
                       }
                       readOnly
                     />
@@ -356,7 +414,7 @@ function InquiryWizard() {
                     <Input
                       value={
                         product?.ingredients
-                          .map((ingredient) => `${ingredient.strength}${ingredient.unit}`)
+                          ?.map((ingredient) => `${ingredient.strength}${ingredient.unit}`)
                           .join(" + ") || ""
                       }
                       readOnly
@@ -366,7 +424,7 @@ function InquiryWizard() {
                     <Input
                       value={
                         product?.ingredients
-                          .map((ingredient) => ingredient.pharmacopeia)
+                          ?.map((ingredient) => ingredient.pharmacopeia)
                           .filter(Boolean)
                           .join(" / ") || ""
                       }
@@ -379,7 +437,6 @@ function InquiryWizard() {
                       onValueChange={(value) =>
                         updateLine(line.key, {
                           sourcing: value as ProductSourcing,
-                          qualityAssigneeId: "",
                         })
                       }
                     >
@@ -391,50 +448,6 @@ function InquiryWizard() {
                         <SelectItem value="OUTSOURCED">Outsourced</SelectItem>
                       </SelectContent>
                     </Select>
-                  </Field>
-                  <Field
-                    label={
-                      line.sourcing
-                        ? `Assigned ${isOutsourced ? "QC" : "QA"} reviewer *`
-                        : "QA/QC reviewer *"
-                    }
-                  >
-                    <Select
-                      value={line.qualityAssigneeId}
-                      onValueChange={(value) => updateLine(line.key, { qualityAssigneeId: value })}
-                      disabled={!product || !line.sourcing}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            product && line.sourcing
-                              ? `Select ${isOutsourced ? "QC" : "QA"} user`
-                              : "Select a product first"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {reviewers.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.fullName ||
-                              `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-                              user.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {line.sourcing && (
-                      <p
-                        className={cn(
-                          "text-[11px]",
-                          isOutsourced ? "text-orange-600" : "text-emerald-600",
-                        )}
-                      >
-                        {isOutsourced
-                          ? "Outsourced product: routed to QC"
-                          : "In-house product: routed to QA"}
-                      </p>
-                    )}
                   </Field>
                   <Field label="Quantity required *">
                     <Input
@@ -493,6 +506,60 @@ function InquiryWizard() {
           })}
         </section>
         <section className="border-t border-border pt-7">
+          {isAdminUser && (
+            <div className="mb-5 max-w-md">
+              <Field label="Sales representative *">
+                <LookupInput
+                  value={salesAssigneeId}
+                  onChange={setSalesAssigneeId}
+                  placeholder="Search and select sales representative"
+                  options={salesUsers.map((user) => ({
+                    value: user.id,
+                    label:
+                      user.fullName ||
+                      `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                      user.email,
+                  }))}
+                />
+              </Field>
+            </div>
+          )}
+          {(hasQa || hasQc) && (
+            <div className="mb-5 grid gap-4 md:grid-cols-2">
+              {hasQa && (
+                <Field label="QA reviewer *">
+                  <LookupInput
+                    value={qaAssigneeId}
+                    onChange={setQaAssigneeId}
+                    placeholder="Search and select QA reviewer"
+                    options={qaUsers.map((user) => ({
+                      value: user.id,
+                      label:
+                        user.fullName ||
+                        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                        user.email,
+                    }))}
+                  />
+                </Field>
+              )}
+              {hasQc && (
+                <Field label="QC reviewer *">
+                  <LookupInput
+                    value={qcAssigneeId}
+                    onChange={setQcAssigneeId}
+                    placeholder="Search and select QC reviewer"
+                    options={qcUsers.map((user) => ({
+                      value: user.id,
+                      label:
+                        user.fullName ||
+                        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                        user.email,
+                    }))}
+                  />
+                </Field>
+              )}
+            </div>
+          )}
           <Field label="Internal notes">
             <Textarea
               rows={3}
@@ -517,7 +584,7 @@ function InquiryWizard() {
         onSaved={(product) => {
           queryClient.invalidateQueries({ queryKey: ["products", "all"] });
           if (product && lineAddingProduct) {
-            updateLine(lineAddingProduct, { productId: product.id, qualityAssigneeId: "" });
+            updateLine(lineAddingProduct, { productId: product.id });
           }
           setLineAddingProduct(null);
         }}
@@ -552,15 +619,19 @@ function LookupInput({
   const [term, setTerm] = useState(selected?.label || "");
   const [open, setOpen] = useState(false);
 
+  // Sync term when selected changes or when dropdown closes
   useEffect(() => {
-    if (selected) setTerm(selected.label);
-  }, [selected?.label]);
+    if (!open || selected) {
+      setTerm(selected?.label || "");
+    }
+  }, [selected?.label, open]);
 
   const filtered = options.filter((option) =>
     option.label.toLowerCase().includes(term.toLowerCase()),
   );
+
   return (
-    <div className="relative">
+    <div className="relative flex-1">
       <Input
         value={term}
         disabled={disabled}
@@ -569,12 +640,15 @@ function LookupInput({
         onChange={(event) => {
           setTerm(event.target.value);
           setOpen(true);
-          if (value) onChange("");
+          if (value) onChange(""); // clear selection when typing
         }}
         onBlur={() => window.setTimeout(() => setOpen(false), 150)}
       />
       {open && !disabled && (
-        <div className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md">
+        <div
+          className="absolute z-50 mt-1 max-h-52 w-full overflow-auto rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md"
+          onMouseDown={(e) => e.preventDefault()} // prevent input blur when interacting with dropdown
+        >
           {filtered.length === 0 ? (
             <p className="px-2 py-2 text-xs text-muted-foreground">No matches found</p>
           ) : (
@@ -583,7 +657,7 @@ function LookupInput({
                 key={option.key || option.value}
                 type="button"
                 className="w-full rounded-sm px-2 py-2 text-left text-sm hover:bg-accent"
-                onMouseDown={() => {
+                onClick={() => {
                   onChange(option.value);
                   setTerm(option.label);
                   setOpen(false);
