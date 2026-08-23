@@ -49,11 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import {
@@ -74,6 +70,7 @@ import type {
   ProductIngredient,
   ProductDocumentType,
   ProductStatus,
+  ProductSourcing,
   DosageForm,
   DosageFormRequestDto,
 } from "@/lib/product-types";
@@ -123,7 +120,7 @@ const DOCUMENT_TYPE_LABELS: Record<ProductDocumentType, string> = {
 function computeLiveComposition(
   ingredients: ProductIngredient[],
   dosageVariant?: string,
-  dosageForm?: string
+  dosageForm?: string,
 ): string {
   if (!ingredients || ingredients.length === 0) {
     return (dosageVariant || dosageForm || "").trim();
@@ -193,10 +190,7 @@ function ProductMaster() {
     refetchInterval: 3000,
   });
 
-  const {
-    data: productsPage,
-    isLoading: productsLoading,
-  } = useQuery({
+  const { data: productsPage, isLoading: productsLoading } = useQuery({
     queryKey: ["products", page, pageSize, search, categoryFilter, dosageFilter, statusFilter],
     queryFn: () =>
       fetchProducts({
@@ -218,7 +212,6 @@ function ProductMaster() {
       queryClient.invalidateQueries({ queryKey: ["product-metrics"] });
       toast.success("Product deleted successfully");
       setDeleteConfirm(null);
-
     },
     onError: (err: Error) => {
       toast.error("Failed to delete product: " + err.message);
@@ -237,11 +230,7 @@ function ProductMaster() {
         description="Manage pharmaceutical catalog, dosage forms, active pharmaceutical ingredients (APIs), and dossiers."
         actions={
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setDosageConfigOpen(true)}
-              className="gap-2"
-            >
+            <Button variant="outline" onClick={() => setDosageConfigOpen(true)} className="gap-2">
               <SlidersHorizontal className="size-4" />
               Dosage Configurations
             </Button>
@@ -380,7 +369,10 @@ function ProductMaster() {
             </SelectContent>
           </Select>
 
-          {(search || categoryFilter !== "all" || dosageFilter !== "all" || statusFilter !== "all") && (
+          {(search ||
+            categoryFilter !== "all" ||
+            dosageFilter !== "all" ||
+            statusFilter !== "all") && (
             <Button
               variant="ghost"
               size="sm"
@@ -410,7 +402,8 @@ function ProductMaster() {
             </div>
             <h3 className="text-base font-semibold">No products found</h3>
             <p className="text-xs text-muted-foreground max-w-sm mt-1">
-              No product matches the current search and filter criteria. Try adjusting your filters or add a new product.
+              No product matches the current search and filter criteria. Try adjusting your filters
+              or add a new product.
             </p>
             <Button
               onClick={() => {
@@ -482,12 +475,16 @@ function ProductMaster() {
 
                     {/* Composition */}
                     <td className="px-4 py-3.5 align-middle max-w-[280px]">
-                      <p className="text-xs font-medium text-foreground line-clamp-2" title={product.composition}>
+                      <p
+                        className="text-xs font-medium text-foreground line-clamp-2"
+                        title={product.composition}
+                      >
                         {product.composition || "—"}
                       </p>
                       {product.ingredients && product.ingredients.length > 0 && (
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {product.ingredients.length} active API{product.ingredients.length > 1 ? "s" : ""}
+                          {product.ingredients.length} active API
+                          {product.ingredients.length > 1 ? "s" : ""}
                         </p>
                       )}
                     </td>
@@ -617,7 +614,9 @@ function ProductMaster() {
               Delete Product
             </DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <strong className="text-foreground">{deleteConfirm?.name}</strong>? This action will permanently remove the product and its attached dossiers from the database.
+              Are you sure you want to delete{" "}
+              <strong className="text-foreground">{deleteConfirm?.name}</strong>? This action will
+              permanently remove the product and its attached dossiers from the database.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-3 sm:gap-3 pt-2">
@@ -653,7 +652,7 @@ export function ProductFormDialog({
   onOpenChange: (open: boolean) => void;
   editingProduct: Product | null;
   dosageForms: DosageForm[];
-  onSaved: () => void;
+  onSaved: (product?: Product) => void;
 }) {
   const [brandName, setBrandName] = useState("");
   const [category, setCategory] = useState("Analgesics & Antipyretics");
@@ -669,8 +668,11 @@ export function ProductFormDialog({
   const [unitPrice, setUnitPrice] = useState<number | "">("");
   const [currency, setCurrency] = useState("USD");
   const [shelfLife, setShelfLife] = useState("24 Months");
-  const [storageCondition, setStorageCondition] = useState("Store below 25°C in a dry place. Protect from light.");
+  const [storageCondition, setStorageCondition] = useState(
+    "Store below 25°C in a dry place. Protect from light.",
+  );
   const [description, setDescription] = useState("");
+  const [sourcing, setSourcing] = useState<ProductSourcing>("IN_HOUSE");
   const [status, setStatus] = useState<ProductStatus>("ACTIVE");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -685,7 +687,7 @@ export function ProductFormDialog({
       setIngredients(
         editingProduct.ingredients && editingProduct.ingredients.length > 0
           ? editingProduct.ingredients
-          : [{ api: "", strength: "", unit: "mg", pharmacopeia: "BP" }]
+          : [{ api: "", strength: "", unit: "mg", pharmacopeia: "BP" }],
       );
       setCustomComposition(editingProduct.composition || "");
       setPackaging(editingProduct.packaging || "");
@@ -695,6 +697,7 @@ export function ProductFormDialog({
       setShelfLife(editingProduct.shelfLife || "24 Months");
       setStorageCondition(editingProduct.storageCondition || "");
       setDescription(editingProduct.description || "");
+      setSourcing(editingProduct.sourcing || "IN_HOUSE");
       setStatus(editingProduct.status || "ACTIVE");
     } else {
       setBrandName("");
@@ -711,15 +714,14 @@ export function ProductFormDialog({
       setShelfLife("");
       setStorageCondition("");
       setDescription("");
+      setSourcing("IN_HOUSE");
       setStatus("ACTIVE");
     }
   }, [editingProduct, open, dosageForms]);
 
   // Selected Dosage Form's Variants from DB
   const currentVariants = useMemo(() => {
-    const found = dosageForms.find(
-      (df) => df.name.toLowerCase() === dosageForm.toLowerCase()
-    );
+    const found = dosageForms.find((df) => df.name.toLowerCase() === dosageForm.toLowerCase());
     return found?.variants ?? [];
   }, [dosageForms, dosageForm]);
 
@@ -730,24 +732,15 @@ export function ProductFormDialog({
 
   // Ingredient Helpers
   const addIngredient = () => {
-    setIngredients((prev) => [
-      ...prev,
-      { api: "", strength: "", unit: "mg", pharmacopeia: "BP" },
-    ]);
+    setIngredients((prev) => [...prev, { api: "", strength: "", unit: "mg", pharmacopeia: "BP" }]);
   };
 
   const removeIngredient = (idx: number) => {
     setIngredients((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const updateIngredient = (
-    idx: number,
-    field: keyof ProductIngredient,
-    val: string
-  ) => {
-    setIngredients((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item))
-    );
+  const updateIngredient = (idx: number, field: keyof ProductIngredient, val: string) => {
+    setIngredients((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -778,19 +771,21 @@ export function ProductFormDialog({
       shelfLife: shelfLife.trim() || undefined,
       storageCondition: storageCondition.trim() || undefined,
       description: description.trim() || undefined,
+      sourcing,
       status,
     };
 
     setIsSubmitting(true);
     try {
       if (editingProduct) {
-        await updateProduct(editingProduct.id, dto);
+        const savedProduct = await updateProduct(editingProduct.id, dto);
         toast.success("Product updated successfully");
+        onSaved(savedProduct);
       } else {
-        await createProduct(dto);
+        const savedProduct = await createProduct(dto);
         toast.success("Product created successfully");
+        onSaved(savedProduct);
       }
-      onSaved();
       onOpenChange(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "An error occurred";
@@ -883,6 +878,21 @@ export function ProductFormDialog({
                       <SelectItem value="UNDER_DEVELOPMENT">In Development</SelectItem>
                       <SelectItem value="DISCONTINUED">Discontinued</SelectItem>
                       <SelectItem value="DRAFT">Draft</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sourcing">Is outsourced or in-house? *</Label>
+                  <Select
+                    value={sourcing}
+                    onValueChange={(value) => setSourcing(value as ProductSourcing)}
+                  >
+                    <SelectTrigger id="sourcing">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IN_HOUSE">In-house — route RFQs to QA</SelectItem>
+                      <SelectItem value="OUTSOURCED">Outsourced — route RFQs to QC</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1181,8 +1191,6 @@ export function ProductFormDialog({
   );
 }
 
-
-
 // ══════════════════════════════════════════════════════════════════════════════
 // DOSAGE FORM & VARIANT DATABASE CONFIGURATION MODAL
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1278,7 +1286,8 @@ function DosageConfigDialog({
             Database-Configured Dosage Forms & Variants
           </DialogTitle>
           <DialogDescription>
-            Configure Level 1 Dosage Forms and Level 2 Variants directly in the backend MongoDB database.
+            Configure Level 1 Dosage Forms and Level 2 Variants directly in the backend MongoDB
+            database.
           </DialogDescription>
         </DialogHeader>
 
@@ -1315,7 +1324,7 @@ function DosageConfigDialog({
                     "w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between",
                     !isCreatingNew && selectedForm?.id === df.id
                       ? "bg-primary text-primary-foreground shadow-sm"
-                      : "hover:bg-secondary/60 text-foreground"
+                      : "hover:bg-secondary/60 text-foreground",
                   )}
                 >
                   <span>{df.name}</span>
@@ -1335,7 +1344,9 @@ function DosageConfigDialog({
             <div className="space-y-3.5">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {isCreatingNew ? "New Dosage Form (Level 1)" : "Edit " + (selectedForm?.name || "")}
+                  {isCreatingNew
+                    ? "New Dosage Form (Level 1)"
+                    : "Edit " + (selectedForm?.name || "")}
                 </h4>
                 {!isCreatingNew && selectedForm && (
                   <Badge variant="outline" className="text-[10px]">
@@ -1345,7 +1356,9 @@ function DosageConfigDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="dfName" className="text-xs">Dosage Form Name (Level 1)</Label>
+                <Label htmlFor="dfName" className="text-xs">
+                  Dosage Form Name (Level 1)
+                </Label>
                 <Input
                   id="dfName"
                   value={formName}
@@ -1356,7 +1369,9 @@ function DosageConfigDialog({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="dfDesc" className="text-xs">Description</Label>
+                <Label htmlFor="dfDesc" className="text-xs">
+                  Description
+                </Label>
                 <Input
                   id="dfDesc"
                   value={formDesc}
@@ -1370,7 +1385,9 @@ function DosageConfigDialog({
               <div className="space-y-2 pt-2 border-t border-border/60">
                 <Label className="text-xs flex items-center justify-between">
                   <span>Level 2 Dosage Variants</span>
-                  <span className="text-[10px] text-muted-foreground">{variantsList.length} configured</span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {variantsList.length} configured
+                  </span>
                 </Label>
 
                 <div className="flex items-center gap-1.5">
@@ -1399,7 +1416,9 @@ function DosageConfigDialog({
 
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 rounded-lg bg-secondary/30 border border-border/50">
                   {variantsList.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground p-1">No Level 2 variants added yet.</p>
+                    <p className="text-[11px] text-muted-foreground p-1">
+                      No Level 2 variants added yet.
+                    </p>
                   ) : (
                     variantsList.map((v) => (
                       <span
@@ -1422,20 +1441,10 @@ function DosageConfigDialog({
             </div>
 
             <DialogFooter className="gap-3 sm:gap-3 pt-3 border-t border-border/60">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                disabled={isSaving}
-                onClick={handleSave}
-              >
+              <Button type="button" size="sm" disabled={isSaving} onClick={handleSave}>
                 {isSaving ? "Saving…" : "Save to Database"}
               </Button>
             </DialogFooter>

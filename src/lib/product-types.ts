@@ -1,14 +1,10 @@
 // Product Master and Dosage Configuration TypeScript Types
 
 export type ProductStatus = "ACTIVE" | "UNDER_DEVELOPMENT" | "DISCONTINUED" | "DRAFT";
+export type ProductSourcing = "IN_HOUSE" | "OUTSOURCED";
 
 export type ProductDocumentType =
-  | "ARTWORK"
-  | "COA"
-  | "STABILITY_DATA"
-  | "REGULATORY_APPROVAL"
-  | "MSDS"
-  | "OTHER";
+  "ARTWORK" | "COA" | "STABILITY_DATA" | "REGULATORY_APPROVAL" | "MSDS" | "OTHER";
 
 export interface ProductIngredient {
   api: string;
@@ -47,6 +43,7 @@ export interface Product {
   shelfLife?: string;
   storageCondition?: string;
   description?: string;
+  sourcing: ProductSourcing;
   status: ProductStatus;
   documents?: ProductDocument[];
   createdOn?: string;
@@ -69,6 +66,7 @@ export interface ProductRequestDto {
   shelfLife?: string | undefined;
   storageCondition?: string | undefined;
   description?: string | undefined;
+  sourcing?: ProductSourcing | undefined;
   status?: ProductStatus | undefined;
 }
 
