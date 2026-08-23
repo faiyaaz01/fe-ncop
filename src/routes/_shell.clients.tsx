@@ -36,12 +36,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -64,6 +59,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 
 import {
   fetchClients,
@@ -343,6 +339,7 @@ function ClientMaster() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [segment, setSegment] = useState<(typeof filterSegments)[number]>("All");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
@@ -382,7 +379,7 @@ function ClientMaster() {
     mutationFn: ({ id, dto }: { id: string; dto: ClientRequestDto }) => updateClient(id, dto),
     onSuccess: (updatedClient) => {
       queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
-        old.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+        old.map((c) => (c.id === updatedClient.id ? updatedClient : c)),
       );
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setFormOpen(false);
@@ -430,14 +427,15 @@ function ClientMaster() {
             : `${clients.length} registered partner${clients.length !== 1 ? "s" : ""}. Select a company to open its full dossier.`
         }
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
             <Button variant="outline" onClick={() => toast("Client list exported as XLSX")}>
               <Download className="size-4" /> Export
             </Button>
             <Button onClick={openCreate}>
               <Plus className="size-4" /> Add client
             </Button>
-          </>
+          </div>
         }
       />
 
@@ -447,7 +445,10 @@ function ClientMaster() {
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            onChange={(e) => { setQuery(e.target.value); setPage(0); }}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(0);
+            }}
             placeholder="Search by company, code or trade name…"
             className="pl-9"
           />
@@ -472,7 +473,9 @@ function ClientMaster() {
 
       {/* ── Loading ── */}
       {isLoading && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          className={`grid gap-4 ${viewMode === "list" ? "md:hidden" : "md:grid-cols-2 xl:grid-cols-3"}`}
+        >
           {Array.from({ length: 6 }).map((_, i) => (
             <Panel key={i}>
               <div className="flex items-start gap-3">
@@ -525,7 +528,14 @@ function ClientMaster() {
                 <Plus className="size-4" /> Add client
               </Button>
             ) : (
-              <Button variant="outline" size="sm" onClick={() => { setQuery(""); setSegment("All"); }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setQuery("");
+                  setSegment("All");
+                }}
+              >
                 Reset filters
               </Button>
             )
@@ -535,22 +545,24 @@ function ClientMaster() {
 
       {/* ── Card Grid ── */}
       {!isLoading && !isError && filtered.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div
+          className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
+        >
           {filtered.map((c, i) => {
             const poc = firstPoc(c);
             const addr = firstAddr(c);
             return (
               <Reveal key={c.id} delay={i * 0.05}>
-                <button onClick={() => setActiveId(c.id)} className="w-full text-left h-full">
+                <div className="h-full">
                   <Panel hover className="h-full">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
                         <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
                           {c.companyName.slice(0, 2).toUpperCase()}
                         </span>
-                        <div>
-                          <p className="font-semibold leading-tight">{c.companyName}</p>
-                          <p className="text-xs text-muted-foreground">
+                        <div className="min-w-0">
+                          <p className="break-words font-semibold leading-tight">{c.companyName}</p>
+                          <p className="truncate text-xs text-muted-foreground">
                             {c.customerCode} · {CUSTOMER_TYPE_LABELS[c.customerType]}
                           </p>
                         </div>
@@ -573,21 +585,91 @@ function ClientMaster() {
 
                     <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
                       <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Annual Turnover</p>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Annual Turnover
+                        </p>
                         <p className="text-sm font-semibold tabular-nums">
                           {c.annualTurnover ? formatINR(c.annualTurnover) : "—"}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Documents</p>
+                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                          Documents
+                        </p>
                         <p className="text-sm font-semibold">{c.documents?.length ?? 0}</p>
                       </div>
                     </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setActiveId(c.id)}>
+                        <Eye className="size-4" /> View
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => openEdit(c)}>
+                        <Pencil className="size-4" /> Edit
+                      </Button>
+                    </div>
                   </Panel>
-                </button>
+                </div>
               </Reveal>
             );
           })}
+        </div>
+      )}
+
+      {!isLoading && !isError && filtered.length > 0 && viewMode === "list" && (
+        <div className="hidden overflow-x-auto rounded-xl border border-border/60 bg-card md:block">
+          <table className="min-w-[900px] w-full text-left text-sm">
+            <thead className="border-b border-border/60 bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3">Client</th>
+                <th className="px-4 py-3">Contact</th>
+                <th className="px-4 py-3">Location</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Turnover</th>
+                <th className="px-4 py-3">Tier</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {filtered.map((client) => {
+                const poc = firstPoc(client);
+                const address = firstAddr(client);
+                return (
+                  <tr key={client.id} className="hover:bg-muted/30">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold">{client.companyName}</p>
+                      <p className="text-xs text-muted-foreground">{client.customerCode}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>{poc?.personName || "—"}</p>
+                      <p className="text-xs text-muted-foreground">{poc?.email || "—"}</p>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {address ? `${address.city}, ${address.country}` : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline">{CUSTOMER_TYPE_LABELS[client.customerType]}</Badge>
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      {client.annualTurnover ? formatINR(client.annualTurnover) : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <TierBadge level={client.clientLevel} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => setActiveId(client.id)}>
+                          <Eye className="size-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(client)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
@@ -608,7 +690,10 @@ function ClientMaster() {
       <ClientFormDialog
         open={formOpen}
         onOpenChange={(o) => {
-          if (!o) { setFormOpen(false); setEditingClient(null); }
+          if (!o) {
+            setFormOpen(false);
+            setEditingClient(null);
+          }
         }}
         editingClient={editingClient}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
@@ -657,10 +742,22 @@ function ClientDetailDrawer({
             </div>
           </div>
           <div className="flex gap-1.5 pt-1">
-            <Button variant="ghost" size="icon" className="size-8" onClick={() => onResendEmail(client.id)} title="Resend registration email">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => onResendEmail(client.id)}
+              title="Resend registration email"
+            >
               <Send className="size-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="size-8" onClick={() => onEdit(client)} title="Edit client">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              onClick={() => onEdit(client)}
+              title="Edit client"
+            >
               <Pencil className="size-4" />
             </Button>
           </div>
@@ -678,24 +775,48 @@ function ClientDetailDrawer({
           {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-5 space-y-5">
             <div className="surface p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Company details</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Company details
+              </p>
               <dl className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between"><dt className="text-muted-foreground">Customer Type</dt><dd className="font-medium">{CUSTOMER_TYPE_LABELS[client.customerType]}</dd></div>
-                {client.tradeName && <div className="flex justify-between"><dt className="text-muted-foreground">Trade Name</dt><dd className="font-medium">{client.tradeName}</dd></div>}
-                <div className="flex justify-between"><dt className="text-muted-foreground">Annual Turnover</dt><dd className="font-medium">{client.annualTurnover ? formatINR(client.annualTurnover) : "—"}</dd></div>
-                <div className="flex justify-between"><dt className="text-muted-foreground">Client Level</dt><dd><TierBadge level={client.clientLevel} /></dd></div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Customer Type</dt>
+                  <dd className="font-medium">{CUSTOMER_TYPE_LABELS[client.customerType]}</dd>
+                </div>
+                {client.tradeName && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Trade Name</dt>
+                    <dd className="font-medium">{client.tradeName}</dd>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Annual Turnover</dt>
+                  <dd className="font-medium">
+                    {client.annualTurnover ? formatINR(client.annualTurnover) : "—"}
+                  </dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Client Level</dt>
+                  <dd>
+                    <TierBadge level={client.clientLevel} />
+                  </dd>
+                </div>
               </dl>
             </div>
 
             {addresses.length > 0 && (
               <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Addresses</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Addresses
+                </p>
                 {addresses.map((a, i) => (
                   <div key={a.id ?? i} className="surface p-4">
                     <StatusChip status={ADDRESS_TYPE_LABELS[a.type]} />
                     <p className="mt-2 flex items-start gap-2 text-sm">
                       <MapPin className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                      {[a.line1, a.line2, a.city, a.state, a.pinCode, a.country].filter(Boolean).join(", ")}
+                      {[a.line1, a.line2, a.city, a.state, a.pinCode, a.country]
+                        .filter(Boolean)
+                        .join(", ")}
                     </p>
                   </div>
                 ))}
@@ -704,19 +825,29 @@ function ClientDetailDrawer({
 
             {poc.length > 0 && (
               <div className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Points of Contact</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Points of Contact
+                </p>
                 {poc.map((p, i) => (
                   <div key={p.id ?? i} className="surface p-4">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold">{p.personName}</p>
                       {p.primary && (
-                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Primary</span>
+                        <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                          Primary
+                        </span>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{p.designation} · {p.department}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.designation} · {p.department}
+                    </p>
                     <div className="mt-2 space-y-1 text-xs">
-                      <p className="flex items-center gap-2"><Mail className="size-3.5 text-muted-foreground" /> {p.email}</p>
-                      <p className="flex items-center gap-2"><Phone className="size-3.5 text-muted-foreground" /> {p.phone}</p>
+                      <p className="flex items-center gap-2">
+                        <Mail className="size-3.5 text-muted-foreground" /> {p.email}
+                      </p>
+                      <p className="flex items-center gap-2">
+                        <Phone className="size-3.5 text-muted-foreground" /> {p.phone}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -728,7 +859,9 @@ function ClientDetailDrawer({
           <TabsContent value="commercial" className="mt-5 space-y-5">
             {client.paymentTerms && (
               <div className="surface p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Payment Terms</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Payment Terms
+                </p>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { l: "Advance %", v: client.paymentTerms.advancePercent },
@@ -736,7 +869,12 @@ function ClientDetailDrawer({
                     { l: "After Dispatch Days", v: client.paymentTerms.afterDispatchDays },
                     { l: "After Dispatch %", v: client.paymentTerms.afterDispatchPercent },
                   ].map((f) => (
-                    <div key={f.l}><p className="text-[11px] uppercase tracking-wide text-muted-foreground">{f.l}</p><p className="mt-1 text-sm font-semibold">{f.v ?? "—"}</p></div>
+                    <div key={f.l}>
+                      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {f.l}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold">{f.v ?? "—"}</p>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -744,7 +882,9 @@ function ClientDetailDrawer({
 
             {client.bankDetail && (
               <div className="surface p-4">
-                <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Building2 className="size-3.5" /> Bank Details</p>
+                <p className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <Building2 className="size-3.5" /> Bank Details
+                </p>
                 <dl className="space-y-2 text-xs">
                   {[
                     ["Account Holder", client.bankDetail.accountHolderName],
@@ -753,18 +893,28 @@ function ClientDetailDrawer({
                     ["Branch", client.bankDetail.branchName],
                     ["IFSC", client.bankDetail.ifscCode],
                     ["SWIFT", client.bankDetail.swiftCode],
-                  ].filter(([, v]) => v).map(([l, v]) => (
-                    <div key={l} className="flex justify-between gap-4"><dt className="text-muted-foreground">{l}</dt><dd className="text-right font-medium">{v}</dd></div>
-                  ))}
+                  ]
+                    .filter(([, v]) => v)
+                    .map(([l, v]) => (
+                      <div key={l} className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">{l}</dt>
+                        <dd className="text-right font-medium">{v}</dd>
+                      </div>
+                    ))}
                 </dl>
               </div>
             )}
 
             <div className="surface p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Client Tier</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Client Tier
+              </p>
               <div className="flex items-center gap-3">
                 <TierBadge level={client.clientLevel} />
-                <span className="text-xs text-muted-foreground">Based on ₹{((client.annualTurnover ?? 0) / 10_000_000).toFixed(2)} Cr annual turnover</span>
+                <span className="text-xs text-muted-foreground">
+                  Based on ₹{((client.annualTurnover ?? 0) / 10_000_000).toFixed(2)} Cr annual
+                  turnover
+                </span>
               </div>
             </div>
           </TabsContent>
@@ -895,7 +1045,9 @@ function ClientFormDialog({
       <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-3xl lg:max-w-4xl sm:h-[88vh] sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
         {/* Fixed Header */}
         <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
-          <DialogTitle className="text-lg font-semibold">{isEdit ? "Edit Client" : "Add New Client"}</DialogTitle>
+          <DialogTitle className="text-lg font-semibold">
+            {isEdit ? "Edit Client" : "Add New Client"}
+          </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
             {isEdit
               ? `Editing ${editingClient?.companyName} (${editingClient?.customerCode})`
@@ -914,33 +1066,57 @@ function ClientFormDialog({
                 <div className="surface flex items-center gap-3 p-3 rounded-lg">
                   <span className="text-xs font-medium text-muted-foreground">Customer Code</span>
                   <span className="text-sm font-semibold">{editingClient?.customerCode}</span>
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">Auto-generated</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                    Auto-generated
+                  </span>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="customerType">Customer Type *</Label>
-                  <Select value={form.watch("customerType")} onValueChange={(v) => form.setValue("customerType", v as CustomerType)}>
-                    <SelectTrigger id="customerType"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <Select
+                    value={form.watch("customerType")}
+                    onValueChange={(v) => form.setValue("customerType", v as CustomerType)}
+                  >
+                    <SelectTrigger id="customerType">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {CUSTOMER_TYPES.map((t) => (<SelectItem key={t} value={t}>{CUSTOMER_TYPE_LABELS[t]}</SelectItem>))}
+                      {CUSTOMER_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {CUSTOMER_TYPE_LABELS[t]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="annualTurnover">Annual Turnover (₹)</Label>
-                  <Input id="annualTurnover" type="number" placeholder="e.g. 75000000" {...form.register("annualTurnover")} />
+                  <Input
+                    id="annualTurnover"
+                    type="number"
+                    placeholder="e.g. 75000000"
+                    {...form.register("annualTurnover")}
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name *</Label>
-                  <Input id="companyName" placeholder="e.g. Acme Global Industries" {...form.register("companyName", { required: true })} />
+                  <Input
+                    id="companyName"
+                    placeholder="e.g. Acme Global Industries"
+                    {...form.register("companyName", { required: true })}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="tradeName">Trade Name</Label>
-                  <Input id="tradeName" placeholder="e.g. Acme Trading" {...form.register("tradeName")} />
+                  <Input
+                    id="tradeName"
+                    placeholder="e.g. Acme Trading"
+                    {...form.register("tradeName")}
+                  />
                 </div>
               </div>
             </fieldset>
@@ -951,11 +1127,7 @@ function ClientFormDialog({
             <fieldset className="space-y-5">
               <legend className="text-sm font-semibold">Addresses</legend>
 
-              <AddressBlock
-                title="Registered Address"
-                prefix="registeredAddress"
-                form={form}
-              />
+              <AddressBlock title="Registered Address" prefix="registeredAddress" form={form} />
 
               <Separator className="my-2" />
 
@@ -1007,19 +1179,35 @@ function ClientFormDialog({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label>Advance %</Label>
-                  <Input type="number" placeholder="e.g. 50" {...form.register("paymentTerms.advancePercent")} />
+                  <Input
+                    type="number"
+                    placeholder="e.g. 50"
+                    {...form.register("paymentTerms.advancePercent")}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Before Dispatch %</Label>
-                  <Input type="number" placeholder="e.g. 50" {...form.register("paymentTerms.beforeDispatchPercent")} />
+                  <Input
+                    type="number"
+                    placeholder="e.g. 50"
+                    {...form.register("paymentTerms.beforeDispatchPercent")}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>After Dispatch Days</Label>
-                  <Input type="number" placeholder="e.g. 30" {...form.register("paymentTerms.afterDispatchDays")} />
+                  <Input
+                    type="number"
+                    placeholder="e.g. 30"
+                    {...form.register("paymentTerms.afterDispatchDays")}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>After Dispatch %</Label>
-                  <Input type="number" placeholder="e.g. 0" {...form.register("paymentTerms.afterDispatchPercent")} />
+                  <Input
+                    type="number"
+                    placeholder="e.g. 0"
+                    {...form.register("paymentTerms.afterDispatchPercent")}
+                  />
                 </div>
               </div>
             </fieldset>
@@ -1030,41 +1218,106 @@ function ClientFormDialog({
             <fieldset className="space-y-4">
               <div className="flex items-center justify-between">
                 <legend className="text-sm font-semibold">Points of Contact</legend>
-                <Button type="button" variant="outline" size="sm" onClick={() => addPoc({ personName: "", designation: "", department: "", phone: "", email: "", primary: false })}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    addPoc({
+                      personName: "",
+                      designation: "",
+                      department: "",
+                      phone: "",
+                      email: "",
+                      primary: false,
+                    })
+                  }
+                >
                   <Plus className="size-3.5" /> Add
                 </Button>
               </div>
-              {pocFields.length === 0 && <p className="text-xs text-muted-foreground">No contacts added yet.</p>}
+              {pocFields.length === 0 && (
+                <p className="text-xs text-muted-foreground">No contacts added yet.</p>
+              )}
               {pocFields.map((field, idx) => (
                 <div key={field.id} className="surface space-y-3.5 p-4 rounded-xl">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <p className="text-xs font-semibold text-muted-foreground">Contact {idx + 1}</p>
+                      <p className="text-xs font-semibold text-muted-foreground">
+                        Contact {idx + 1}
+                      </p>
                       <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                         <Checkbox
                           checked={form.watch(`pointOfContacts.${idx}.primary`)}
                           onCheckedChange={(v) => {
                             if (v === true) {
-                              pocFields.forEach((_, i) => form.setValue(`pointOfContacts.${i}.primary`, false));
+                              pocFields.forEach((_, i) =>
+                                form.setValue(`pointOfContacts.${i}.primary`, false),
+                              );
                             }
                             form.setValue(`pointOfContacts.${idx}.primary`, v === true);
                           }}
                         />
-                        <span className={cn(form.watch(`pointOfContacts.${idx}.primary`) ? "text-primary font-medium" : "text-muted-foreground")}>Primary</span>
+                        <span
+                          className={cn(
+                            form.watch(`pointOfContacts.${idx}.primary`)
+                              ? "text-primary font-medium"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          Primary
+                        </span>
                       </label>
                     </div>
-                    <Button type="button" variant="ghost" size="icon" className="size-7" onClick={() => removePoc(idx)}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-7"
+                      onClick={() => removePoc(idx)}
+                    >
                       <Trash2 className="size-3.5 text-destructive" />
                     </Button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    <div className="space-y-1"><Label className="text-xs">Person Name *</Label><Input {...form.register(`pointOfContacts.${idx}.personName`, { required: true })} placeholder="Full name" /></div>
-                    <div className="space-y-1"><Label className="text-xs">Designation</Label><Input {...form.register(`pointOfContacts.${idx}.designation`)} placeholder="e.g. Sales Ex." /></div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Person Name *</Label>
+                      <Input
+                        {...form.register(`pointOfContacts.${idx}.personName`, { required: true })}
+                        placeholder="Full name"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Designation</Label>
+                      <Input
+                        {...form.register(`pointOfContacts.${idx}.designation`)}
+                        placeholder="e.g. Sales Ex."
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1"><Label className="text-xs">Department</Label><Input {...form.register(`pointOfContacts.${idx}.department`)} placeholder="e.g. Sales, QA, QC, Admin" /></div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Department</Label>
+                    <Input
+                      {...form.register(`pointOfContacts.${idx}.department`)}
+                      placeholder="e.g. Sales, QA, QC, Admin"
+                    />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    <div className="space-y-1"><Label className="text-xs">Phone</Label><Input {...form.register(`pointOfContacts.${idx}.phone`)} placeholder="+91-XXXXXXXXXX" /></div>
-                    <div className="space-y-1"><Label className="text-xs">Email</Label><Input type="email" {...form.register(`pointOfContacts.${idx}.email`)} placeholder="email@example.com" /></div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Phone</Label>
+                      <Input
+                        {...form.register(`pointOfContacts.${idx}.phone`)}
+                        placeholder="+91-XXXXXXXXXX"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Email</Label>
+                      <Input
+                        type="email"
+                        {...form.register(`pointOfContacts.${idx}.email`)}
+                        placeholder="email@example.com"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1074,8 +1327,20 @@ function ClientFormDialog({
 
         {/* Fixed Footer at bottom */}
         <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" form="client-form" disabled={isSubmitting} className="w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="client-form"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto"
+          >
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
             {isEdit ? "Update Client" : "Create Client"}
           </Button>
@@ -1133,7 +1398,7 @@ function AdminDocumentsPanel({ client }: { client: Client }) {
     mutationFn: (docId: string) => deleteDocument(client.id, docId),
     onSuccess: (updatedClient) => {
       queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
-        old.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+        old.map((c) => (c.id === updatedClient.id ? updatedClient : c)),
       );
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast.success("Document removed");
@@ -1146,7 +1411,7 @@ function AdminDocumentsPanel({ client }: { client: Client }) {
     try {
       const updatedClient = await uploadDocument(client.id, file, docType);
       queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
-        old.map((c) => (c.id === updatedClient.id ? updatedClient : c))
+        old.map((c) => (c.id === updatedClient.id ? updatedClient : c)),
       );
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast.success(`${DOCUMENT_TYPE_LABELS[docType]} uploaded successfully`);
@@ -1172,7 +1437,9 @@ function AdminDocumentsPanel({ client }: { client: Client }) {
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={uploadedCount === totalCount ? "default" : "secondary"}>
-            {uploadedCount === totalCount ? "Complete" : `${Math.round((uploadedCount / totalCount) * 100)}% Complete`}
+            {uploadedCount === totalCount
+              ? "Complete"
+              : `${Math.round((uploadedCount / totalCount) * 100)}% Complete`}
           </Badge>
         </div>
       </div>
@@ -1200,9 +1467,7 @@ function AdminDocumentsPanel({ client }: { client: Client }) {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold truncate leading-tight">
-                          {label}
-                        </p>
+                        <p className="text-sm font-semibold truncate leading-tight">{label}</p>
                         {doc.storageType && (
                           <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground shrink-0">
                             {doc.storageType}
@@ -1324,13 +1589,18 @@ function AdminDocRow({
         {DOCUMENT_TYPE_LABELS[docType]}
       </span>
       <input
-        ref={(el) => { inputRef.current = el; }}
+        ref={(el) => {
+          inputRef.current = el;
+        }}
         type="file"
         className="hidden"
         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) { onUpload(file); e.target.value = ""; }
+          if (file) {
+            onUpload(file);
+            e.target.value = "";
+          }
         }}
       />
       <div className="flex items-center gap-1 shrink-0">
@@ -1355,11 +1625,7 @@ function AdminDocRow({
           onClick={() => inputRef.current?.click()}
           title={uploaded ? "Replace file" : "Upload file"}
         >
-          {uploading ? (
-            <Loader2 className="size-3 animate-spin" />
-          ) : (
-            <Upload className="size-3" />
-          )}
+          {uploading ? <Loader2 className="size-3 animate-spin" /> : <Upload className="size-3" />}
           {uploaded ? "Replace" : "Upload"}
         </Button>
       </div>

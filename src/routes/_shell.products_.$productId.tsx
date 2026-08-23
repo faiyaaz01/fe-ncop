@@ -10,12 +10,23 @@ import {
   getProductDocumentViewUrl,
   getProductDocumentDownloadUrl,
 } from "@/lib/product-api";
-import type { Product, ProductDocument, ProductDocumentType, DosageForm } from "@/lib/product-types";
+import type {
+  Product,
+  ProductDocument,
+  ProductDocumentType,
+  DosageForm,
+} from "@/lib/product-types";
 import { toast } from "sonner";
 import { PageHeader, StatusChip, SectionLoader, Panel } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import {
   Pencil,
   Trash2,
@@ -27,6 +38,7 @@ import {
   ExternalLink,
   Download,
   ArrowLeft,
+  ChevronLeft,
   Loader2,
 } from "lucide-react";
 
@@ -54,13 +66,17 @@ function ProductDetail() {
 
   const [uploadDocType, setUploadDocType] = useState<ProductDocumentType>("ARTWORK");
   const [isUploading, setIsUploading] = useState(false);
-  
+
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<ProductDocument | null>(null);
 
   // Queries
-  const { data: product, isLoading, isError } = useQuery({
+  const {
+    data: product,
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["products", productId],
     queryFn: () => fetchProductById(productId),
     refetchInterval: 3000,
@@ -130,22 +146,10 @@ function ProductDetail() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Breadcrumb Navigation */}
-      <div className="flex items-center gap-2 mb-2">
-        {" "}
-        <div className="flex items-center gap-2 mb-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate({ to: "/products" })}
-            className="h-8 w-8 hover:bg-secondary"
-          >
-            <ArrowLeft className="size-4" />
-          </Button>
-          <span className="text-muted-foreground text-sm font-medium tracking-tight">
-            Back to Catalog
-          </span>
-        </div>
+      <div>
+        <Button variant="outline" onClick={() => navigate({ to: "/products" })}>
+          <ChevronLeft className="size-4" /> Back to products
+        </Button>
       </div>
 
       <PageHeader

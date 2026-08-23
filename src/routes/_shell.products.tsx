@@ -52,6 +52,7 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 import {
   fetchProducts,
   fetchProductMetrics,
@@ -167,6 +168,7 @@ function ProductMaster() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dosageFilter, setDosageFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
 
@@ -229,7 +231,8 @@ function ProductMaster() {
         title="Products"
         description="Manage pharmaceutical catalog, dosage forms, active pharmaceutical ingredients (APIs), and dossiers."
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <ViewModeToggle value={viewMode} onChange={setViewMode} />
             <Button variant="outline" onClick={() => setDosageConfigOpen(true)} className="gap-2">
               <SlidersHorizontal className="size-4" />
               Dosage Configurations
@@ -417,156 +420,225 @@ function ProductMaster() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[850px] w-full border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-border bg-secondary/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  <th className="px-4 py-3">Product / SKU</th>
-                  <th className="px-4 py-3">Dosage & Variant</th>
-                  <th className="px-4 py-3">Formulation / Composition</th>
-                  <th className="px-4 py-3">Packaging & MOQ</th>
-                  <th className="px-4 py-3">Unit Price</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {productList.map((product) => (
-                  <tr
-                    key={product.id}
-                    onClick={() => navigate({ to: `/products/${product.id}` })}
-                    className="hover:bg-secondary/40 transition-colors cursor-pointer"
-                  >
-                    {/* Product & SKU */}
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-start gap-3">
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs mt-0.5">
-                          <Pill className="size-4" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-foreground text-sm hover:text-primary transition-colors">
-                            {product.brandName}
-                          </p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                              {product.productCode}
-                            </Badge>
-                            <span className="text-[11px] text-muted-foreground">
-                              {product.category || "General"}
-                            </span>
+          <>
+            <div
+              className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
+            >
+              {productList.map((product) => (
+                <article
+                  key={product.id}
+                  className="space-y-3 rounded-xl border border-border bg-card p-4"
+                >
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{product.brandName}</p>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {product.productCode} · {product.category || "General"}
+                      </p>
+                    </div>
+                    <StatusChip status={product.status as any} />
+                  </div>
+                  <p className="break-words text-xs text-muted-foreground">
+                    {product.composition || "No composition recorded"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/45 p-3 text-xs">
+                    <div>
+                      <p className="text-muted-foreground">Dosage</p>
+                      <p className="mt-0.5 font-medium">
+                        {product.dosageForm}
+                        {product.dosageVariant ? ` · ${product.dosageVariant}` : ""}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Price</p>
+                      <p className="mt-0.5 font-medium">
+                        {product.unitPrice != null
+                          ? `${product.currency || "USD"} ${product.unitPrice.toFixed(2)}`
+                          : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate({ to: `/products/${product.id}` })}
+                    >
+                      <Eye className="size-4" /> View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditingProduct(product);
+                        setProductModalOpen(true);
+                      }}
+                    >
+                      <Pencil className="size-4" /> Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive"
+                      onClick={() => setDeleteConfirm({ id: product.id, name: product.brandName })}
+                    >
+                      <Trash2 className="size-4" /> Delete
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className={`hidden overflow-x-auto ${viewMode === "list" ? "md:block" : ""}`}>
+              <table className="min-w-[850px] w-full border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <th className="px-4 py-3">Product / SKU</th>
+                    <th className="px-4 py-3">Dosage & Variant</th>
+                    <th className="px-4 py-3">Formulation / Composition</th>
+                    <th className="px-4 py-3">Packaging & MOQ</th>
+                    <th className="px-4 py-3">Unit Price</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {productList.map((product) => (
+                    <tr
+                      key={product.id}
+                      onClick={() => navigate({ to: `/products/${product.id}` })}
+                      className="hover:bg-secondary/40 transition-colors cursor-pointer"
+                    >
+                      {/* Product & SKU */}
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-start gap-3">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs mt-0.5">
+                            <Pill className="size-4" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground text-sm hover:text-primary transition-colors">
+                              {product.brandName}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                {product.productCode}
+                              </Badge>
+                              <span className="text-[11px] text-muted-foreground">
+                                {product.category || "General"}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Dosage & Variant */}
-                    <td className="px-4 py-3.5 align-middle">
-                      <div>
-                        <span className="font-medium text-foreground text-xs">
-                          {product.dosageForm}
-                        </span>
-                        {product.dosageVariant && (
+                      {/* Dosage & Variant */}
+                      <td className="px-4 py-3.5 align-middle">
+                        <div>
+                          <span className="font-medium text-foreground text-xs">
+                            {product.dosageForm}
+                          </span>
+                          {product.dosageVariant && (
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {product.dosageVariant}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Composition */}
+                      <td className="px-4 py-3.5 align-middle max-w-[280px]">
+                        <p
+                          className="text-xs font-medium text-foreground line-clamp-2"
+                          title={product.composition}
+                        >
+                          {product.composition || "—"}
+                        </p>
+                        {product.ingredients && product.ingredients.length > 0 && (
                           <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {product.dosageVariant}
+                            {product.ingredients.length} active API
+                            {product.ingredients.length > 1 ? "s" : ""}
                           </p>
                         )}
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Composition */}
-                    <td className="px-4 py-3.5 align-middle max-w-[280px]">
-                      <p
-                        className="text-xs font-medium text-foreground line-clamp-2"
-                        title={product.composition}
-                      >
-                        {product.composition || "—"}
-                      </p>
-                      {product.ingredients && product.ingredients.length > 0 && (
+                      {/* Packaging & MOQ */}
+                      <td className="px-4 py-3.5 align-middle">
+                        <p className="text-xs text-foreground font-medium">
+                          {product.packaging || "Standard"}
+                        </p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
-                          {product.ingredients.length} active API
-                          {product.ingredients.length > 1 ? "s" : ""}
+                          MOQ: {product.moq ? product.moq.toLocaleString() : "—"}
                         </p>
-                      )}
-                    </td>
+                      </td>
 
-                    {/* Packaging & MOQ */}
-                    <td className="px-4 py-3.5 align-middle">
-                      <p className="text-xs text-foreground font-medium">
-                        {product.packaging || "Standard"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        MOQ: {product.moq ? product.moq.toLocaleString() : "—"}
-                      </p>
-                    </td>
+                      {/* Price */}
+                      <td className="px-4 py-3.5 align-middle">
+                        {product.unitPrice !== undefined && product.unitPrice !== null ? (
+                          <p className="text-sm font-semibold text-foreground tabular-nums">
+                            {product.currency || "USD"} {product.unitPrice.toFixed(2)}
+                          </p>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </td>
 
-                    {/* Price */}
-                    <td className="px-4 py-3.5 align-middle">
-                      {product.unitPrice !== undefined && product.unitPrice !== null ? (
-                        <p className="text-sm font-semibold text-foreground tabular-nums">
-                          {product.currency || "USD"} {product.unitPrice.toFixed(2)}
-                        </p>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </td>
+                      {/* Status */}
+                      <td className="px-4 py-3.5 align-middle">
+                        <StatusChip status={product.status as any} />
+                      </td>
 
-                    {/* Status */}
-                    <td className="px-4 py-3.5 align-middle">
-                      <StatusChip status={product.status as any} />
-                    </td>
-
-                    {/* Actions */}
-                    <td
-                      className="px-4 py-3.5 text-right align-middle"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:text-foreground"
-                          title="View Details & Dossier"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate({ to: `/products/${product.id}` });
-                          }}
-                        >
-                          <Eye className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-muted-foreground hover:text-foreground"
-                          title="Edit Product"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingProduct(product);
-                            setProductModalOpen(true);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-8 text-destructive hover:bg-destructive/10"
-                          title="Delete Product"
-                          onClick={() =>
-                            setDeleteConfirm({
-                              id: product.id,
-                              name: product.brandName,
-                            })
-                          }
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {/* Actions */}
+                      <td
+                        className="px-4 py-3.5 text-right align-middle"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-foreground"
+                            title="View Details & Dossier"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate({ to: `/products/${product.id}` });
+                            }}
+                          >
+                            <Eye className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-foreground"
+                            title="Edit Product"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingProduct(product);
+                              setProductModalOpen(true);
+                            }}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-destructive hover:bg-destructive/10"
+                            title="Delete Product"
+                            onClick={() =>
+                              setDeleteConfirm({
+                                id: product.id,
+                                name: product.brandName,
+                              })
+                            }
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* ── Pagination Bar ── */}
