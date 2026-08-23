@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "motion/react";
 import {
   Boxes,
   Plus,
@@ -28,7 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PageHeader, StatusChip, SectionLoader } from "@/components/kit";
+import { CardGridLoader, PageHeader, StatusChip, SectionLoader } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -397,7 +398,16 @@ function ProductMaster() {
       {/* ── Products Table ── */}
       <div className="surface rounded-xl border border-border/70 overflow-hidden">
         {productsLoading ? (
-          <SectionLoader />
+          <>
+            <div className={viewMode === "list" ? "md:hidden" : ""}>
+              <CardGridLoader />
+            </div>
+            {viewMode === "list" && (
+              <div className="hidden md:block">
+                <SectionLoader />
+              </div>
+            )}
+          </>
         ) : productList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
             <div className="size-12 rounded-full bg-secondary/80 flex items-center justify-center mb-3">
@@ -424,14 +434,17 @@ function ProductMaster() {
             <div
               className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
             >
-              {productList.map((product) => (
-                <article
+              {productList.map((product, index) => (
+                <motion.article
                   key={product.id}
-                  className="space-y-3 rounded-xl border border-border bg-card p-4"
+                  className="min-w-0 space-y-3 overflow-hidden rounded-xl border border-border bg-card p-4"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.24, delay: Math.min(index * 0.04, 0.2) }}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{product.brandName}</p>
+                      <p className="break-words text-sm font-semibold">{product.brandName}</p>
                       <p className="mt-1 truncate text-xs text-muted-foreground">
                         {product.productCode} · {product.category || "General"}
                       </p>
@@ -458,10 +471,11 @@ function ProductMaster() {
                       </p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="flex min-w-0 flex-col gap-2">
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full shrink-0 justify-center"
                       onClick={() => navigate({ to: `/products/${product.id}` })}
                     >
                       <Eye className="size-4" /> View
@@ -469,6 +483,7 @@ function ProductMaster() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="w-full shrink-0 justify-center"
                       onClick={() => {
                         setEditingProduct(product);
                         setProductModalOpen(true);
@@ -479,13 +494,13 @@ function ProductMaster() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-destructive"
+                      className="w-full shrink-0 justify-center text-destructive"
                       onClick={() => setDeleteConfirm({ id: product.id, name: product.brandName })}
                     >
                       <Trash2 className="size-4" /> Delete
                     </Button>
                   </div>
-                </article>
+                </motion.article>
               ))}
             </div>
             <div className={`hidden overflow-x-auto ${viewMode === "list" ? "md:block" : ""}`}>
@@ -1332,8 +1347,8 @@ function DosageConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] w-[95vw] overflow-y-auto sm:max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:h-[88vh] sm:w-[92vw] sm:max-w-3xl sm:rounded-2xl flex flex-col overflow-hidden p-0 shadow-2xl">
+        <DialogHeader className="shrink-0 border-b border-border/40 bg-muted/20 px-6 py-4">
           <DialogTitle className="flex items-center gap-2 text-lg">
             <SlidersHorizontal className="size-5 text-primary" />
             Database-Configured Dosage Forms & Variants
@@ -1344,165 +1359,168 @@ function DosageConfigDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-2">
-          {/* Left Column: List of Forms in DB */}
-          <div className="md:col-span-5 rounded-xl border border-border/70 surface p-3 flex flex-col h-[260px] md:h-[480px]">
-            <div className="flex items-center justify-between pb-2 border-b border-border/60">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Dosage Forms ({dosageForms.length})
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-xs gap-1"
-                onClick={() => {
-                  setIsCreatingNew(true);
-                  setSelectedForm(null);
-                }}
-              >
-                <Plus className="size-3" /> Add Form
-              </Button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-1 pt-2 pr-1">
-              {dosageForms.map((df) => (
-                <button
-                  key={df.id}
-                  type="button"
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+            {/* Left Column: List of Forms in DB */}
+            <div className="md:col-span-5 rounded-xl border border-border/70 surface p-3 flex flex-col h-[260px] md:h-[480px]">
+              <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Dosage Forms ({dosageForms.length})
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1"
                   onClick={() => {
-                    setIsCreatingNew(false);
-                    setSelectedForm(df);
+                    setIsCreatingNew(true);
+                    setSelectedForm(null);
                   }}
-                  className={cn(
-                    "w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between",
-                    !isCreatingNew && selectedForm?.id === df.id
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "hover:bg-secondary/60 text-foreground",
-                  )}
                 >
-                  <span>{df.name}</span>
-                  <Badge
-                    variant={!isCreatingNew && selectedForm?.id === df.id ? "secondary" : "outline"}
-                    className="text-[10px] px-1.5 py-0"
-                  >
-                    {df.variants?.length || 0} variants
-                  </Badge>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column: Edit selected form & variants */}
-          <div className="md:col-span-7 rounded-xl border border-border/70 surface p-4 flex flex-col justify-between space-y-4 md:h-[480px]">
-            <div className="space-y-3.5">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  {isCreatingNew
-                    ? "New Dosage Form (Level 1)"
-                    : "Edit " + (selectedForm?.name || "")}
-                </h4>
-                {!isCreatingNew && selectedForm && (
-                  <Badge variant="outline" className="text-[10px]">
-                    ID: {selectedForm.id}
-                  </Badge>
-                )}
+                  <Plus className="size-3" /> Add Form
+                </Button>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="dfName" className="text-xs">
-                  Dosage Form Name (Level 1)
-                </Label>
-                <Input
-                  id="dfName"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  placeholder="e.g. Syrup, Injection, Medicated Film"
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="dfDesc" className="text-xs">
-                  Description
-                </Label>
-                <Input
-                  id="dfDesc"
-                  value={formDesc}
-                  onChange={(e) => setFormDesc(e.target.value)}
-                  placeholder="e.g. Viscous liquid formulation for oral use"
-                  className="h-8 text-xs"
-                />
-              </div>
-
-              {/* Level 2 Variants Builder */}
-              <div className="space-y-2 pt-2 border-t border-border/60">
-                <Label className="text-xs flex items-center justify-between">
-                  <span>Level 2 Dosage Variants</span>
-                  <span className="text-[10px] text-muted-foreground">
-                    {variantsList.length} configured
-                  </span>
-                </Label>
-
-                <div className="flex items-center gap-1.5">
-                  <Input
-                    value={newVariantInput}
-                    onChange={(e) => setNewVariantInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleAddVariant();
-                      }
-                    }}
-                    placeholder="Enter variant name (e.g. Sugar Free Syrup)..."
-                    className="h-8 text-xs flex-1"
-                  />
-                  <Button
+              <div className="flex-1 overflow-y-auto space-y-1 pt-2 pr-1">
+                {dosageForms.map((df) => (
+                  <button
+                    key={df.id}
                     type="button"
-                    size="sm"
-                    variant="outline"
-                    className="h-8 text-xs"
-                    onClick={handleAddVariant}
+                    onClick={() => {
+                      setIsCreatingNew(false);
+                      setSelectedForm(df);
+                    }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-between",
+                      !isCreatingNew && selectedForm?.id === df.id
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "hover:bg-secondary/60 text-foreground",
+                    )}
                   >
-                    Add
-                  </Button>
-                </div>
+                    <span>{df.name}</span>
+                    <Badge
+                      variant={
+                        !isCreatingNew && selectedForm?.id === df.id ? "secondary" : "outline"
+                      }
+                      className="text-[10px] px-1.5 py-0"
+                    >
+                      {df.variants?.length || 0} variants
+                    </Badge>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 rounded-lg bg-secondary/30 border border-border/50">
-                  {variantsList.length === 0 ? (
-                    <p className="text-[11px] text-muted-foreground p-1">
-                      No Level 2 variants added yet.
-                    </p>
-                  ) : (
-                    variantsList.map((v) => (
-                      <span
-                        key={v}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary text-xs font-medium text-foreground border border-border/60"
-                      >
-                        {v}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveVariant(v)}
-                          className="hover:text-destructive transition-colors ml-0.5"
-                        >
-                          <X className="size-3" />
-                        </button>
-                      </span>
-                    ))
+            {/* Right Column: Edit selected form & variants */}
+            <div className="md:col-span-7 rounded-xl border border-border/70 surface p-4 flex flex-col justify-between space-y-4 md:h-[480px]">
+              <div className="space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {isCreatingNew
+                      ? "New Dosage Form (Level 1)"
+                      : "Edit " + (selectedForm?.name || "")}
+                  </h4>
+                  {!isCreatingNew && selectedForm && (
+                    <Badge variant="outline" className="text-[10px]">
+                      ID: {selectedForm.id}
+                    </Badge>
                   )}
                 </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="dfName" className="text-xs">
+                    Dosage Form Name (Level 1)
+                  </Label>
+                  <Input
+                    id="dfName"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="e.g. Syrup, Injection, Medicated Film"
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="dfDesc" className="text-xs">
+                    Description
+                  </Label>
+                  <Input
+                    id="dfDesc"
+                    value={formDesc}
+                    onChange={(e) => setFormDesc(e.target.value)}
+                    placeholder="e.g. Viscous liquid formulation for oral use"
+                    className="h-8 text-xs"
+                  />
+                </div>
+
+                {/* Level 2 Variants Builder */}
+                <div className="space-y-2 pt-2 border-t border-border/60">
+                  <Label className="text-xs flex items-center justify-between">
+                    <span>Level 2 Dosage Variants</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {variantsList.length} configured
+                    </span>
+                  </Label>
+
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      value={newVariantInput}
+                      onChange={(e) => setNewVariantInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          handleAddVariant();
+                        }
+                      }}
+                      placeholder="Enter variant name (e.g. Sugar Free Syrup)..."
+                      className="h-8 text-xs flex-1"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-xs"
+                      onClick={handleAddVariant}
+                    >
+                      Add
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 rounded-lg bg-secondary/30 border border-border/50">
+                    {variantsList.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground p-1">
+                        No Level 2 variants added yet.
+                      </p>
+                    ) : (
+                      variantsList.map((v) => (
+                        <span
+                          key={v}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-secondary text-xs font-medium text-foreground border border-border/60"
+                        >
+                          {v}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveVariant(v)}
+                            className="hover:text-destructive transition-colors ml-0.5"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-
-            <DialogFooter className="gap-3 sm:gap-3 pt-3 border-t border-border/60">
-              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
-                Close
-              </Button>
-              <Button type="button" size="sm" disabled={isSaving} onClick={handleSave}>
-                {isSaving ? "Saving…" : "Save to Database"}
-              </Button>
-            </DialogFooter>
           </div>
         </div>
+        <DialogFooter className="shrink-0 gap-2.5 border-t border-border/40 bg-background px-6 py-4 sm:justify-end">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+          <Button type="button" disabled={isSaving} onClick={handleSave}>
+            {isSaving ? "Saving…" : "Save to Database"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

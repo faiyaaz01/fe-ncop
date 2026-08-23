@@ -6,6 +6,8 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   ShieldCheck,
   UserCog,
@@ -67,8 +69,13 @@ function Brand({ collapsed }: { collapsed: boolean }) {
       className="flex items-center gap-2.5 overflow-hidden cursor-pointer"
       title="NCOP Pharma Dashboard"
     >
-      <div className="grid size-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-soft">
-        <ShieldCheck className="size-[18px]" />
+      <div
+        className={cn(
+          "grid shrink-0 place-items-center bg-primary text-primary-foreground shadow-soft",
+          collapsed ? "size-8 rounded-lg" : "size-9 rounded-xl",
+        )}
+      >
+        <ShieldCheck className={collapsed ? "size-4" : "size-[18px]"} />
       </div>
       {!collapsed && (
         <div className="leading-tight">
@@ -83,7 +90,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const collapsed = false;
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
   const navigate = useNavigate();
@@ -282,8 +289,27 @@ export function AppShell({ children }: { children: ReactNode }) {
           collapsed ? "w-[76px]" : "w-[260px]",
         )}
       >
-        <div className="flex h-16 items-center justify-between px-4">
+        <div
+          className={cn(
+            "flex h-16 items-center",
+            collapsed ? "justify-between gap-1 px-1.5" : "justify-between px-4",
+          )}
+        >
           <Brand collapsed={collapsed} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground"
+            onClick={() => setCollapsed((current) => !current)}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <PanelLeftOpen className="size-4" />
+            ) : (
+              <PanelLeftClose className="size-4" />
+            )}
+          </Button>
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-2">
@@ -294,11 +320,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-colors",
+                  collapsed ? "justify-center px-2" : "gap-3 px-3",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-secondary hover:text-foreground",
                 )}
+                title={collapsed ? item.label : undefined}
               >
                 {active && (
                   <motion.span

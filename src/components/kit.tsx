@@ -5,8 +5,32 @@ import { cn } from "@/lib/utils";
 // ── Shared Skeleton Loading States ───────────────────────────────────────────
 
 function SkeletonBox({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-primary/10", className)} />;
+}
+
+/** Responsive card skeletons for card-based listings. */
+export function CardGridLoader({ cards = 6 }: { cards?: number }) {
   return (
-    <div className={cn("animate-pulse rounded-md bg-primary/10", className)} />
+    <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: cards }).map((_, index) => (
+        <div key={index} className="space-y-3 rounded-xl border border-border bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-2">
+              <SkeletonBox className="h-4 w-40" />
+              <SkeletonBox className="h-3 w-24" />
+            </div>
+            <SkeletonBox className="h-6 w-16 rounded-full" />
+          </div>
+          <SkeletonBox className="h-3 w-full" />
+          <SkeletonBox className="h-3 w-4/5" />
+          <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/45 p-3">
+            <SkeletonBox className="h-8 w-full" />
+            <SkeletonBox className="h-8 w-full" />
+          </div>
+          <SkeletonBox className="h-8 w-full" />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -38,13 +62,7 @@ export function SectionLoader({ rows = 5 }: { rows?: number }) {
  * Consistent table-row skeleton — drop inside `<tbody>` as the only rows
  * when `isLoading` is true. Renders `rows` skeleton rows with `colSpan` cells.
  */
-export function TableRowLoader({
-  colSpan,
-  rows = 5,
-}: {
-  colSpan: number;
-  rows?: number;
-}) {
+export function TableRowLoader({ colSpan, rows = 5 }: { colSpan: number; rows?: number }) {
   // Build per-cell widths for a natural look
   const cellWidths: Record<number, string[]> = {
     7: ["w-32", "w-20", "w-16", "w-24", "w-20", "w-20", "w-16"],
@@ -73,7 +91,7 @@ export function TableRowLoader({
                     "h-3 rounded",
                     w,
                     // vary opacity slightly per row for a natural stagger
-                    rowIdx % 2 === 0 ? "opacity-80" : "opacity-60"
+                    rowIdx % 2 === 0 ? "opacity-80" : "opacity-60",
                   )}
                 />
               )}
@@ -121,7 +139,17 @@ export function Panel({
   children: ReactNode;
   hover?: boolean;
 }) {
-  return <div className={cn("surface flex flex-col justify-between p-5", hover && "lift", className)}>{children}</div>;
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      className={cn("surface flex flex-col justify-between p-5", hover && "lift", className)}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 export function Reveal({

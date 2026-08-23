@@ -1,8 +1,9 @@
 import { ClipboardList, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
+import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader, Panel, SectionLoader, StatusChip } from "@/components/kit";
+import { CardGridLoader, PageHeader, Panel, SectionLoader, StatusChip } from "@/components/kit";
 import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 import type { CustomerInquiry } from "@/lib/inquiry-types";
 
@@ -47,7 +48,16 @@ export function InquiryList({
       />
       <Panel className="overflow-hidden p-0">
         {loading ? (
-          <SectionLoader />
+          <>
+            <div className={viewMode === "list" ? "md:hidden" : ""}>
+              <CardGridLoader />
+            </div>
+            {viewMode === "list" && (
+              <div className="hidden md:block">
+                <SectionLoader />
+              </div>
+            )}
+          </>
         ) : inquiries.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
@@ -72,10 +82,13 @@ export function InquiryList({
             <div
               className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
             >
-              {inquiries.map((inquiry) => (
-                <article
+              {inquiries.map((inquiry, index) => (
+                <motion.article
                   key={inquiry.id}
                   className="space-y-3 rounded-xl border border-border bg-card p-4"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.24, delay: Math.min(index * 0.04, 0.2) }}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -132,7 +145,7 @@ export function InquiryList({
                       <Pencil className="size-4" /> Edit inquiry
                     </Button>
                   )}
-                </article>
+                </motion.article>
               ))}
             </div>
 

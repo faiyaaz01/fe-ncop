@@ -1,7 +1,14 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { motion } from "motion/react";
 
 interface PaginationBarProps {
   page: number; // 0-indexed
@@ -54,10 +61,14 @@ export function PaginationBar({
   };
 
   return (
-    <div
+    <motion.div
+      key={page}
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       className={cn(
         "flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-border/60 text-xs text-muted-foreground bg-muted/20",
-        className
+        className,
       )}
     >
       {/* Showing range */}
@@ -129,7 +140,10 @@ export function PaginationBar({
                 key={p}
                 variant={isCurrent ? "default" : "outline"}
                 size="sm"
-                className={cn("size-7 p-0 text-xs font-medium", isCurrent ? "pointer-events-none" : "")}
+                className={cn(
+                  "size-7 p-0 text-xs font-medium",
+                  isCurrent ? "pointer-events-none" : "",
+                )}
                 onClick={() => onPageChange(p as number)}
               >
                 {(p as number) + 1}
@@ -162,6 +176,6 @@ export function PaginationBar({
           <ChevronsRight className="size-3.5" />
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 }

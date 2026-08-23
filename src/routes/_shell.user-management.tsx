@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader, Panel, TableRowLoader } from "@/components/kit";
+import { CardGridLoader, PageHeader, Panel, TableRowLoader } from "@/components/kit";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -639,7 +639,7 @@ function UsersTab({
           className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
         >
           {isLoading ? (
-            <TableRowLoader colSpan={1} rows={3} />
+            <CardGridLoader cards={3} />
           ) : users.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-muted-foreground">
               No users found matching your search and filter criteria.
@@ -966,7 +966,7 @@ function RolesTab({
           className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
         >
           {isLoading ? (
-            <TableRowLoader colSpan={1} rows={3} />
+            <CardGridLoader cards={3} />
           ) : roles.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-muted-foreground">
               No roles found matching your search.
@@ -1206,7 +1206,7 @@ function ModuleRightsTab({
           className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
         >
           {isLoading ? (
-            <TableRowLoader colSpan={1} rows={3} />
+            <CardGridLoader cards={3} />
           ) : moduleRights.length === 0 ? (
             <p className="px-6 py-12 text-center text-sm text-muted-foreground">
               No module rights found.

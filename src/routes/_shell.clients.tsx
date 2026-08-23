@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { PageHeader, Panel, Reveal, StatusChip, EmptyState } from "@/components/kit";
+import { EmptyState, PageHeader, Panel, Reveal, SectionLoader, StatusChip } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -473,25 +473,32 @@ function ClientMaster() {
 
       {/* ── Loading ── */}
       {isLoading && (
-        <div
-          className={`grid gap-4 ${viewMode === "list" ? "md:hidden" : "md:grid-cols-2 xl:grid-cols-3"}`}
-        >
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Panel key={i}>
-              <div className="flex items-start gap-3">
-                <Skeleton className="size-11 rounded-xl" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
+        <>
+          <div
+            className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
+          >
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Panel key={i}>
+                <div className="flex items-start gap-3">
+                  <Skeleton className="size-11 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
                 </div>
-              </div>
-              <div className="mt-5 space-y-2">
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-2/3" />
-              </div>
-            </Panel>
-          ))}
-        </div>
+                <div className="mt-5 space-y-2">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              </Panel>
+            ))}
+          </div>
+          {viewMode === "list" && (
+            <div className="hidden overflow-hidden rounded-xl border border-border/60 bg-card md:block">
+              <SectionLoader />
+            </div>
+          )}
+        </>
       )}
 
       {/* ── Error ── */}
