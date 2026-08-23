@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { CardGridLoader, PageHeader, StatusChip, SectionLoader } from "@/components/kit";
+import { CardGridLoader, Counter, PageHeader, StatusChip, SectionLoader } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -259,7 +259,7 @@ function ProductMaster() {
             <Boxes className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight">{metrics?.total ?? totalElements}</p>
+            <p className="text-2xl font-bold tracking-tight"><Counter key={metrics?.total ?? totalElements} value={metrics?.total ?? totalElements} /></p>
             <p className="text-xs text-muted-foreground font-medium">Total Products</p>
           </div>
         </div>
@@ -269,7 +269,7 @@ function ProductMaster() {
             <CheckCircle2 className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight">{metrics?.active ?? 0}</p>
+            <p className="text-2xl font-bold tracking-tight"><Counter key={metrics?.active ?? 0} value={metrics?.active ?? 0} /></p>
             <p className="text-xs text-muted-foreground font-medium">Active SKUs</p>
           </div>
         </div>
@@ -279,7 +279,7 @@ function ProductMaster() {
             <Clock className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight">{metrics?.underDevelopment ?? 0}</p>
+            <p className="text-2xl font-bold tracking-tight"><Counter key={metrics?.underDevelopment ?? 0} value={metrics?.underDevelopment ?? 0} /></p>
             <p className="text-xs text-muted-foreground font-medium">In Development</p>
           </div>
         </div>
@@ -289,7 +289,7 @@ function ProductMaster() {
             <Layers className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight">{dosageForms.length}</p>
+            <p className="text-2xl font-bold tracking-tight"><Counter key={dosageForms.length} value={dosageForms.length} /></p>
             <p className="text-xs text-muted-foreground font-medium">Dosage Forms</p>
           </div>
         </div>
