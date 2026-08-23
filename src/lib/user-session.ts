@@ -4,6 +4,19 @@ export type ModuleRight = {
   visible: boolean;
 };
 
+const ROUTE_MODULE_RIGHTS: Array<{ prefix: string; rights: string[] }> = [
+  { prefix: "/dashboard", rights: ["DASHBOARD"] },
+  { prefix: "/clients", rights: ["CLIENT_MASTER"] },
+  { prefix: "/products", rights: ["PRODUCT_MASTER"] },
+  { prefix: "/inquiry", rights: ["SALES", "QA", "QC"] },
+  { prefix: "/orders", rights: ["SALES"] },
+  { prefix: "/reports", rights: ["REPORTS"] },
+  {
+    prefix: "/user-management",
+    rights: ["USER_MANAGEMENT", "ROLE_MANAGEMENT", "MODULE_RIGHT_MANAGEMENT"],
+  },
+];
+
 export type AppUser = {
   id?: string | undefined;
   email: string;
@@ -51,13 +64,29 @@ export function isUserAdmin(user: AppUser | null | undefined): boolean {
         return key === "USER_MANAGEMENT" || key === "USER-MANAGEMENT";
       }
       const name = String(mr.name || "").toLowerCase();
-      return (
-        (name === "user-management" || name === "user_management") &&
-        mr.visible !== false
-      );
+      return (name === "user-management" || name === "user_management") && mr.visible !== false;
     });
   }
   return false;
+}
+
+export function userModuleRightNames(user: AppUser | null | undefined): string[] {
+  if (!user || !Array.isArray(user.moduleRights)) return [];
+  return user.moduleRights
+    .map((right) => {
+      if (typeof right === "string") return right.toUpperCase();
+      return right.visible !== false ? String(right.name || "").toUpperCase() : "";
+    })
+    .filter(Boolean);
+}
+
+export function canAccessRoute(user: AppUser | null | undefined, pathname: string): boolean {
+  const route = ROUTE_MODULE_RIGHTS.find(
+    ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if (!route) return true;
+  const rights = userModuleRightNames(user);
+  return route.rights.some((right) => rights.includes(right));
 }
 
 type PersistedSession = {
@@ -82,7 +111,7 @@ const INACTIVITY_WARNING_DURATION_MS = 3 * 60 * 1000; // auto-logout 3 min after
 class UserSessionService {
   private currentUser: AppUser | null = null;
   private allUsers: AppUser[] = [];
-  private listeners = new Set<SessionListener>(); 
+  private listeners = new Set<SessionListener>();
   private initialized = false;
 
   private warningTimerId: number | null = null;
@@ -90,10 +119,14 @@ class UserSessionService {
   private refreshUiHandler:
     null | ((opts: { expiresAt: number; remainingMs: number }) => Promise<boolean>) = null;
   private refreshTokenFn:
-    null |
-    ((
-      refreshToken: string | null,
-    ) => Promise<{ token: string; refreshToken?: string | null; expiresIn?: number | null } | null>) = null;
+    | null
+    | ((
+        refreshToken: string | null,
+      ) => Promise<{
+        token: string;
+        refreshToken?: string | null;
+        expiresIn?: number | null;
+      } | null>) = null;
 
   // Absolute timestamp (ms since epoch) when the session expires.
   // Storing this instead of a duration is what makes expiry survive page reloads correctly.
@@ -104,8 +137,8 @@ class UserSessionService {
 
   // Inactivity tracking
   private inactivityTimerId: number | null = null;
-  private inactivityUiHandler:
-    null | ((opts: { warningDurationMs: number }) => Promise<boolean>) = null;
+  private inactivityUiHandler: null | ((opts: { warningDurationMs: number }) => Promise<boolean>) =
+    null;
   private boundActivityHandler: (() => void) | null = null;
   private inactivityPaused = false;
 
@@ -296,20 +329,31 @@ class UserSessionService {
     const nextUser: AppUser = {
       ...this.currentUser,
       token: refreshed.token ?? this.currentUser.token ?? null,
-      refreshToken: refreshed.refreshToken ?? refreshed.refreshToken ?? this.currentUser.refreshToken ?? this.currentUser.refresh_token ?? null,
+      refreshToken:
+        refreshed.refreshToken ??
+        refreshed.refreshToken ??
+        this.currentUser.refreshToken ??
+        this.currentUser.refresh_token ??
+        null,
       refresh_token:
-        refreshed.refreshToken ?? refreshed.refreshToken ?? this.currentUser.refreshToken ?? this.currentUser.refresh_token ?? null,
+        refreshed.refreshToken ??
+        refreshed.refreshToken ??
+        this.currentUser.refreshToken ??
+        this.currentUser.refresh_token ??
+        null,
       expiresIn:
-        typeof refreshed.expiresIn === "number" ? refreshed.expiresIn : this.currentUser.expiresIn ?? null,
+        typeof refreshed.expiresIn === "number"
+          ? refreshed.expiresIn
+          : (this.currentUser.expiresIn ?? null),
       isAuthenticated: true,
       lastLoginAt: this.currentUser.lastLoginAt ?? new Date().toISOString(),
     };
 
     this.currentUser = nextUser;
-    this.allUsers = [nextUser, ...this.allUsers.filter((user) => user.email !== nextUser.email)].slice(
-      0,
-      10,
-    );
+    this.allUsers = [
+      nextUser,
+      ...this.allUsers.filter((user) => user.email !== nextUser.email),
+    ].slice(0, 10);
 
     const durationMs =
       typeof refreshed.expiresIn === "number" && refreshed.expiresIn > 0
@@ -408,7 +452,10 @@ class UserSessionService {
       // No UI handler registered — do not show a blocking native confirm dialog.
       // Default to not extending the session; UI consumers should register refreshUiHandler
       // if they want to prompt the user.
-      console.debug && console.debug("user-session: no refreshUiHandler registered; skipping native confirm fallback");
+      console.debug &&
+        console.debug(
+          "user-session: no refreshUiHandler registered; skipping native confirm fallback",
+        );
       wantsToStay = false;
     }
 

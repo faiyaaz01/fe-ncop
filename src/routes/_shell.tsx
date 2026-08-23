@@ -1,6 +1,6 @@
-import { Outlet, createFileRoute, Navigate } from "@tanstack/react-router";
+import { Outlet, createFileRoute, Navigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { userSessionService } from "@/lib/user-session";
+import { canAccessRoute, userSessionService } from "@/lib/user-session";
 import { AppShell } from "@/components/app-shell";
 
 export const Route = createFileRoute("/_shell")({
@@ -11,6 +11,7 @@ function ShellLayout() {
   const [user, setUser] = useState(() => userSessionService.getCurrentUser());
   const [checked, setChecked] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   // @ts-ignore
   useEffect(() => {
@@ -43,6 +44,10 @@ function ShellLayout() {
   }
 
   if (!checked) return null;
+
+  if (user && !canAccessRoute(user, pathname)) {
+    return <Navigate to="/profile" replace />;
+  }
 
   return (
     <AppShell>

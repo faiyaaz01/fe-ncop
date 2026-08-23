@@ -34,7 +34,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { userSessionService, isUserAdmin } from "@/lib/user-session.ts";
+import { canAccessRoute, userSessionService } from "@/lib/user-session.ts";
 import { apiUrl } from "@/lib/api-config.ts";
 import {
   AlertDialog,
@@ -112,50 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const visibleNav = useMemo(() => {
     if (!currentUser) return nav;
-    const isAdmin =
-      isUserAdmin(currentUser) ||
-      currentUser.userType === "ADMIN" ||
-      currentUser.userType === "SUPER_ADMIN" ||
-      currentUser.role === "ADMIN" ||
-      currentUser.roles?.includes("ADMIN");
-
-    if (isAdmin) return nav;
-
-    // Extract user-level assigned module rights
-    const userRights: string[] = Array.isArray(currentUser.moduleRights)
-      ? (currentUser.moduleRights as any[])
-          .map((r) => (typeof r === "string" ? r : r.hasRight !== false ? r.name : ""))
-          .filter(Boolean)
-      : [];
-    const userRoles = [currentUser.role, ...(currentUser.roles || [])]
-      .filter(Boolean)
-      .map((role) => String(role).toUpperCase());
-
-    const navMapping: Record<string, string[]> = {
-      "/dashboard": [],
-      "/clients": ["CLIENT_MASTER"],
-      "/products": ["PRODUCT_MASTER"],
-      "/inquiry": ["SALES"],
-      "/orders": ["SALES"],
-      "/reports": ["REPORTS", "SALES", "DASHBOARD"],
-      "/user-management": ["USER_MANAGEMENT", "ROLE_MANAGEMENT", "MODULE_RIGHT_MANAGEMENT"],
-      "/settings": [],
-      "/profile": [],
-    };
-    const roleNavigation: Record<string, string[]> = {
-      "/clients": ["SALES", "QA", "QC"],
-      "/products": ["SALES", "QA", "QC"],
-      "/inquiry": ["SALES", "QA", "QC"],
-    };
-
-    return nav.filter((item) => {
-      const req = navMapping[item.to];
-      if (!req || req.length === 0) return true;
-      const permittedByRole = (roleNavigation[item.to] || []).some((role) =>
-        userRoles.includes(role),
-      );
-      return permittedByRole || req.some((r) => userRights.includes(r));
-    });
+    return nav.filter((item) => canAccessRoute(currentUser, item.to));
   }, [currentUser]);
 
   const userInfo = currentUser;

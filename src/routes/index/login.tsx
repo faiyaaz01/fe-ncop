@@ -135,6 +135,7 @@ function LoginPage() {
         lastName: userProfile?.lastName ?? userProfile?.familyName ?? "",
         role: userProfile?.role ?? userProfile?.roles?.[0] ?? "User",
         roles: userProfile?.roles ?? (userProfile?.role ? [userProfile.role] : undefined),
+        moduleRights: userProfile?.moduleRights ?? [],
         token: data?.token ?? null,
         refreshToken: data?.refresh_token ?? data?.refreshToken ?? null,
         expiresIn: data?.expiresIn ?? null,
@@ -176,7 +177,6 @@ function LoginPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950">
-
       <AnimatePresence>
         <motion.div
           key={index}
@@ -422,9 +422,12 @@ function LoginPage() {
                   <ShieldAlert className="size-4 text-rose-400" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-0.5">
-                  <p className="text-sm font-semibold text-rose-300 leading-snug">Your session has expired</p>
+                  <p className="text-sm font-semibold text-rose-300 leading-snug">
+                    Your session has expired
+                  </p>
                   <p className="text-xs leading-relaxed text-white/55">
-                    For your security, you were logged out due to inactivity or session timeout. Please sign in again.
+                    For your security, you were logged out due to inactivity or session timeout.
+                    Please sign in again.
                   </p>
                 </div>
                 <button
