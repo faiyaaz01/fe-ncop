@@ -29,6 +29,19 @@ export async function createInquiry(dto: CustomerInquiryRequestDto): Promise<Cus
   );
 }
 
+export async function updateInquiry(
+  id: string,
+  dto: CustomerInquiryRequestDto,
+): Promise<CustomerInquiry> {
+  return response<CustomerInquiry>(
+    await fetch(apiUrl(`/api/v1/inquiries/${id}`), {
+      method: "PUT",
+      headers: headers(),
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
 export async function fetchInquiries(page = 0, size = 20): Promise<PageResponse<CustomerInquiry>> {
   return response<PageResponse<CustomerInquiry>>(
     await fetch(apiUrl(`/api/v1/inquiries?page=${page}&size=${size}`), {

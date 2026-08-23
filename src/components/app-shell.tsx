@@ -143,6 +143,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       "/profile": [],
     };
     const roleNavigation: Record<string, string[]> = {
+      "/clients": ["SALES", "QA", "QC"],
+      "/products": ["SALES", "QA", "QC"],
       "/inquiry": ["SALES", "QA", "QC"],
     };
 

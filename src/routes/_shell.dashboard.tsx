@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 // import {
 //   Area,
@@ -23,6 +23,8 @@ import {
   // FileText,
   // ListChecks,
   // TrendingUp,
+  Boxes,
+  ClipboardList,
   Users,
 } from "lucide-react";
 import { Panel, Reveal } from "@/components/kit";
@@ -39,6 +41,8 @@ import { Button } from "@/components/ui/button";
 // } from "@/lib/mock-data";
 import { userSessionService } from "@/lib/user-session.ts";
 import { fetchClientCount, fetchClientLevelCounts } from "@/lib/client-api";
+import { fetchProductMetrics } from "@/lib/product-api";
+import { fetchInquiries, fetchMyInquiries } from "@/lib/inquiry-api";
 
 export const Route = createFileRoute("/_shell/dashboard")({
   head: () => ({
@@ -84,14 +88,21 @@ const chartTooltip = {
 ──────────────────────────────────────────────────────────────────────────────── */
 
 const CLIENT_LEVEL_CONFIG = [
-  { key: "PLATINUM", label: "Platinum", range: "Above ₹10 Cr",   dot: "bg-blue-500" },
-  { key: "GOLD",     label: "Gold",     range: "₹5–10 Cr",      dot: "bg-green-500" },
-  { key: "SILVER",   label: "Silver",   range: "₹1–5 Cr",       dot: "bg-yellow-400" },
-  { key: "BRONZE",   label: "Bronze",   range: "₹25 Lakh–1 Cr", dot: "bg-orange-500" },
-  { key: "NO_VIP",   label: "No VIP",   range: "Below ₹25 Lakh", dot: "bg-gray-400" },
+  { key: "PLATINUM", label: "Platinum", range: "Above ₹10 Cr", dot: "bg-blue-500" },
+  { key: "GOLD", label: "Gold", range: "₹5–10 Cr", dot: "bg-green-500" },
+  { key: "SILVER", label: "Silver", range: "₹1–5 Cr", dot: "bg-yellow-400" },
+  { key: "BRONZE", label: "Bronze", range: "₹25 Lakh–1 Cr", dot: "bg-orange-500" },
+  { key: "NO_VIP", label: "No VIP", range: "Below ₹25 Lakh", dot: "bg-gray-400" },
 ] as const;
 
 function Dashboard() {
+  const userInfo = userSessionService.getCurrentUser();
+  const roles = [userInfo?.role, ...(userInfo?.roles || [])]
+    .filter(Boolean)
+    .map((role) => String(role).toUpperCase());
+  const isAdmin = roles.some((role) => role.includes("ADMIN"));
+  const isSales = roles.includes("SALES");
+  const isScopedReviewer = roles.includes("QA") || roles.includes("QC") || roles.includes("SALES");
   // ── Live client count from backend ──────────────────────────────────────
   const { data: clientCount, isLoading: isClientCountLoading } = useQuery({
     queryKey: ["clientCount"],
@@ -103,6 +114,21 @@ function Dashboard() {
     queryKey: ["clientLevelCounts"],
     queryFn: fetchClientLevelCounts,
   });
+  const { data: productMetrics, isLoading: isProductMetricsLoading } = useQuery({
+    queryKey: ["productMetrics"],
+    queryFn: fetchProductMetrics,
+  });
+  const { data: inquiryPage, isLoading: isInquiriesLoading } = useQuery({
+    queryKey: ["dashboardInquiries", isScopedReviewer ? "mine" : "all"],
+    queryFn: () => (isScopedReviewer ? fetchMyInquiries(0, 100) : fetchInquiries(0, 100)),
+  });
+  const inquiryStatusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const inquiry of inquiryPage?.content || []) {
+      counts[inquiry.status] = (counts[inquiry.status] || 0) + 1;
+    }
+    return counts;
+  }, [inquiryPage]);
 
   /* ── COMMENTED OUT: top customers from mock data ────────────────────────
   const topCustomers = [...clients].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
@@ -157,9 +183,6 @@ function Dashboard() {
     greeting = "Good Night";
   }
 
-
-  const userInfo = userSessionService.getCurrentUser();
-
   return (
     <div className="space-y-6">
       {/* ── Greeting banner ─────────────────────────────────────────────── */}
@@ -175,88 +198,184 @@ function Dashboard() {
                 {greeting}, {userInfo?.firstName}
               </h1>
               <p className="max-w-xl text-sm text-primary-foreground/80">
-                Welcome to your dashboard. Client analytics are shown below.
+                Track your RFQ pipeline, assignments, and master-data activity.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild variant="secondary">
-                <Link to="/clients">View clients</Link>
+                <Link to="/inquiry">View RFQs</Link>
               </Button>
             </div>
           </div>
         </div>
       </Reveal>
 
-      {/* ── Client analytics (connected to backend) ────────────────────── */}
       <Reveal>
-        <Panel className="space-y-3">
-          {/* Title row — heading on left, total count badge on right */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
-                <Users className="size-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold leading-tight">Client Analytics</h2>
-                <p className="text-[11px] text-muted-foreground">By annual business turnover</p>
-              </div>
+        <Panel>
+          <div className="mb-4 flex items-center gap-2">
+            <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+              <ClipboardList className="size-4" />
             </div>
-            <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-1.5">
-              <span className="text-xs font-medium text-muted-foreground">Total</span>
-              <span className="text-lg font-bold leading-none tabular-nums">
-                {isClientCountLoading ? (
-                  <span className="inline-block h-5 w-8 animate-pulse rounded bg-muted" />
-                ) : (
-                  clientCount ?? 0
-                )}
-              </span>
+            <div>
+              <h2 className="text-sm font-semibold">RFQ Analytics</h2>
+              <p className="text-[11px] text-muted-foreground">
+                {isScopedReviewer
+                  ? "Your raised and assigned RFQs"
+                  : "All submitted customer inquiries"}
+              </p>
             </div>
           </div>
-
-          {/* Compact level table */}
-          <div className="overflow-hidden rounded-md border border-border/60">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="border-b border-border/60 bg-secondary/40">
-                  <th className="px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Level</th>
-                  <th className="px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Turnover Range</th>
-                  <th className="px-2.5 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Count</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CLIENT_LEVEL_CONFIG.map((level, i) => {
-                  const count = levelCounts?.[level.key] ?? 0;
-                  const hasClients = count > 0;
-                  return (
-                    <tr
-                      key={level.key}
-                      className={
-                        "transition-colors hover:bg-secondary/50" +
-                        (i < CLIENT_LEVEL_CONFIG.length - 1 ? " border-b border-border/40" : "")
-                      }
-                    >
-                      <td className="px-2.5 py-2">
-                        <span className="flex items-center gap-2">
-                          <span className={`size-2 shrink-0 rounded-full ${level.dot}`} />
-                          <span className={hasClients ? "font-semibold" : "font-medium text-muted-foreground"}>{level.label}</span>
-                        </span>
-                      </td>
-                      <td className="px-2.5 py-2 text-muted-foreground">{level.range}</td>
-                      <td className="px-2.5 py-2 text-right tabular-nums">
-                        {isLevelCountsLoading ? (
-                          <span className="inline-block h-4 w-6 animate-pulse rounded bg-muted" />
-                        ) : (
-                          <span className={hasClients ? "font-bold" : "text-muted-foreground"}>{count}</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              label="Total RFQs"
+              value={inquiryPage?.totalElements}
+              loading={isInquiriesLoading}
+            />
+            <MetricCard
+              label="Submitted"
+              value={inquiryStatusCounts.SUBMITTED}
+              loading={isInquiriesLoading}
+            />
+            <MetricCard
+              label="To QA"
+              value={inquiryStatusCounts.SUBMITTED_TO_QA}
+              loading={isInquiriesLoading}
+            />
+            <MetricCard
+              label="To QC"
+              value={inquiryStatusCounts.SUBMITTED_TO_QC}
+              loading={isInquiriesLoading}
+            />
           </div>
         </Panel>
       </Reveal>
+
+      {/* ── Client analytics (connected to backend) ────────────────────── */}
+      {(isAdmin || isSales) && (
+        <Reveal>
+          <div className="grid gap-6 xl:grid-cols-2">
+            <Panel className="space-y-3">
+              {/* Title row — heading on left, total count badge on right */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+                    <Users className="size-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold leading-tight">Client Analytics</h2>
+                    <p className="text-[11px] text-muted-foreground">By annual business turnover</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Total</span>
+                  <span className="text-lg font-bold leading-none tabular-nums">
+                    {isClientCountLoading ? (
+                      <span className="inline-block h-5 w-8 animate-pulse rounded bg-muted" />
+                    ) : (
+                      (clientCount ?? 0)
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              {/* Compact level table */}
+              <div className="overflow-hidden rounded-md border border-border/60">
+                <table className="w-full text-[13px]">
+                  <thead>
+                    <tr className="border-b border-border/60 bg-secondary/40">
+                      <th className="px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Level
+                      </th>
+                      <th className="px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Turnover Range
+                      </th>
+                      <th className="px-2.5 py-1.5 text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Count
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CLIENT_LEVEL_CONFIG.map((level, i) => {
+                      const count = levelCounts?.[level.key] ?? 0;
+                      const hasClients = count > 0;
+                      return (
+                        <tr
+                          key={level.key}
+                          className={
+                            "transition-colors hover:bg-secondary/50" +
+                            (i < CLIENT_LEVEL_CONFIG.length - 1 ? " border-b border-border/40" : "")
+                          }
+                        >
+                          <td className="px-2.5 py-2">
+                            <span className="flex items-center gap-2">
+                              <span className={`size-2 shrink-0 rounded-full ${level.dot}`} />
+                              <span
+                                className={
+                                  hasClients ? "font-semibold" : "font-medium text-muted-foreground"
+                                }
+                              >
+                                {level.label}
+                              </span>
+                            </span>
+                          </td>
+                          <td className="px-2.5 py-2 text-muted-foreground">{level.range}</td>
+                          <td className="px-2.5 py-2 text-right tabular-nums">
+                            {isLevelCountsLoading ? (
+                              <span className="inline-block h-4 w-6 animate-pulse rounded bg-muted" />
+                            ) : (
+                              <span className={hasClients ? "font-bold" : "text-muted-foreground"}>
+                                {count}
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+            <Panel className="space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <Boxes className="size-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold">Product Analytics</h2>
+                  <p className="text-[11px] text-muted-foreground">
+                    Product Master lifecycle summary
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <MetricCard
+                  label="Total products"
+                  value={productMetrics?.total}
+                  loading={isProductMetricsLoading}
+                />
+                <MetricCard
+                  label="Active"
+                  value={productMetrics?.active}
+                  loading={isProductMetricsLoading}
+                />
+                <MetricCard
+                  label="In development"
+                  value={productMetrics?.underDevelopment}
+                  loading={isProductMetricsLoading}
+                />
+                <MetricCard
+                  label="Discontinued"
+                  value={productMetrics?.discontinued}
+                  loading={isProductMetricsLoading}
+                />
+              </div>
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/products">Open Product Master</Link>
+              </Button>
+            </Panel>
+          </div>
+        </Reveal>
+      )}
 
       {/* ── COMMENTED OUT: all sections below are not connected to backend ── */}
 
@@ -517,6 +636,29 @@ function Dashboard() {
         </Reveal>
       </div>
       ────────────────────────────────────────────────────────────────────── */}
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  loading,
+}: {
+  label: string;
+  value?: number;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-lg border border-border/60 bg-secondary/20 p-3">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-bold tabular-nums">
+        {loading ? (
+          <span className="inline-block h-7 w-10 animate-pulse rounded bg-muted" />
+        ) : (
+          (value ?? 0)
+        )}
+      </p>
     </div>
   );
 }

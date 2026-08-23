@@ -22,10 +22,15 @@ import { cn } from "@/lib/utils";
 import { fetchAllClients } from "@/lib/client-api";
 import { fetchAllProducts, fetchDosageForms } from "@/lib/product-api";
 import { fetchAllUsers } from "@/lib/auth-api";
-import { createInquiry, fetchInquiries, fetchMyInquiries } from "@/lib/inquiry-api";
+import { createInquiry, fetchInquiries, fetchMyInquiries, updateInquiry } from "@/lib/inquiry-api";
 import { userSessionService } from "@/lib/user-session";
 import { InquiryList } from "@/components/inquiry-list";
-import type { InquiryLineRequestDto, InquiryPriority, InquirySource } from "@/lib/inquiry-types";
+import type {
+  CustomerInquiry,
+  InquiryLineRequestDto,
+  InquiryPriority,
+  InquirySource,
+} from "@/lib/inquiry-types";
 import type { Product } from "@/lib/product-types";
 import type { DosageForm, ProductSourcing } from "@/lib/product-types";
 import { ProductFormDialog } from "./_shell.products";
@@ -89,6 +94,7 @@ function InquiryWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [lineAddingProduct, setLineAddingProduct] = useState<string | null>(null);
+  const [editingInquiry, setEditingInquiry] = useState<CustomerInquiry | null>(null);
   const queryClient = useQueryClient();
   const sessionUser = userSessionService.getCurrentUser();
   const sessionRoles = [sessionUser?.role, ...(sessionUser?.roles || [])]
@@ -161,7 +167,7 @@ function InquiryWizard() {
     }
     setSubmitting(true);
     try {
-      const inquiry = await createInquiry({
+      const request = {
         customerId,
         contactPersonId,
         inquirySource,
@@ -172,10 +178,15 @@ function InquiryWizard() {
         qcAssigneeId: hasQc ? qcAssigneeId : undefined,
         salesAssigneeId: isAdminUser ? salesAssigneeId : undefined,
         lines: lines.map(({ key: _key, ...line }) => line as InquiryLineRequestDto),
-      });
+      };
+      const inquiry = editingInquiry
+        ? await updateInquiry(editingInquiry.id, request)
+        : await createInquiry(request);
       await queryClient.invalidateQueries({ queryKey: ["inquiries"] });
       setView("list");
-      toast.success(`${inquiry.rfqNo} submitted for review`);
+      toast.success(
+        editingInquiry ? `${inquiry.rfqNo} updated` : `${inquiry.rfqNo} submitted for review`,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to submit inquiry");
     } finally {
@@ -194,6 +205,37 @@ function InquiryWizard() {
     setQcAssigneeId("");
     setSalesAssigneeId("");
     setLines([emptyLine()]);
+    setEditingInquiry(null);
+  };
+
+  const startEdit = (inquiry: CustomerInquiry) => {
+    setEditingInquiry(inquiry);
+    setCustomerId(inquiry.customerId);
+    setContactPersonId(inquiry.contactPersonId);
+    setInquirySource(inquiry.inquirySource);
+    setPriority(inquiry.priority);
+    setTargetQuoteDate(inquiry.targetQuoteDate || defaultTargetQuoteDate());
+    setNotes(inquiry.notes || "");
+    setQaAssigneeId(inquiry.qaAssigneeId || "");
+    setQcAssigneeId(inquiry.qcAssigneeId || "");
+    setSalesAssigneeId(inquiry.salesAssigneeId || "");
+    setLines(
+      inquiry.lines.map(({ productId, sourcing, ...line }) => ({
+        key: crypto.randomUUID(),
+        productId,
+        sourcing,
+        quantityRequired: line.quantityRequired,
+        shipperPackRequired: line.shipperPackRequired,
+        tertiaryPackRequired: line.tertiaryPackRequired,
+        secondaryPackRequired: line.secondaryPackRequired,
+        monoBoxPackRequired: line.monoBoxPackRequired,
+        stripPackRequired: line.stripPackRequired,
+        tabletPackRequired: line.tabletPackRequired,
+        targetPrice: line.targetPrice,
+        packagingNotes: line.packagingNotes,
+      })),
+    );
+    setView("create");
   };
 
   if (view === "list")
@@ -203,6 +245,12 @@ function InquiryWizard() {
         loading={inquiriesLoading}
         assignedOnly={showMyInquiries}
         canCreate={!isQualityReviewer || isSalesUser}
+        canEdit={(inquiry) =>
+          isAdminUser ||
+          inquiry.raisedByUserId === sessionUser?.id ||
+          inquiry.salesAssigneeId === sessionUser?.id
+        }
+        onEdit={startEdit}
         onAdd={() => {
           resetForm();
           setView("create");
@@ -214,8 +262,8 @@ function InquiryWizard() {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Pipeline"
-        title="Add Customer Inquiry"
-        description="Create an RFQ and route each product to the selected QA or QC reviewer."
+        title={editingInquiry ? `Edit ${editingInquiry.rfqNo}` : "Add Customer Inquiry"}
+        description="Create or update an RFQ and route each product to the selected QA or QC reviewer."
         actions={
           <Button variant="outline" onClick={() => setView("list")}>
             <ChevronLeft className="size-4" /> Back to inquiries
@@ -571,7 +619,7 @@ function InquiryWizard() {
         </section>
         <div className="flex justify-end border-t border-border pt-6">
           <Button disabled={submitting || !allLinesComplete} onClick={submit}>
-            {submitting ? "Submitting…" : "Submit RFQ"}
+            {submitting ? "Saving…" : editingInquiry ? "Save changes" : "Submit RFQ"}
             <Send className="size-4" />
           </Button>
         </div>

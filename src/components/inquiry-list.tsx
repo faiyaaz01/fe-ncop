@@ -1,4 +1,4 @@
-import { ClipboardList, Plus } from "lucide-react";
+import { ClipboardList, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader, Panel, SectionLoader, StatusChip } from "@/components/kit";
@@ -10,12 +10,16 @@ export function InquiryList({
   onAdd,
   assignedOnly = false,
   canCreate = true,
+  canEdit,
+  onEdit,
 }: {
   inquiries: CustomerInquiry[];
   loading: boolean;
   onAdd: () => void;
   assignedOnly?: boolean;
   canCreate?: boolean;
+  canEdit?: (inquiry: CustomerInquiry) => boolean;
+  onEdit?: (inquiry: CustomerInquiry) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -69,6 +73,11 @@ export function InquiryList({
                   <th className="px-4 py-3">Sales owner</th>
                   <th className="px-4 py-3">Priority</th>
                   <th className="px-4 py-3">Status</th>
+                  {onEdit && (
+                    <th className="px-4 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -105,6 +114,15 @@ export function InquiryList({
                     <td className="px-4 py-3">
                       <StatusChip status={inquiry.status.replaceAll("_", " ")} />
                     </td>
+                    {onEdit && (
+                      <td className="px-4 py-3 text-right">
+                        {canEdit?.(inquiry) && (
+                          <Button variant="ghost" size="sm" onClick={() => onEdit(inquiry)}>
+                            <Pencil className="size-4" /> Edit
+                          </Button>
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
