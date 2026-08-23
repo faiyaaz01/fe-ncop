@@ -63,7 +63,7 @@ export function InquiryList({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="min-w-[720px] w-full text-sm">
               <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3">RFQ no.</th>

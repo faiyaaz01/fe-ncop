@@ -15,6 +15,7 @@ const ROUTE_MODULE_RIGHTS: Array<{ prefix: string; rights: string[] }> = [
     prefix: "/user-management",
     rights: ["USER_MANAGEMENT", "ROLE_MANAGEMENT", "MODULE_RIGHT_MANAGEMENT"],
   },
+  { prefix: "/profile", rights: ["PROFILE"] },
 ];
 
 export type AppUser = {
@@ -120,9 +121,7 @@ class UserSessionService {
     null | ((opts: { expiresAt: number; remainingMs: number }) => Promise<boolean>) = null;
   private refreshTokenFn:
     | null
-    | ((
-        refreshToken: string | null,
-      ) => Promise<{
+    | ((refreshToken: string | null) => Promise<{
         token: string;
         refreshToken?: string | null;
         expiresIn?: number | null;

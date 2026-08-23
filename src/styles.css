@@ -5,8 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans:
-    "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --color-brand-50: oklch(0.968 0.017 254);
   --color-brand-100: oklch(0.93 0.037 254);
@@ -19,8 +18,7 @@
   --shadow-soft: 0 1px 2px oklch(0.26 0.09 262 / 0.06), 0 8px 24px oklch(0.26 0.09 262 / 0.07);
   --shadow-lift:
     0 2px 4px oklch(0.26 0.09 262 / 0.06), 0 18px 40px -12px oklch(0.26 0.09 262 / 0.22);
-  --shadow-glass:
-    inset 0 1px 0 oklch(1 0 0 / 0.18), 0 12px 40px -8px oklch(0.2 0.06 262 / 0.35);
+  --shadow-glass: inset 0 1px 0 oklch(1 0 0 / 0.18), 0 12px 40px -8px oklch(0.2 0.06 262 / 0.35);
 }
 
 @utility glass {
@@ -204,6 +202,7 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   button,

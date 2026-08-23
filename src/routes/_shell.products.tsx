@@ -417,8 +417,8 @@ function ProductMaster() {
             </Button>
           </div>
         ) : (
-          <div className="overflow-x-auto min-w-[850px]">
-            <table className="w-full border-collapse text-left text-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-[850px] w-full border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="px-4 py-3">Product / SKU</th>
@@ -672,7 +672,7 @@ export function ProductFormDialog({
     "Store below 25°C in a dry place. Protect from light.",
   );
   const [description, setDescription] = useState("");
-    const [status, setStatus] = useState<ProductStatus>("ACTIVE");
+  const [status, setStatus] = useState<ProductStatus>("ACTIVE");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize or reset form
@@ -696,7 +696,7 @@ export function ProductFormDialog({
       setShelfLife(editingProduct.shelfLife || "24 Months");
       setStorageCondition(editingProduct.storageCondition || "");
       setDescription(editingProduct.description || "");
-            setStatus(editingProduct.status || "ACTIVE");
+      setStatus(editingProduct.status || "ACTIVE");
     } else {
       setBrandName("");
       setCategory("");
@@ -712,7 +712,7 @@ export function ProductFormDialog({
       setShelfLife("");
       setStorageCondition("");
       setDescription("");
-            setStatus("ACTIVE");
+      setStatus("ACTIVE");
     }
   }, [editingProduct, open, dosageForms]);
 
@@ -877,7 +877,6 @@ export function ProductFormDialog({
                     </SelectContent>
                   </Select>
                 </div>
-                
               </div>
             </fieldset>
 

@@ -15,7 +15,6 @@ import {
   XCircle,
   KeyRound,
   Lock,
-  Globe,
   Loader2,
   AlertTriangle,
   UserCheck,
@@ -52,11 +51,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import {
-  TIMEZONE_OPTIONS,
-  type SupportedTimezone,
-  formatShortDateTime,
-} from "@/lib/date-utils";
+import { formatShortDateTime } from "@/lib/date-utils";
 
 import {
   fetchUsers,
@@ -109,7 +104,6 @@ export const Route = createFileRoute("/_shell/user-management")({
 function UserManagementPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<"users" | "roles" | "rights">("users");
-  const [timezone, setTimezone] = useState<SupportedTimezone>("LOCAL");
 
   // ── Global Queries (Unpaginated for stats & modal pickers) ──
   const { data: allUsers = [] } = useQuery({
@@ -175,31 +169,13 @@ function UserManagementPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── Page Header with Timezone Selector ── */}
+      {/* ── Page Header ── */}
       <PageHeader
         eyebrow="Security & Governance"
         title="User & Access Management"
         description="Configure users, organizational roles, and user-level module access rights."
         actions={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            {/* Timezone Switcher */}
-            <div className="flex items-center gap-1.5 surface px-3 py-1.5 rounded-lg border border-border/60 text-xs">
-              <Globe className="size-3.5 text-muted-foreground shrink-0" />
-              <span className="text-muted-foreground hidden sm:inline">Timezone:</span>
-              <Select value={timezone} onValueChange={(v) => setTimezone(v as SupportedTimezone)}>
-                <SelectTrigger className="h-6 border-0 bg-transparent p-0 text-xs font-semibold focus:ring-0 w-auto gap-1 p-3">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent align="end">
-                  {TIMEZONE_OPTIONS.map((tz) => (
-                    <SelectItem key={tz.value} value={tz.value} className="text-xs">
-                      {tz.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Action based on active tab */}
             {activeTab === "users" && (
               <Button
@@ -386,7 +362,6 @@ function UserManagementPage() {
         <TabsContent value="users">
           <UsersTab
             roles={allRoles}
-            timezone={timezone}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
             onEdit={(u) => {
@@ -408,7 +383,6 @@ function UserManagementPage() {
         ══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="roles">
           <RolesTab
-            timezone={timezone}
             onEdit={(r) => {
               setEditingRole(r);
               setRoleModalOpen(true);
@@ -428,7 +402,6 @@ function UserManagementPage() {
         ══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="rights">
           <ModuleRightsTab
-            timezone={timezone}
             onEdit={(mr) => {
               setEditingRight(mr);
               setRightModalOpen(true);
@@ -514,14 +487,12 @@ function UserManagementPage() {
 
 function UsersTab({
   roles,
-  timezone,
   statusFilter,
   onStatusFilterChange,
   onEdit,
   onDelete,
 }: {
   roles: RoleResponse[];
-  timezone: SupportedTimezone;
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
   onEdit: (user: UserResponse) => void;
@@ -724,14 +695,14 @@ function UsersTab({
                         </div>
                       </td>
 
-                      {/* Last Login in Selected Timezone */}
+                      {/* Last login in the current browser timezone */}
                       <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
-                        {formatShortDateTime(user.lastLoginDate, timezone)}
+                        {formatShortDateTime(user.lastLoginDate)}
                       </td>
 
-                      {/* Created in Selected Timezone */}
+                      {/* Created date in the current browser timezone */}
                       <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
-                        {formatShortDateTime(user.createdOn, timezone)}
+                        {formatShortDateTime(user.createdOn)}
                       </td>
 
                       {/* Actions */}
@@ -780,11 +751,9 @@ function UsersTab({
 // ══════════════════════════════════════════════════════════════════════════════
 
 function RolesTab({
-  timezone,
   onEdit,
   onDelete,
 }: {
-  timezone: SupportedTimezone;
   onEdit: (role: RoleResponse) => void;
   onDelete: (role: RoleResponse) => void;
 }) {
@@ -910,7 +879,7 @@ function RolesTab({
                     </td>
 
                     <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
-                      {formatShortDateTime(role.lastUpdatedOn || role.createdOn, timezone)}
+                      {formatShortDateTime(role.lastUpdatedOn || role.createdOn)}
                     </td>
 
                     <td className="px-4 py-3.5 text-right">
@@ -957,11 +926,9 @@ function RolesTab({
 // ══════════════════════════════════════════════════════════════════════════════
 
 function ModuleRightsTab({
-  timezone,
   onEdit,
   onDelete,
 }: {
-  timezone: SupportedTimezone;
   onEdit: (mr: ModuleRight) => void;
   onDelete: (mr: ModuleRight) => void;
 }) {
@@ -1050,7 +1017,7 @@ function ModuleRightsTab({
                     </td>
 
                     <td className="px-4 py-3.5 text-muted-foreground text-[11px]">
-                      {formatShortDateTime(mr.createdOn, timezone)}
+                      {formatShortDateTime(mr.createdOn)}
                     </td>
 
                     <td className="px-4 py-3.5 text-right">

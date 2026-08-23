@@ -46,7 +46,18 @@ function ShellLayout() {
   if (!checked) return null;
 
   if (user && !canAccessRoute(user, pathname)) {
-    return <Navigate to="/profile" replace />;
+    return (
+      <AppShell>
+        <div className="grid min-h-[50vh] place-items-center p-6 text-center">
+          <div>
+            <h1 className="text-xl font-semibold">Access denied</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your account does not have the module right required for this page.
+            </p>
+          </div>
+        </div>
+      </AppShell>
+    );
   }
 
   return (

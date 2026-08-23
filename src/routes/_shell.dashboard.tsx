@@ -279,8 +279,8 @@ function Dashboard() {
               </div>
 
               {/* Compact level table */}
-              <div className="overflow-hidden rounded-md border border-border/60">
-                <table className="w-full text-[13px]">
+              <div className="overflow-x-auto rounded-md border border-border/60">
+                <table className="min-w-[420px] w-full text-[13px]">
                   <thead>
                     <tr className="border-b border-border/60 bg-secondary/40">
                       <th className="px-2.5 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

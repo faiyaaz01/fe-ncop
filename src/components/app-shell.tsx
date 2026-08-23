@@ -2,15 +2,11 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
   Boxes,
-  ChevronLeft,
   ClipboardList,
-  FileText,
   LayoutDashboard,
   LogOut,
-  PanelsTopLeft,
-  PieChart,
+  Menu,
   Search,
-  Settings,
   ShieldCheck,
   UserCog,
   UserRound,
@@ -34,18 +30,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
-import { canAccessRoute, userSessionService } from "@/lib/user-session.ts";
+import { canAccessRoute, userModuleRightNames, userSessionService } from "@/lib/user-session.ts";
 import { apiUrl } from "@/lib/api-config.ts";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -64,10 +50,8 @@ const nav = [
   // { label: "Reports", to: "/reports", icon: PieChart },
   { label: "User Management", to: "/user-management", icon: UserCog },
   // { label: "Settings", to: "/settings", icon: Settings },
-  // { label: "Profile", to: "/profile", icon: UserRound },
+  { label: "Profile", to: "/profile", icon: UserRound },
 ] as const;
-
-const mobileNav = nav.slice(0, 5);
 
 function Brand({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate();
@@ -99,11 +83,10 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = false;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
   const navigate = useNavigate();
-  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   // @ts-ignore
   useEffect(() => {
@@ -116,6 +99,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [currentUser]);
 
   const userInfo = currentUser;
+  const accountRoles = [userInfo?.role, ...(userInfo?.roles || [])]
+    .filter(Boolean)
+    .map((role) => String(role))
+    .filter((role, index, roles) => roles.indexOf(role) === index);
+  const assignedRightCount = userModuleRightNames(currentUser).length;
 
   // Warning modal state for token refresh
   const [isWarningOpen, setIsWarningOpen] = useState(false);
@@ -324,27 +312,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-
-        <div className="space-y-1 border-t border-border/70 p-3">
-          <button
-            onClick={() => setIsLogoutDialogOpen(true)}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-          >
-            <LogOut className="size-[18px] shrink-0" />
-            {!collapsed && <span>Logout</span>}
-          </button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed((c) => !c)}
-            className="w-full justify-start gap-3 px-3 text-muted-foreground"
-          >
-            <ChevronLeft
-              className={cn("size-[18px] transition-transform", collapsed && "rotate-180")}
-            />
-            {!collapsed && <span>Collapse</span>}
-          </Button>
-        </div>
       </aside>
 
       <div
@@ -355,7 +322,27 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/60 bg-background/60 px-4 backdrop-blur-xl sm:px-6">
           <div className="lg:hidden">
-            <Brand collapsed={false} />
+            <div className="flex items-center gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Open navigation menu">
+                    <Menu className="size-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuLabel>Navigation</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {visibleNav.map((item) => (
+                    <DropdownMenuItem key={item.to} asChild>
+                      <Link to={item.to}>
+                        <item.icon className="size-4" /> {item.label}
+                      </Link>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Brand collapsed={false} />
+            </div>
           </div>
 
           <div className="relative ml-auto hidden w-full max-w-sm md:block">
@@ -422,23 +409,27 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <p className="text-sm font-semibold">
                     {userInfo?.firstName} {userInfo?.lastName}
                   </p>
-                  <p className="text-xs font-normal text-muted-foreground">
-                    Administrator · Global Sales
+                  <p className="text-xs font-normal text-muted-foreground">{userInfo?.email}</p>
+                  <p className="pt-1 text-[11px] font-normal text-muted-foreground">
+                    {accountRoles.join(" · ") || "User"} · {assignedRightCount} module rights
                   </p>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/profile">
-                    <UserRound className="size-4" /> Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/settings">
-                    <Settings className="size-4" /> Settings
-                  </Link>
-                </DropdownMenuItem>
+                {currentUser && canAccessRoute(currentUser, "/profile") && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile">
+                      <UserRound className="size-4" /> Profile
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsLogoutDialogOpen(true)}>
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={async () => {
+                    await userSessionService.logout();
+                    navigate({ to: "/index/login" });
+                  }}
+                >
                   <LogOut className="size-4" /> Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -453,7 +444,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto w-full max-w-[1400px] space-y-6 px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:pb-12"
+            className="mx-auto w-full min-w-0 max-w-[1400px] space-y-6 overflow-x-hidden px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:pb-12"
           >
             {children}
           </motion.main>
@@ -576,32 +567,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You will need to sign in again to access your account.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-2"
-              onClick={async () => {
-                await userSessionService.logout();
-                navigate({ to: "/index/login" });
-              }}
-            >
-              Logout <LogOut className="size-4" />
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/80 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         <ul className="flex items-center justify-between">
-          {mobileNav.map((item) => {
+          {visibleNav.slice(0, 5).map((item) => {
             const active = pathname === item.to;
             return (
               <li key={item.to} className="flex-1">
@@ -618,15 +586,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               </li>
             );
           })}
-          <li className="flex-1">
-            <Link
-              to="/reports"
-              className="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted-foreground"
-            >
-              <PanelsTopLeft className="size-[18px]" />
-              More
-            </Link>
-          </li>
         </ul>
       </nav>
     </div>
