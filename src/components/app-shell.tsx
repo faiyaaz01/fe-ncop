@@ -55,10 +55,23 @@ const nav = [
   { label: "Profile", to: "/profile", icon: UserRound },
 ] as const;
 
-function Brand({ collapsed }: { collapsed: boolean }) {
+function Brand({
+  collapsed,
+  showExpandIcon = false,
+  onClick,
+}: {
+  collapsed: boolean;
+  showExpandIcon?: boolean;
+  onClick?: () => void;
+}) {
   const navigate = useNavigate();
 
   const handleOnClickOfBranding = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+
     // Navigate to the dashboard route
     navigate({ to: "/dashboard" });
   };
@@ -67,7 +80,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
     <div
       onClick={handleOnClickOfBranding}
       className="flex items-center gap-2.5 overflow-hidden cursor-pointer"
-      title="NCOP Pharma Dashboard"
+      title={showExpandIcon ? "Expand sidebar" : "NCOP Pharma Dashboard"}
     >
       <div
         className={cn(
@@ -75,7 +88,11 @@ function Brand({ collapsed }: { collapsed: boolean }) {
           collapsed ? "size-8 rounded-lg" : "size-9 rounded-xl",
         )}
       >
-        <ShieldCheck className={collapsed ? "size-4" : "size-[18px]"} />
+        {showExpandIcon ? (
+          <PanelLeftOpen className="size-4" />
+        ) : (
+          <ShieldCheck className={collapsed ? "size-4" : "size-[18px]"} />
+        )}
       </div>
       {!collapsed && (
         <div className="leading-tight">
@@ -91,6 +108,7 @@ function Brand({ collapsed }: { collapsed: boolean }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
   const navigate = useNavigate();
@@ -284,6 +302,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       />
 
       <aside
+        onMouseEnter={() => setIsSidebarHovered(true)}
+        onMouseLeave={() => setIsSidebarHovered(false)}
         className={cn(
           "fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border/70 bg-sidebar/70 backdrop-blur-xl transition-[width] duration-300 ease-out lg:flex",
           collapsed ? "w-[76px]" : "w-[260px]",
@@ -292,24 +312,26 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div
           className={cn(
             "flex h-16 items-center",
-            collapsed ? "justify-between gap-1 px-1.5" : "justify-between px-4",
+            collapsed ? "justify-center px-1.5" : "justify-between px-4",
           )}
         >
-          <Brand collapsed={collapsed} />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7 shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground"
-            onClick={() => setCollapsed((current) => !current)}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? (
-              <PanelLeftOpen className="size-4" />
-            ) : (
+          <Brand
+            collapsed={collapsed}
+            showExpandIcon={collapsed && isSidebarHovered}
+            onClick={collapsed ? () => setCollapsed(false) : undefined}
+          />
+          {!collapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              onClick={() => setCollapsed(true)}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+            >
               <PanelLeftClose className="size-4" />
-            )}
-          </Button>
+            </Button>
+          )}
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-2">
