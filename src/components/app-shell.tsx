@@ -31,6 +31,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { notifications } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { pageTransitionVariants } from "@/lib/animations";
 import { useNavigate } from "@tanstack/react-router";
 import { canAccessRoute, userModuleRightNames, userSessionService } from "@/lib/user-session.ts";
 import { apiUrl } from "@/lib/api-config.ts";
@@ -342,11 +343,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-colors",
+                  "group relative flex items-center rounded-xl py-2.5 text-sm font-medium transition-all duration-200",
                   collapsed ? "justify-center px-2" : "gap-3 px-3",
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                    ? "bg-primary/10 text-primary font-semibold shadow-xs"
+                    : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground active:scale-[0.98]",
                 )}
                 title={collapsed ? item.label : undefined}
               >
@@ -354,9 +355,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <motion.span
                     layoutId="nav-active"
                     className="absolute left-0 h-6 w-[3px] rounded-r-full bg-primary"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
-                <item.icon className="size-[18px] shrink-0" />
+                <item.icon className="size-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110" />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
@@ -410,7 +412,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Notifications" className="relative">
                   <Bell className="size-[18px]" />
-                  <span className="absolute right-2 top-2 size-2 rounded-full bg-accent ring-2 ring-background" />
+                  <span className="absolute right-2 top-2 size-2 rounded-full bg-accent ring-2 ring-background animate-pulse-subtle" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="glass w-80 rounded-2xl p-0">
@@ -445,8 +447,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/*User Information Avatar*/}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-opacity hover:opacity-80">
-                  <Avatar className="size-9 border border-border cursor-pointer">
+                <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-all hover:opacity-85 hover:scale-105 active:scale-95">
+                  <Avatar className="size-9 border border-border cursor-pointer shadow-xs">
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
                       {userInfo?.firstName?.trim().charAt(0).toUpperCase()}
                       {userInfo?.lastName?.trim().charAt(0).toUpperCase()}
@@ -487,18 +489,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <AnimatePresence mode="wait">
-          <motion.main
-            key={pathname}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-auto w-full min-w-0 max-w-[1400px] space-y-6 overflow-x-hidden px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:pb-12"
-          >
-            {children}
-          </motion.main>
-        </AnimatePresence>
+        <main className="mx-auto w-full min-w-0 max-w-[1400px] space-y-6 overflow-x-hidden px-4 pb-28 pt-6 sm:px-6 sm:pt-8 lg:pb-12 animate-in fade-in-50 duration-200">
+          {children}
+        </main>
       </div>
 
       {/* Session expiry warning dialog */}

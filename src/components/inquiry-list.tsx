@@ -85,10 +85,10 @@ export function InquiryList({
               {inquiries.map((inquiry, index) => (
                 <motion.article
                   key={inquiry.id}
-                  className="space-y-3 rounded-xl border border-border bg-card p-4"
+                  className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-primary/30"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.24, delay: Math.min(index * 0.04, 0.2) }}
+                  transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -149,7 +149,7 @@ export function InquiryList({
               ))}
             </div>
 
-            <div className={`hidden overflow-x-auto ${viewMode === "list" ? "md:block" : ""}`}>
+            <div className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}>
               <table className="min-w-[720px] w-full text-sm">
                 <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
@@ -168,8 +168,14 @@ export function InquiryList({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {inquiries.map((inquiry) => (
-                    <tr key={inquiry.id} className="hover:bg-muted/20">
+                  {inquiries.map((inquiry, i) => (
+                    <motion.tr
+                      key={inquiry.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.025, duration: 0.25 }}
+                      className="hover:bg-muted/30 transition-colors duration-150"
+                    >
                       <td className="px-4 py-3 font-mono font-medium">{inquiry.rfqNo}</td>
                       <td className="whitespace-nowrap px-4 py-3">{inquiry.inquiryDate}</td>
                       <td className="px-4 py-3">
@@ -210,7 +216,7 @@ export function InquiryList({
                           )}
                         </td>
                       )}
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>

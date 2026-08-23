@@ -33,7 +33,7 @@ export type AppUser = {
   refresh_token?: string | null | undefined;
   expiresIn?: number | null | undefined;
   expires_in?: number | null | undefined;
-  moduleRights?: ModuleRight[] | undefined;
+  moduleRights?: (ModuleRight | string)[] | undefined;
   lastLoginDate?: string | undefined;
   lastLoginDateUtcDateTimeFormatted?: string | undefined;
   lastLoginDateCurrentTimezoneDateFormatted?: string | undefined;
@@ -82,6 +82,7 @@ export function userModuleRightNames(user: AppUser | null | undefined): string[]
 }
 
 export function canAccessRoute(user: AppUser | null | undefined, pathname: string): boolean {
+  if (isUserAdmin(user)) return true;
   const route = ROUTE_MODULE_RIGHTS.find(
     ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

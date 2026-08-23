@@ -623,7 +623,7 @@ function ClientMaster() {
       )}
 
       {!isLoading && !isError && filtered.length > 0 && viewMode === "list" && (
-        <div className="hidden overflow-x-auto rounded-xl border border-border/60 bg-card md:block">
+        <div className="hidden overflow-x-auto overflow-y-hidden rounded-xl border border-border/60 bg-card md:block">
           <table className="min-w-[900px] w-full text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <tr>
@@ -637,11 +637,17 @@ function ClientMaster() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {filtered.map((client) => {
+              {filtered.map((client, i) => {
                 const poc = firstPoc(client);
                 const address = firstAddr(client);
                 return (
-                  <tr key={client.id} className="hover:bg-muted/30">
+                  <motion.tr
+                    key={client.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.02, duration: 0.25 }}
+                    className="hover:bg-muted/30 transition-colors duration-150"
+                  >
                     <td className="px-4 py-3">
                       <p className="font-semibold">{client.companyName}</p>
                       <p className="text-xs text-muted-foreground">{client.customerCode}</p>
@@ -672,7 +678,7 @@ function ClientMaster() {
                         </Button>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 );
               })}
             </tbody>
@@ -682,7 +688,7 @@ function ClientMaster() {
 
       {/* ── Detail Drawer ── */}
       <Sheet open={!!active} onOpenChange={(o) => !o && setActiveId(null)}>
-        <SheetContent className="glass w-full overflow-y-auto sm:max-w-xl">
+        <SheetContent className="w-full overflow-y-auto sm:max-w-xl bg-background border-l border-border">
           {active && (
             <ClientDetailDrawer
               client={active}

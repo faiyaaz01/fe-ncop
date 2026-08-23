@@ -25,7 +25,12 @@ const LIVE_REFRESH_INTERVAL = 30_000;
 function Dashboard() {
   const [user, setUser] = useState(() => userSessionService.getCurrentUser());
 
-  useEffect(() => userSessionService.subscribe((currentUser) => setUser(currentUser)), []);
+  useEffect(() => {
+    const unsub = userSessionService.subscribe((currentUser) => setUser(currentUser));
+    return () => {
+      unsub();
+    };
+  }, []);
 
   const canViewClients = canAccessRoute(user, "/clients");
   const canViewProducts = canAccessRoute(user, "/products");
@@ -156,10 +161,17 @@ function Dashboard() {
         <section className="flex flex-wrap gap-3">
           {cards.map((card, index) => (
             <Reveal key={card.label} delay={index * 0.04} className="min-w-[260px] flex-1">
-              <Link to={card.to} className="group flex min-h-[132px] h-full flex-col justify-between rounded-[20px] border border-border/70 bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+              <Link
+                to={card.to}
+                className="group flex min-h-[132px] h-full flex-col justify-between rounded-[20px] border border-border/70 bg-card p-5 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg active:scale-[0.985]"
+              >
                 <div className="flex items-start justify-between gap-4">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{card.label}</p>
-                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary"><card.icon className="size-5" /></span>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-foreground">
+                    {card.label}
+                  </p>
+                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
+                    <card.icon className="size-5" />
+                  </span>
                 </div>
                 <div>
                   <p className="text-3xl font-bold tracking-tight tabular-nums">

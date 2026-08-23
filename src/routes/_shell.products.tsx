@@ -437,10 +437,10 @@ function ProductMaster() {
               {productList.map((product, index) => (
                 <motion.article
                   key={product.id}
-                  className="min-w-0 space-y-3 overflow-hidden rounded-xl border border-border bg-card p-4"
+                  className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:border-primary/30"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.24, delay: Math.min(index * 0.04, 0.2) }}
+                  transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -503,7 +503,7 @@ function ProductMaster() {
                 </motion.article>
               ))}
             </div>
-            <div className={`hidden overflow-x-auto ${viewMode === "list" ? "md:block" : ""}`}>
+            <div className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}>
               <table className="min-w-[850px] w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -517,11 +517,14 @@ function ProductMaster() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
-                  {productList.map((product) => (
-                    <tr
+                  {productList.map((product, i) => (
+                    <motion.tr
                       key={product.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.02, duration: 0.25 }}
                       onClick={() => navigate({ to: `/products/${product.id}` })}
-                      className="hover:bg-secondary/40 transition-colors cursor-pointer"
+                      className="hover:bg-secondary/40 transition-colors duration-150 cursor-pointer"
                     >
                       {/* Product & SKU */}
                       <td className="px-4 py-3.5">
@@ -648,7 +651,7 @@ function ProductMaster() {
                           </Button>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>

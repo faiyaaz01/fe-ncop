@@ -1,11 +1,20 @@
 import { motion, useInView, useMotionValue, useSpring } from "motion/react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { smoothEase, fadeInUp, staggerContainer } from "@/lib/animations";
 
 // ── Shared Skeleton Loading States ───────────────────────────────────────────
 
 function SkeletonBox({ className }: { className?: string }) {
-  return <div className={cn("animate-pulse rounded-md bg-primary/10", className)} />;
+  return (
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-md bg-muted/70",
+        "after:absolute after:inset-0 after:animate-shimmer after:bg-gradient-to-r after:from-transparent after:via-primary/10 after:to-transparent",
+        className,
+      )}
+    />
+  );
 }
 
 /** Responsive card skeletons for card-based listings. */
@@ -13,7 +22,13 @@ export function CardGridLoader({ cards = 6 }: { cards?: number }) {
   return (
     <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
       {Array.from({ length: cards }).map((_, index) => (
-        <div key={index} className="space-y-3 rounded-xl border border-border bg-card p-4">
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.04, duration: 0.3 }}
+          className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft"
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-2">
               <SkeletonBox className="h-4 w-40" />
@@ -28,7 +43,7 @@ export function CardGridLoader({ cards = 6 }: { cards?: number }) {
             <SkeletonBox className="h-8 w-full" />
           </div>
           <SkeletonBox className="h-8 w-full" />
-        </div>
+        </motion.div>
       ))}
     </div>
   );
@@ -42,7 +57,13 @@ export function SectionLoader({ rows = 5 }: { rows?: number }) {
   return (
     <div className="divide-y divide-border/40">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 px-5 py-4">
+        <motion.div
+          key={i}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: i * 0.03, duration: 0.25 }}
+          className="flex items-center gap-4 px-5 py-4"
+        >
           <SkeletonBox className="size-9 rounded-lg shrink-0" />
           <div className="flex-1 space-y-2">
             <SkeletonBox className="h-3.5 w-2/5" />
@@ -52,7 +73,7 @@ export function SectionLoader({ rows = 5 }: { rows?: number }) {
           <SkeletonBox className="h-3 w-16 hidden md:block" />
           <SkeletonBox className="h-6 w-16 rounded-full hidden lg:block" />
           <SkeletonBox className="h-7 w-20 rounded-lg" />
-        </div>
+        </motion.div>
       ))}
     </div>
   );
@@ -90,8 +111,7 @@ export function TableRowLoader({ colSpan, rows = 5 }: { colSpan: number; rows?: 
                   className={cn(
                     "h-3 rounded",
                     w,
-                    // vary opacity slightly per row for a natural stagger
-                    rowIdx % 2 === 0 ? "opacity-80" : "opacity-60",
+                    rowIdx % 2 === 0 ? "opacity-90" : "opacity-70",
                   )}
                 />
               )}
@@ -115,18 +135,32 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: smoothEase }}
+      className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+    >
       <div className="space-y-1.5">
         {eyebrow && (
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             {eyebrow}
           </p>
         )}
-        <h1 className="text-2xl font-bold sm:text-3xl">{title}</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl tracking-tight">{title}</h1>
         {description && <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
-    </div>
+      {actions && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3, delay: 0.1, ease: smoothEase }}
+          className="flex flex-wrap items-center gap-2"
+        >
+          {actions}
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
@@ -141,10 +175,10 @@ export function Panel({
 }) {
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 8 }}
+      layout="position"
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.3, ease: smoothEase }}
       className={cn("surface flex flex-col justify-between p-5", hover && "lift", className)}
     >
       {children}
@@ -163,12 +197,49 @@ export function Reveal({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.45, delay, ease: smoothEase }}
       className={className}
     >
+      {children}
+    </motion.div>
+  );
+}
+
+export function StaggerContainer({
+  children,
+  className,
+  stagger = 0.05,
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  stagger?: number;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      variants={staggerContainer(stagger, delay)}
+      initial="hidden"
+      animate="visible"
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export function StaggerItem({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.div variants={fadeInUp} className={className}>
       {children}
     </motion.div>
   );
@@ -188,7 +259,7 @@ export function Counter({
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true });
   const mv = useMotionValue(0);
-  const spring = useSpring(mv, { stiffness: 70, damping: 18 });
+  const spring = useSpring(mv, { stiffness: 60, damping: 20 });
 
   useEffect(() => {
     if (inView) mv.set(value);
@@ -226,15 +297,18 @@ export function StatusChip({ status }: { status: string }) {
         : "bg-primary/10 text-primary border-primary/20";
 
   return (
-    <span
+    <motion.span
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ duration: 0.2, ease: smoothEase }}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap",
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold whitespace-nowrap transition-colors",
         tone,
       )}
     >
-      <span className="size-1.5 rounded-full bg-current" />
+      <span className="size-1.5 rounded-full bg-current animate-pulse-subtle" />
       {status}
-    </span>
+    </motion.span>
   );
 }
 
@@ -250,16 +324,29 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-      <div className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.35, ease: smoothEase }}
+      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center"
+    >
+      <div className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground shadow-soft">
         {icon}
       </div>
       <div className="space-y-1">
         <p className="text-sm font-semibold">{title}</p>
         <p className="max-w-sm text-xs text-muted-foreground">{description}</p>
       </div>
-      {action}
-    </div>
+      {action && (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.25 }}
+        >
+          {action}
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
@@ -271,10 +358,10 @@ export function Timeline({ items }: { items: { date: string; title: string; deta
           key={item.title}
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.07 }}
+          transition={{ delay: i * 0.06, duration: 0.3, ease: smoothEase }}
           className="relative"
         >
-          <span className="absolute -left-[26px] top-1 grid size-3 place-items-center rounded-full border-2 border-background bg-primary" />
+          <span className="absolute -left-[26px] top-1 grid size-3 place-items-center rounded-full border-2 border-background bg-primary shadow-soft" />
           <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {item.date}
           </p>
@@ -285,3 +372,4 @@ export function Timeline({ items }: { items: { date: string; title: string; deta
     </ol>
   );
 }
+

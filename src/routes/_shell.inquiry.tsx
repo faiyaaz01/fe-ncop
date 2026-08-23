@@ -363,7 +363,7 @@ function InquiryWizard() {
                       if (date) {
                         const offset = date.getTimezoneOffset();
                         const adjustedDate = new Date(date.getTime() - offset * 60 * 1000);
-                        setTargetQuoteDate(adjustedDate.toISOString().split("T")[0]);
+                        setTargetQuoteDate(adjustedDate.toISOString().slice(0, 10));
                       } else {
                         setTargetQuoteDate("");
                       }

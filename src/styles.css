@@ -26,6 +26,7 @@
   backdrop-filter: blur(16px) saturate(150%);
   border: 1px solid color-mix(in oklab, white 55%, transparent);
   box-shadow: var(--shadow-glass);
+  transition: backdrop-filter 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 @utility glass-dark {
@@ -33,16 +34,29 @@
   backdrop-filter: blur(18px) saturate(140%);
   border: 1px solid oklch(1 0 0 / 0.14);
   box-shadow: var(--shadow-glass);
+  transition: backdrop-filter 0.3s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 @utility lift {
   transition:
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.28s ease,
-    border-color 0.28s ease;
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease;
+  will-change: transform, box-shadow;
   &:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-lift);
+  }
+  &:active {
+    transform: translateY(-1px);
+    transition-duration: 0.1s;
+  }
+}
+
+@utility pressable {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease;
+  &:active {
+    transform: scale(0.975);
   }
 }
 
@@ -51,6 +65,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow-soft);
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 @utility text-gradient {
@@ -197,6 +212,104 @@
     border-color: var(--color-border);
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom Scrollbar for Root & Explicitly Scrollable Containers */
+  html,
+  body,
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-auto,
+  .custom-scrollbar,
+  [data-radix-scroll-area-viewport] {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 26%, transparent) transparent;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar,
+  .overflow-auto::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar,
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track,
+  .overflow-y-auto::-webkit-scrollbar-track,
+  .overflow-x-auto::-webkit-scrollbar-track,
+  .overflow-auto::-webkit-scrollbar-track,
+  .custom-scrollbar::-webkit-scrollbar-track,
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb,
+  .overflow-y-auto::-webkit-scrollbar-thumb,
+  .overflow-x-auto::-webkit-scrollbar-thumb,
+  .overflow-auto::-webkit-scrollbar-thumb,
+  .custom-scrollbar::-webkit-scrollbar-thumb,
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted-foreground) 24%, transparent);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    transition: background-color 0.2s ease;
+  }
+
+  html::-webkit-scrollbar-thumb:hover,
+  body::-webkit-scrollbar-thumb:hover,
+  .overflow-y-auto::-webkit-scrollbar-thumb:hover,
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover,
+  .overflow-auto::-webkit-scrollbar-thumb:hover,
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--muted-foreground) 48%, transparent);
+    background-clip: padding-box;
+  }
+
+  html::-webkit-scrollbar-thumb:active,
+  body::-webkit-scrollbar-thumb:active,
+  .overflow-y-auto::-webkit-scrollbar-thumb:active,
+  .overflow-x-auto::-webkit-scrollbar-thumb:active,
+  .overflow-auto::-webkit-scrollbar-thumb:active,
+  .custom-scrollbar::-webkit-scrollbar-thumb:active,
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:active {
+    background: color-mix(in oklab, var(--primary) 75%, transparent);
+    background-clip: padding-box;
+  }
+
+  html::-webkit-scrollbar-corner,
+  body::-webkit-scrollbar-corner,
+  .overflow-y-auto::-webkit-scrollbar-corner,
+  .overflow-x-auto::-webkit-scrollbar-corner,
+  .overflow-auto::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Explicitly suppress any accidental scrollbars inside cards and articles */
+  article,
+  .card,
+  [data-card],
+  .panel {
+    scrollbar-width: none !important;
+  }
+
+  article::-webkit-scrollbar,
+  .card::-webkit-scrollbar,
+  [data-card]::-webkit-scrollbar,
+  .panel::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -228,6 +341,27 @@
 }
 
 @layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted-foreground) 22%, transparent);
+    border-radius: 9999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--primary) 50%, transparent);
+  }
+
+  .scrollbar-none,
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar,
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -245,6 +379,21 @@
   .kenburns {
     animation: kenburns 18s ease-out both;
   }
+
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in oklab, var(--primary) 8%, transparent) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite ease-in-out;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
 }
 
 @keyframes kenburns {
@@ -255,3 +404,35 @@
     transform: scale(1.16) translate3d(-1.5%, -1%, 0);
   }
 }
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Search } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { smoothEase } from "@/lib/animations";
 
 export type Column<T> = {
   key: string;
@@ -126,13 +127,13 @@ export function DataTable<T extends { id: string }>({
               {visible.map((row, i) => (
                 <motion.tr
                   key={row.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.035, duration: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: i * 0.025, duration: 0.28, ease: smoothEase }}
                   onClick={() => onRowClick?.(row)}
                   className={cn(
-                    "border-b border-border/70 transition-colors last:border-0",
-                    onRowClick && "cursor-pointer hover:bg-secondary/60",
+                    "border-b border-border/70 transition-colors duration-150 last:border-0",
+                    onRowClick && "cursor-pointer hover:bg-secondary/70 active:bg-secondary/90",
                   )}
                 >
                   {columns.map((col) => (
