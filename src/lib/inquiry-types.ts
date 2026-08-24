@@ -12,12 +12,14 @@ export type InquirySource =
   | "SALES_VISIT"
   | "OTHER";
 export type InquiryPriority = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type OrderQuantityUnit = "TERTIARY" | "SECONDARY" | "MONO_BOX" | "STRIP" | "TABLET" | "JAR";
 
 export interface InquiryLineRequestDto {
   productId: string;
   sourcing: ProductSourcing;
   quantityRequired: number;
-  shipperPackRequired?: number;
+  orderQuantityUnit?: OrderQuantityUnit;
+  calculatedTabletQuantity?: number;
   tertiaryPackRequired?: number;
   secondaryPackRequired?: number;
   monoBoxPackRequired?: number;

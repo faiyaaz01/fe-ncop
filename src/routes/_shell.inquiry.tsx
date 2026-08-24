@@ -1,13 +1,22 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, Plus, Send, Trash2, CalendarIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { PageHeader, Panel } from "@/components/kit";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +39,7 @@ import type {
   InquiryLineRequestDto,
   InquiryPriority,
   InquirySource,
+  OrderQuantityUnit,
 } from "@/lib/inquiry-types";
 import type { Product } from "@/lib/product-types";
 import type { DosageForm, ProductSourcing } from "@/lib/product-types";
@@ -54,22 +64,36 @@ const sources: Array<[InquirySource, string]> = [
 ];
 const priorities: InquiryPriority[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 const packFields: Array<[keyof InquiryLineRequestDto, string]> = [
-  ["shipperPackRequired", "Shipper"],
   ["tertiaryPackRequired", "Tertiary"],
   ["secondaryPackRequired", "Secondary"],
   ["monoBoxPackRequired", "Mono Box"],
   ["stripPackRequired", "Strip"],
-  ["tabletPackRequired", "Tablet"],
+];
+const packagingNotes = ["Pvc-Alu", "Alu-Alu", "Strip", "HDPE bottle", "PET bottle", "Jar", "Drum"];
+const packUnitByField: Record<string, OrderQuantityUnit> = {
+  tertiaryPackRequired: "TERTIARY",
+  secondaryPackRequired: "SECONDARY",
+  monoBoxPackRequired: "MONO_BOX",
+  stripPackRequired: "STRIP",
+};
+const quantityUnits: Array<[OrderQuantityUnit, string]> = [
+  ["TERTIARY", "Tertiary"],
+  ["SECONDARY", "Secondary"],
+  ["MONO_BOX", "Mono Box"],
+  ["STRIP", "Strip"],
+  ["TABLET", "Tablet"],
 ];
 
 type EditableLine = Omit<InquiryLineRequestDto, "sourcing"> & {
   key: string;
   sourcing: ProductSourcing | "";
+  orderQuantityUnit: OrderQuantityUnit | "";
 };
 const emptyLine = (): EditableLine => ({
   key: crypto.randomUUID(),
   productId: "",
   quantityRequired: 0,
+  orderQuantityUnit: "",
   sourcing: "",
 });
 
@@ -79,7 +103,68 @@ const defaultTargetQuoteDate = () => {
   return date.toISOString().slice(0, 10);
 };
 
-function InquiryWizard() {
+function tabletCalculation(line: EditableLine) {
+  const quantity = line.quantityRequired || 0;
+  if (!quantity || !line.orderQuantityUnit)
+    return { total: 0, formula: "Enter the required quantity" };
+  if (line.orderQuantityUnit === "TABLET")
+    return { total: quantity, formula: `${quantity.toLocaleString()} tablets` };
+  if (line.orderQuantityUnit === "JAR") {
+    const perJar = line.tabletPackRequired || 0;
+    return {
+      total: quantity * perJar,
+      formula: perJar
+        ? `${quantity.toLocaleString()} jars × ${perJar.toLocaleString()} tablets`
+        : "Enter tablets per jar",
+    };
+  }
+  const selectedIndex = packFields.findIndex(
+    ([field]) => packUnitByField[String(field)] === line.orderQuantityUnit,
+  );
+  const factors = packFields
+    .slice(Math.max(0, selectedIndex))
+    .map(([field]) => line[field] || 0)
+    .filter((value) => value > 0);
+  return {
+    total: factors.reduce((result, factor) => result * factor, quantity),
+    formula: factors.length
+      ? `${[quantity, ...factors].map((value) => value.toLocaleString()).join(" × ")} tablets`
+      : "Enter the packing quantities",
+  };
+}
+
+function inferOrderQuantityUnit(line: Partial<InquiryLineRequestDto>): OrderQuantityUnit | "" {
+  if (line.orderQuantityUnit) return line.orderQuantityUnit;
+  const quantity = Number(line.quantityRequired);
+  const total = Number(line.calculatedTabletQuantity);
+  if (!Number.isFinite(quantity) || !Number.isFinite(total) || quantity < 1) return "";
+  if (total === quantity) return "TABLET";
+  for (const [unit, fields] of [
+    [
+      "TERTIARY",
+      [
+        line.tertiaryPackRequired,
+        line.secondaryPackRequired,
+        line.monoBoxPackRequired,
+        line.stripPackRequired,
+      ],
+    ],
+    ["SECONDARY", [line.secondaryPackRequired, line.monoBoxPackRequired, line.stripPackRequired]],
+    ["MONO_BOX", [line.monoBoxPackRequired, line.stripPackRequired]],
+    ["STRIP", [line.stripPackRequired]],
+  ] as const) {
+    const factors = fields.map(Number);
+    if (
+      factors.every((factor) => Number.isFinite(factor) && factor > 0) &&
+      factors.reduce((result, factor) => result * factor, quantity) === total
+    )
+      return unit;
+  }
+  if (line.tabletPackRequired && quantity * line.tabletPackRequired === total) return "JAR";
+  return "";
+}
+
+export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInquiry } = {}) {
   const [view, setView] = useState<"list" | "create">("list");
   const [customerId, setCustomerId] = useState("");
   const [contactPersonId, setContactPersonId] = useState("");
@@ -95,7 +180,10 @@ function InquiryWizard() {
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [lineAddingProduct, setLineAddingProduct] = useState<string | null>(null);
   const [editingInquiry, setEditingInquiry] = useState<CustomerInquiry | null>(null);
+  const [previewingInquiry, setPreviewingInquiry] = useState<CustomerInquiry | null>(null);
+  const [previewingDraft, setPreviewingDraft] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const sessionUser = userSessionService.getCurrentUser();
   const sessionRoles = [sessionUser?.role, ...(sessionUser?.roles || [])]
     .filter(Boolean)
@@ -123,6 +211,63 @@ function InquiryWizard() {
     queryFn: () => (showMyInquiries ? fetchMyInquiries() : fetchInquiries()),
   });
   const selectedCustomer = clients.find((client) => client.id === customerId);
+  const selectedContact = selectedCustomer?.pointOfContacts?.find(
+    (contact) => contact.id === contactPersonId || contact.email === contactPersonId,
+  );
+  const draftPreview = useMemo<CustomerInquiry>(
+    () => ({
+      id: "draft-preview",
+      rfqNo: editingInquiry?.rfqNo || "Draft RFQ",
+      inquiryDate: new Date().toISOString().slice(0, 10),
+      customerId,
+      customerName: selectedCustomer?.companyName || "Not selected",
+      contactPersonId,
+      contactPersonName: selectedContact?.personName || "Not selected",
+      inquirySource,
+      priority,
+      targetQuoteDate,
+      notes,
+      qaAssigneeId,
+      qcAssigneeId,
+      salesAssigneeId,
+      status: editingInquiry?.status || "DRAFT PREVIEW",
+      qaAssigneeName: users.find((user) => user.id === qaAssigneeId)?.fullName,
+      qcAssigneeName: users.find((user) => user.id === qcAssigneeId)?.fullName,
+      salesAssigneeName: users.find((user) => user.id === salesAssigneeId)?.fullName,
+      lines: lines.map((line) => ({
+        ...line,
+        sourcing: line.sourcing || "IN_HOUSE",
+        productName:
+          products.find((product) => product.id === line.productId)?.brandName ||
+          "Product not selected",
+        genericName:
+          products
+            .find((product) => product.id === line.productId)
+            ?.ingredients?.map((ingredient) => ingredient.api)
+            .join(" + ") || "",
+        dosageForm: products.find((product) => product.id === line.productId)?.dosageForm || "",
+        dosageVariant: products.find((product) => product.id === line.productId)?.dosageVariant,
+        calculatedTabletQuantity: tabletCalculation(line).total,
+      })),
+    }),
+    [
+      customerId,
+      contactPersonId,
+      editingInquiry,
+      inquirySource,
+      lines,
+      notes,
+      priority,
+      products,
+      qaAssigneeId,
+      qcAssigneeId,
+      salesAssigneeId,
+      selectedContact?.personName,
+      selectedCustomer?.companyName,
+      targetQuoteDate,
+      users,
+    ],
+  );
 
   const updateLine = (key: string, values: Partial<EditableLine>) => {
     setLines((current) =>
@@ -132,7 +277,11 @@ function InquiryWizard() {
   const productFor = (line: EditableLine): Product | undefined =>
     products.find((product) => product.id === line.productId);
   const allLinesComplete = useMemo(
-    () => lines.every((line) => line.productId && line.sourcing && line.quantityRequired > 0),
+    () =>
+      lines.every(
+        (line) =>
+          line.productId && line.sourcing && line.quantityRequired > 0 && line.orderQuantityUnit,
+      ),
     [lines],
   );
 
@@ -161,10 +310,6 @@ function InquiryWizard() {
       toast.error("Please select a QC Reviewer for the outsourced products.");
       return;
     }
-    if (isAdminUser && !salesAssigneeId) {
-      toast.error("Please select the sales representative for this inquiry.");
-      return;
-    }
     setSubmitting(true);
     try {
       const request = {
@@ -177,16 +322,23 @@ function InquiryWizard() {
         qaAssigneeId: hasQa ? qaAssigneeId : undefined,
         qcAssigneeId: hasQc ? qcAssigneeId : undefined,
         salesAssigneeId: isAdminUser ? salesAssigneeId : undefined,
-        lines: lines.map(({ key: _key, ...line }) => line as InquiryLineRequestDto),
+        lines: lines.map(
+          ({ key: _key, ...line }) =>
+            ({
+              ...line,
+              calculatedTabletQuantity: tabletCalculation(line).total,
+            }) as InquiryLineRequestDto,
+        ),
       };
       const inquiry = editingInquiry
         ? await updateInquiry(editingInquiry.id, request)
         : await createInquiry(request);
       await queryClient.invalidateQueries({ queryKey: ["inquiries"] });
-      setView("list");
+      setPreviewingDraft(false);
       toast.success(
         editingInquiry ? `${inquiry.rfqNo} updated` : `${inquiry.rfqNo} submitted for review`,
       );
+      navigate({ to: "/inquiry/$inquiryId", params: { inquiryId: inquiry.id } });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to submit inquiry");
     } finally {
@@ -206,6 +358,7 @@ function InquiryWizard() {
     setSalesAssigneeId("");
     setLines([emptyLine()]);
     setEditingInquiry(null);
+    setPreviewingDraft(false);
   };
 
   const startEdit = (inquiry: CustomerInquiry) => {
@@ -225,7 +378,8 @@ function InquiryWizard() {
         productId,
         sourcing,
         quantityRequired: line.quantityRequired,
-        shipperPackRequired: line.shipperPackRequired,
+        orderQuantityUnit: inferOrderQuantityUnit(line),
+        calculatedTabletQuantity: line.calculatedTabletQuantity,
         tertiaryPackRequired: line.tertiaryPackRequired,
         secondaryPackRequired: line.secondaryPackRequired,
         monoBoxPackRequired: line.monoBoxPackRequired,
@@ -236,26 +390,49 @@ function InquiryWizard() {
       })),
     );
     setView("create");
+    setPreviewingDraft(false);
   };
+
+  useEffect(() => {
+    if (initialInquiry && editingInquiry?.id !== initialInquiry.id) startEdit(initialInquiry);
+  }, [initialInquiry, editingInquiry?.id]);
+
+  if (previewingDraft)
+    return (
+      <DraftInquiryPreview
+        inquiry={draftPreview}
+        editing={Boolean(editingInquiry)}
+        submitting={submitting}
+        onBack={() => setPreviewingDraft(false)}
+        onConfirm={submit}
+      />
+    );
 
   if (view === "list")
     return (
-      <InquiryList
-        inquiries={inquiryPage?.content ?? []}
-        loading={inquiriesLoading}
-        assignedOnly={showMyInquiries}
-        canCreate={!isQualityReviewer || isSalesUser}
-        canEdit={(inquiry) =>
-          isAdminUser ||
-          inquiry.raisedByUserId === sessionUser?.id ||
-          inquiry.salesAssigneeId === sessionUser?.id
-        }
-        onEdit={startEdit}
-        onAdd={() => {
-          resetForm();
-          setView("create");
-        }}
-      />
+      <>
+        <InquiryList
+          inquiries={inquiryPage?.content ?? []}
+          loading={inquiriesLoading}
+          assignedOnly={showMyInquiries}
+          canCreate={!isQualityReviewer || isSalesUser}
+          canEdit={(inquiry) =>
+            isAdminUser ||
+            inquiry.raisedByUserId === sessionUser?.id ||
+            inquiry.salesAssigneeId === sessionUser?.id
+          }
+          onEdit={(inquiry) =>
+            navigate({ to: "/inquiry/$inquiryId/edit", params: { inquiryId: inquiry.id } })
+          }
+          onView={(inquiry) =>
+            navigate({ to: "/inquiry/$inquiryId", params: { inquiryId: inquiry.id } })
+          }
+          onAdd={() => {
+            resetForm();
+            setView("create");
+          }}
+        />
+      </>
     );
 
   return (
@@ -265,9 +442,14 @@ function InquiryWizard() {
         title={editingInquiry ? `Edit ${editingInquiry.rfqNo}` : "Add Customer Inquiry"}
         description="Create or update an RFQ and route each product to the selected QA or QC reviewer."
         actions={
-          <Button variant="outline" onClick={() => setView("list")}>
-            <ChevronLeft className="size-4" /> Back to inquiries
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setPreviewingDraft(true)}>
+              Preview inquiry
+            </Button>
+            <Button variant="outline" onClick={() => setView("list")}>
+              <ChevronLeft className="size-4" /> Back to inquiries
+            </Button>
+          </div>
         }
       />
       <Panel className="space-y-8 p-6 sm:p-8">
@@ -497,56 +679,148 @@ function InquiryWizard() {
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label="Quantity required *">
-                    <Input
-                      type="number"
-                      min="1"
-                      value={line.quantityRequired || ""}
-                      onChange={(event) =>
-                        updateLine(line.key, { quantityRequired: Number(event.target.value) })
-                      }
-                    />
-                  </Field>
-                  <Field label="Target price (if available)">
-                    <Input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={line.targetPrice ?? ""}
-                      onChange={(event) =>
-                        updateLine(line.key, {
-                          targetPrice: event.target.value ? Number(event.target.value) : undefined,
-                        })
-                      }
-                    />
-                  </Field>
                   <Field label="Packaging notes">
-                    <Input
+                    <Select
                       value={line.packagingNotes || ""}
-                      onChange={(event) =>
-                        updateLine(line.key, { packagingNotes: event.target.value })
-                      }
-                      placeholder="e.g. alu-alu blister"
-                    />
+                      onValueChange={(value) => updateLine(line.key, { packagingNotes: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select packing type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {packagingNotes.map((item) => (
+                          <SelectItem key={item} value={item}>
+                            {item}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </Field>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Packing requirement</Label>
-                  <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                    {packFields.map(([field, label]) => (
-                      <Field key={field} label={label}>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Enter the pack configuration in the first row and the order quantity at the pack
+                    level being ordered in the second row.
+                  </p>
+                  {line.packagingNotes === "Jar" ? (
+                    <div className="mt-3 grid gap-3 rounded-lg border bg-background p-3 sm:grid-cols-3">
+                      <Field label="Tablets per jar *">
                         <Input
                           type="number"
-                          min="0"
-                          value={line[field] ?? ""}
+                          min="1"
+                          value={line.tabletPackRequired ?? ""}
                           onChange={(event) =>
                             updateLine(line.key, {
-                              [field]: event.target.value ? Number(event.target.value) : undefined,
+                              tabletPackRequired: event.target.value
+                                ? Number(event.target.value)
+                                : undefined,
                             })
                           }
                         />
                       </Field>
-                    ))}
+                      <Field label="Quantity required (jars) *">
+                        <Input
+                          type="number"
+                          min="1"
+                          value={
+                            line.orderQuantityUnit === "JAR" ? line.quantityRequired || "" : ""
+                          }
+                          onChange={(event) =>
+                            updateLine(line.key, {
+                              quantityRequired: Number(event.target.value),
+                              orderQuantityUnit: "JAR",
+                            })
+                          }
+                        />
+                      </Field>
+                      <CalculationResult calculation={tabletCalculation(line)} />
+                    </div>
+                  ) : (
+                    <div className="mt-3 overflow-x-auto rounded-lg border bg-background">
+                      <div className="min-w-[720px] divide-y text-sm">
+                        <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))] bg-muted/40 font-medium">
+                          <div className="p-2" />
+                          {packFields.map(([, label]) => (
+                            <div key={label} className="border-l p-2">
+                              {label}
+                            </div>
+                          ))}
+                          <div className="border-l p-2">Tablet</div>
+                        </div>
+                        <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))]">
+                          <div className="bg-muted/20 p-2 font-medium">Pack required</div>
+                          {packFields.map(([field]) => (
+                            <div key={field} className="border-l p-1.5">
+                              <Input
+                                type="number"
+                                min="0"
+                                className="h-8"
+                                value={line[field] ?? ""}
+                                onChange={(event) =>
+                                  updateLine(line.key, {
+                                    [field]: event.target.value
+                                      ? Number(event.target.value)
+                                      : undefined,
+                                  })
+                                }
+                              />
+                            </div>
+                          ))}
+                          <div className="border-l p-2 text-xs text-muted-foreground">
+                            {tabletCalculation(line).formula}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))]">
+                          <div className="bg-muted/20 p-2 font-medium">Quantity required *</div>
+                          {quantityUnits.map(([unit, label]) => (
+                            <div key={unit} className="border-l p-1.5">
+                              <Input
+                                aria-label={`Quantity required in ${label}`}
+                                type="number"
+                                min="1"
+                                className="h-8"
+                                value={
+                                  line.orderQuantityUnit === unit ? line.quantityRequired || "" : ""
+                                }
+                                placeholder={
+                                  line.orderQuantityUnit && line.orderQuantityUnit !== unit
+                                    ? "—"
+                                    : "Qty"
+                                }
+                                onFocus={() => updateLine(line.key, { orderQuantityUnit: unit })}
+                                onChange={(event) =>
+                                  updateLine(line.key, {
+                                    orderQuantityUnit: unit,
+                                    quantityRequired: Number(event.target.value),
+                                  })
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {line.packagingNotes !== "Jar" && (
+                    <CalculationResult calculation={tabletCalculation(line)} />
+                  )}
+                  <div className="mt-3 max-w-xs">
+                    <Field label="Target price (if available)">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.targetPrice ?? ""}
+                        onChange={(event) =>
+                          updateLine(line.key, {
+                            targetPrice: event.target.value
+                              ? Number(event.target.value)
+                              : undefined,
+                          })
+                        }
+                      />
+                    </Field>
                   </div>
                 </div>
               </div>
@@ -556,7 +830,7 @@ function InquiryWizard() {
         <section className="border-t border-border pt-7">
           {isAdminUser && (
             <div className="mb-5 max-w-md">
-              <Field label="Sales representative *">
+              <Field label="Sales representative (optional)">
                 <LookupInput
                   value={salesAssigneeId}
                   onChange={setSalesAssigneeId}
@@ -618,8 +892,11 @@ function InquiryWizard() {
           </Field>
         </section>
         <div className="flex justify-end border-t border-border pt-6">
-          <Button disabled={submitting || !allLinesComplete} onClick={submit}>
-            {submitting ? "Saving…" : editingInquiry ? "Save changes" : "Submit RFQ"}
+          <Button
+            disabled={submitting || !allLinesComplete}
+            onClick={() => setPreviewingDraft(true)}
+          >
+            {editingInquiry ? "Preview changes" : "Preview & submit RFQ"}
             <Send className="size-4" />
           </Button>
         </div>
@@ -646,6 +923,222 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function CalculationResult({ calculation }: { calculation: { total: number; formula: string } }) {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm">
+      <span className="font-medium">Total tablets:</span>
+      <span className="font-semibold text-primary">{calculation.total.toLocaleString()}</span>
+      <span className="text-muted-foreground">({calculation.formula})</span>
+    </div>
+  );
+}
+
+function DraftInquiryPreview({
+  inquiry,
+  editing,
+  submitting,
+  onBack,
+  onConfirm,
+}: {
+  inquiry: CustomerInquiry;
+  editing: boolean;
+  submitting: boolean;
+  onBack: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="space-y-6 pb-10">
+      <PageHeader
+        eyebrow="Customer inquiry"
+        title={editing ? `Review changes — ${inquiry.rfqNo}` : "Review inquiry before submission"}
+        description="Confirm the details below before saving this RFQ."
+        actions={
+          <Button variant="outline" onClick={onBack}>
+            <ChevronLeft className="size-4" /> Back to edit
+          </Button>
+        }
+      />
+      <Panel className="grid gap-4 p-5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+        <PreviewItem label="Customer" value={inquiry.customerName || "—"} />
+        <PreviewItem label="Contact person" value={inquiry.contactPersonName || "—"} />
+        <PreviewItem
+          label="Source"
+          value={String(inquiry.inquirySource || "—").replaceAll("_", " ")}
+        />
+        <PreviewItem label="Priority" value={String(inquiry.priority || "—")} />
+        <PreviewItem label="Target quote date" value={inquiry.targetQuoteDate || "—"} />
+        <PreviewItem label="QA reviewer" value={inquiry.qaAssigneeName || "—"} />
+        <PreviewItem label="QC reviewer" value={inquiry.qcAssigneeName || "—"} />
+        <PreviewItem
+          label="Sales owner"
+          value={inquiry.salesAssigneeName || inquiry.raisedByUserName || "Current user"}
+        />
+      </Panel>
+      <Panel className="space-y-3 p-5">
+        <h2 className="text-lg font-semibold">Products</h2>
+        {(inquiry.lines || []).map((line, index) => (
+          <div key={`${line.productId}-${index}`} className="rounded-xl border p-4">
+            <div className="flex flex-wrap justify-between gap-2">
+              <div>
+                <p className="font-medium">{line.productName || "Product"}</p>
+                <p className="text-sm text-muted-foreground">{line.genericName || "—"}</p>
+              </div>
+              <Badge variant="outline">
+                {line.sourcing === "OUTSOURCED" ? "Outsourced" : "In-house"}
+              </Badge>
+            </div>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <PreviewItem label="Packing" value={line.packagingNotes || "—"} />
+              <PreviewItem
+                label="Order quantity"
+                value={`${Number(line.quantityRequired || 0).toLocaleString()} ${String(line.orderQuantityUnit || "").replaceAll("_", " ")}`}
+              />
+              <PreviewItem
+                label="Total tablets"
+                value={Number(
+                  line.calculatedTabletQuantity ?? line.quantityRequired ?? 0,
+                ).toLocaleString()}
+              />
+              <PreviewItem
+                label="Target price"
+                value={line.targetPrice == null ? "—" : String(line.targetPrice)}
+              />
+            </div>
+          </div>
+        ))}
+      </Panel>
+      {inquiry.notes && (
+        <Panel className="p-5">
+          <h2 className="mb-2 text-lg font-semibold">Internal notes</h2>
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">{inquiry.notes}</p>
+        </Panel>
+      )}
+      <div className="flex flex-wrap justify-end gap-3 border-t pt-6">
+        <Button variant="outline" onClick={onBack}>
+          Back to edit
+        </Button>
+        <Button disabled={submitting} onClick={onConfirm}>
+          {submitting ? "Saving…" : editing ? "Confirm & save changes" : "Confirm & submit RFQ"}
+          <Send className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function InquiryPreviewDialog({
+  inquiry,
+  onOpenChange,
+  onConfirm,
+  submitting = false,
+}: {
+  inquiry: CustomerInquiry | null;
+  onOpenChange: (open: boolean) => void;
+  onConfirm?: () => void;
+  submitting?: boolean;
+}) {
+  const labelFor = (value: unknown) => String(value ?? "—").replaceAll("_", " ");
+  const numberFor = (value: unknown) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toLocaleString() : "—";
+  };
+  const lines = Array.isArray(inquiry?.lines) ? inquiry.lines : [];
+  return (
+    <Dialog open={Boolean(inquiry)} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        {inquiry && (
+          <>
+            <DialogHeader>
+              <DialogTitle>{inquiry.rfqNo} — Inquiry preview</DialogTitle>
+              <DialogDescription>
+                Review the customer, product, packing and routing details before submission.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-3 rounded-lg border bg-muted/25 p-4 text-sm sm:grid-cols-2">
+              <PreviewItem label="Customer" value={String(inquiry.customerName || "—")} />
+              <PreviewItem
+                label="Contact person"
+                value={String(inquiry.contactPersonName || "—")}
+              />
+              <PreviewItem label="Source" value={labelFor(inquiry.inquirySource)} />
+              <PreviewItem label="Priority" value={labelFor(inquiry.priority)} />
+              <PreviewItem label="Target quote date" value={inquiry.targetQuoteDate || "—"} />
+              <PreviewItem label="Status" value={labelFor(inquiry.status)} />
+              <PreviewItem label="QA reviewer" value={inquiry.qaAssigneeName || "—"} />
+              <PreviewItem label="QC reviewer" value={inquiry.qcAssigneeName || "—"} />
+              <PreviewItem
+                label="Sales owner"
+                value={inquiry.salesAssigneeName || inquiry.raisedByUserName || "Current user"}
+              />
+            </div>
+            <div className="space-y-3">
+              <h3 className="font-semibold">Products</h3>
+              {lines.map((line, index) => (
+                <div key={`${line.productId}-${index}`} className="rounded-lg border p-4 text-sm">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium">{line.productName || "Product"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {line.genericName} {line.dosageForm ? `· ${line.dosageForm}` : ""}
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {line.sourcing === "OUTSOURCED" ? "Outsourced" : "In-house"}
+                    </Badge>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+                    <PreviewItem label="Packing" value={line.packagingNotes || "—"} />
+                    <PreviewItem
+                      label="Order quantity"
+                      value={`${numberFor(line.quantityRequired)} ${labelFor(line.orderQuantityUnit)}`}
+                    />
+                    <PreviewItem
+                      label="Total tablets"
+                      value={numberFor(line.calculatedTabletQuantity ?? line.quantityRequired)}
+                    />
+                    <PreviewItem
+                      label="Target price"
+                      value={line.targetPrice != null ? String(line.targetPrice) : "—"}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {inquiry.notes && (
+              <div className="rounded-lg border p-4 text-sm">
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Internal notes
+                </p>
+                {inquiry.notes}
+              </div>
+            )}
+            {onConfirm && (
+              <DialogFooter>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                  Back to edit
+                </Button>
+                <Button disabled={submitting} onClick={onConfirm}>
+                  {submitting ? "Submitting…" : "Confirm & submit"}
+                  <Send className="size-4" />
+                </Button>
+              </DialogFooter>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PreviewItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium capitalize">{value}</p>
     </div>
   );
 }

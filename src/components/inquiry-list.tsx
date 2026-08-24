@@ -1,4 +1,4 @@
-import { ClipboardList, Pencil, Plus } from "lucide-react";
+import { ClipboardList, Eye, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ export function InquiryList({
   canCreate = true,
   canEdit,
   onEdit,
+  onView,
 }: {
   inquiries: CustomerInquiry[];
   loading: boolean;
@@ -23,6 +24,7 @@ export function InquiryList({
   canCreate?: boolean;
   canEdit?: (inquiry: CustomerInquiry) => boolean;
   onEdit?: (inquiry: CustomerInquiry) => void;
+  onView: (inquiry: CustomerInquiry) => void;
 }) {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   return (
@@ -88,7 +90,11 @@ export function InquiryList({
                   className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-primary/30"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}
+                  transition={{
+                    duration: 0.3,
+                    delay: Math.min(index * 0.04, 0.25),
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -135,21 +141,33 @@ export function InquiryList({
                     <Badge variant="outline">{inquiry.priority}</Badge>
                   </div>
 
-                  {onEdit && canEdit?.(inquiry) && (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Button
                       variant="outline"
                       size="sm"
                       className="w-full"
-                      onClick={() => onEdit(inquiry)}
+                      onClick={() => onView(inquiry)}
                     >
-                      <Pencil className="size-4" /> Edit inquiry
+                      <Eye className="size-4" /> View RFQ
                     </Button>
-                  )}
+                    {onEdit && canEdit?.(inquiry) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => onEdit(inquiry)}
+                      >
+                        <Pencil className="size-4" /> Edit inquiry
+                      </Button>
+                    )}
+                  </div>
                 </motion.article>
               ))}
             </div>
 
-            <div className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}>
+            <div
+              className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}
+            >
               <table className="min-w-[720px] w-full text-sm">
                 <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
@@ -160,11 +178,9 @@ export function InquiryList({
                     <th className="px-4 py-3">Sales owner</th>
                     <th className="px-4 py-3">Priority</th>
                     <th className="px-4 py-3">Status</th>
-                    {onEdit && (
-                      <th className="px-4 py-3">
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    )}
+                    <th className="px-4 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -207,15 +223,16 @@ export function InquiryList({
                       <td className="px-4 py-3">
                         <StatusChip status={inquiry.status.replaceAll("_", " ")} />
                       </td>
-                      {onEdit && (
-                        <td className="px-4 py-3 text-right">
-                          {canEdit?.(inquiry) && (
-                            <Button variant="ghost" size="sm" onClick={() => onEdit(inquiry)}>
-                              <Pencil className="size-4" /> Edit
-                            </Button>
-                          )}
-                        </td>
-                      )}
+                      <td className="px-4 py-3 text-right">
+                        <Button variant="ghost" size="sm" onClick={() => onView(inquiry)}>
+                          <Eye className="size-4" /> View RFQ
+                        </Button>
+                        {onEdit && canEdit?.(inquiry) && (
+                          <Button variant="ghost" size="sm" onClick={() => onEdit(inquiry)}>
+                            <Pencil className="size-4" /> Edit
+                          </Button>
+                        )}
+                      </td>
                     </motion.tr>
                   ))}
                 </tbody>

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
@@ -337,6 +337,7 @@ function formatINR(value: number): string {
 
 function ClientMaster() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [segment, setSegment] = useState<(typeof filterSegments)[number]>("All");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -607,10 +608,22 @@ function ClientMaster() {
                       </div>
                     </div>
                     <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setActiveId(c.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          navigate({ to: "/clients/$clientId", params: { clientId: c.id } })
+                        }
+                      >
                         <Eye className="size-4" /> View
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => openEdit(c)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          navigate({ to: "/clients/$clientId/edit", params: { clientId: c.id } })
+                        }
+                      >
                         <Pencil className="size-4" /> Edit
                       </Button>
                     </div>
@@ -670,10 +683,25 @@ function ClientMaster() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => setActiveId(client.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            navigate({ to: "/clients/$clientId", params: { clientId: client.id } })
+                          }
+                        >
                           <Eye className="size-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(client)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            navigate({
+                              to: "/clients/$clientId/edit",
+                              params: { clientId: client.id },
+                            })
+                          }
+                        >
                           <Pencil className="size-4" />
                         </Button>
                       </div>
@@ -1018,7 +1046,7 @@ function AddressBlock({
 
 // ─── Add / Edit Form Dialog ──────────────────────────────────────────────────
 
-function ClientFormDialog({
+export function ClientFormDialog({
   open,
   onOpenChange,
   editingClient,

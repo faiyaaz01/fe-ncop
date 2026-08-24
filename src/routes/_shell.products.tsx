@@ -259,7 +259,12 @@ function ProductMaster() {
             <Boxes className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight"><Counter key={metrics?.total ?? totalElements} value={metrics?.total ?? totalElements} /></p>
+            <p className="text-2xl font-bold tracking-tight">
+              <Counter
+                key={metrics?.total ?? totalElements}
+                value={metrics?.total ?? totalElements}
+              />
+            </p>
             <p className="text-xs text-muted-foreground font-medium">Total Products</p>
           </div>
         </div>
@@ -269,7 +274,9 @@ function ProductMaster() {
             <CheckCircle2 className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight"><Counter key={metrics?.active ?? 0} value={metrics?.active ?? 0} /></p>
+            <p className="text-2xl font-bold tracking-tight">
+              <Counter key={metrics?.active ?? 0} value={metrics?.active ?? 0} />
+            </p>
             <p className="text-xs text-muted-foreground font-medium">Active SKUs</p>
           </div>
         </div>
@@ -279,7 +286,12 @@ function ProductMaster() {
             <Clock className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight"><Counter key={metrics?.underDevelopment ?? 0} value={metrics?.underDevelopment ?? 0} /></p>
+            <p className="text-2xl font-bold tracking-tight">
+              <Counter
+                key={metrics?.underDevelopment ?? 0}
+                value={metrics?.underDevelopment ?? 0}
+              />
+            </p>
             <p className="text-xs text-muted-foreground font-medium">In Development</p>
           </div>
         </div>
@@ -289,7 +301,9 @@ function ProductMaster() {
             <Layers className="size-5" />
           </div>
           <div>
-            <p className="text-2xl font-bold tracking-tight"><Counter key={dosageForms.length} value={dosageForms.length} /></p>
+            <p className="text-2xl font-bold tracking-tight">
+              <Counter key={dosageForms.length} value={dosageForms.length} />
+            </p>
             <p className="text-xs text-muted-foreground font-medium">Dosage Forms</p>
           </div>
         </div>
@@ -440,7 +454,11 @@ function ProductMaster() {
                   className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:border-primary/30"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.25), ease: [0.22, 1, 0.36, 1] }}
+                  transition={{
+                    duration: 0.3,
+                    delay: Math.min(index * 0.04, 0.25),
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                 >
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -485,8 +503,10 @@ function ProductMaster() {
                       size="sm"
                       className="w-full shrink-0 justify-center"
                       onClick={() => {
-                        setEditingProduct(product);
-                        setProductModalOpen(true);
+                        navigate({
+                          to: "/products/$productId/edit",
+                          params: { productId: product.id },
+                        });
                       }}
                     >
                       <Pencil className="size-4" /> Edit
@@ -503,7 +523,9 @@ function ProductMaster() {
                 </motion.article>
               ))}
             </div>
-            <div className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}>
+            <div
+              className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}
+            >
               <table className="min-w-[850px] w-full border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-secondary/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -629,8 +651,10 @@ function ProductMaster() {
                             title="Edit Product"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setEditingProduct(product);
-                              setProductModalOpen(true);
+                              navigate({
+                                to: "/products/$productId/edit",
+                                params: { productId: product.id },
+                              });
                             }}
                           >
                             <Pencil className="size-4" />

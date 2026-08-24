@@ -58,3 +58,9 @@ export async function fetchMyInquiries(
     await fetch(apiUrl(`/api/v1/inquiries/my?page=${page}&size=${size}`), { headers: headers() }),
   );
 }
+
+export async function fetchInquiryById(id: string): Promise<CustomerInquiry> {
+  return response<CustomerInquiry>(
+    await fetch(apiUrl(`/api/v1/inquiries/${id}`), { headers: headers() }),
+  );
+}
