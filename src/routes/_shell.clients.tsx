@@ -446,7 +446,7 @@ function ClientMaster() {
         title="Clients"
         description={
           isLoading
-            ? "Loading clientsâ€¦"
+            ? "Loading clients…"
             : `${clients.length} registered partner${clients.length !== 1 ? "s" : ""}. Select a company to open its full dossier.`
         }
         actions={
@@ -472,7 +472,7 @@ function ClientMaster() {
               setQuery(e.target.value);
               setPage(0);
             }}
-            placeholder="Search by company, code or trade nameâ€¦"
+            placeholder="Search by company, code or trade name…"
             className="pl-9"
           />
         </div>
@@ -545,6 +545,7 @@ function ClientMaster() {
       {/* â”€â”€ Empty / No matches â”€â”€ */}
       {!isLoading && !isError && filtered.length === 0 && (
         <EmptyState
+          className="bg-white"
           icon={<Users className="size-5" />}
           title={clients.length === 0 ? "No clients yet" : "No clients match your filters"}
           description={
@@ -619,7 +620,7 @@ function ClientMaster() {
                           Annual Turnover
                         </p>
                         <p className="text-sm font-semibold tabular-nums">
-                          {c.annualTurnover ? formatINR(c.annualTurnover) : "â€”"}
+                          {c.annualTurnover ? formatINR(c.annualTurnover) : "—"}
                         </p>
                       </div>
                       <div className="text-right">
@@ -688,17 +689,19 @@ function ClientMaster() {
                       <p className="text-xs text-muted-foreground">{client.customerCode}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p>{poc?.personName || "â€”"}</p>
-                      <p className="text-xs text-muted-foreground">{poc?.email || "â€”"}</p>
+                      <p>{poc?.personName || "—"}</p>
+                      <p className="text-xs text-muted-foreground">{poc?.email || "—"}</p>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {address ? `${address.city}, ${address.country}` : "â€”"}
+                      {address?.city || address?.country
+                        ? [address.city, address.country].filter(Boolean).join(", ")
+                        : "-"}
                     </td>
                     <td className="px-4 py-3">
                       <Badge variant="outline">{CUSTOMER_TYPE_LABELS[client.customerType]}</Badge>
                     </td>
                     <td className="px-4 py-3 font-medium">
-                      {client.annualTurnover ? formatINR(client.annualTurnover) : "â€”"}
+                      {client.annualTurnover ? formatINR(client.annualTurnover) : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <TierBadge level={client.clientLevel} />

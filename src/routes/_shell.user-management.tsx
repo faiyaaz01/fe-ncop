@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Users,
   Shield,
@@ -232,7 +232,9 @@ function UserManagementPage() {
                 <Users className="size-4" />
               </div>
             </div>
-            <p className="text-2xl font-bold mt-2">{stats.totalUsers}</p>
+            <p className="text-2xl font-bold mt-2">
+              <AnimatedNumber value={stats.totalUsers} />
+            </p>
           </div>
 
           {/* Active Users */}
@@ -246,7 +248,7 @@ function UserManagementPage() {
               </div>
             </div>
             <p className="text-2xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">
-              {stats.activeUsers}
+              <AnimatedNumber value={stats.activeUsers} />
             </p>
           </div>
 
@@ -261,7 +263,7 @@ function UserManagementPage() {
               </div>
             </div>
             <p className="text-2xl font-bold mt-2 text-slate-600 dark:text-slate-400">
-              {stats.inactiveUsers}
+              <AnimatedNumber value={stats.inactiveUsers} />
             </p>
           </div>
 
@@ -281,7 +283,7 @@ function UserManagementPage() {
                 stats.suspendedUsers > 0 ? "text-destructive" : "text-muted-foreground",
               )}
             >
-              {stats.suspendedUsers}
+              <AnimatedNumber value={stats.suspendedUsers} />
             </p>
           </div>
 
@@ -303,7 +305,7 @@ function UserManagementPage() {
                   : "text-muted-foreground",
               )}
             >
-              {stats.pendingUsers}
+              <AnimatedNumber value={stats.pendingUsers} />
             </p>
           </div>
 
@@ -325,7 +327,7 @@ function UserManagementPage() {
                   : "text-muted-foreground",
               )}
             >
-              {stats.roleInactiveUsers}
+              <AnimatedNumber value={stats.roleInactiveUsers} />
             </p>
           </div>
         </div>
@@ -340,11 +342,14 @@ function UserManagementPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Configured Roles</p>
-                <p className="text-xl font-bold mt-0.5">{stats.totalRoles}</p>
+                <p className="text-xl font-bold mt-0.5">
+                  <AnimatedNumber value={stats.totalRoles} />
+                </p>
               </div>
             </div>
             <Badge variant="outline" className="text-xs">
-              {stats.activeRoles} Active · {stats.inactiveRoles} Inactive
+              <AnimatedNumber value={stats.activeRoles} /> Active ·{" "}
+              <AnimatedNumber value={stats.inactiveRoles} /> Inactive
             </Badge>
           </div>
 
@@ -357,7 +362,7 @@ function UserManagementPage() {
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Active Operating Roles</p>
                 <p className="text-xl font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
-                  {stats.activeRoles}
+                  <AnimatedNumber value={stats.activeRoles} />
                 </p>
               </div>
             </div>
@@ -380,7 +385,7 @@ function UserManagementPage() {
                       : "text-muted-foreground",
                   )}
                 >
-                  {stats.inactiveRoles}
+                  <AnimatedNumber value={stats.inactiveRoles} />
                 </p>
               </div>
             </div>
@@ -531,6 +536,43 @@ function UserManagementPage() {
       />
     </div>
   );
+}
+
+function AnimatedNumber({ value }: { value: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const previousValue = useRef(0);
+
+  useEffect(() => {
+    const startValue = previousValue.current;
+    const duration = 500;
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || startValue === value) {
+      setDisplayValue(value);
+      previousValue.current = value;
+      return;
+    }
+
+    const startTime = performance.now();
+    let frameId = 0;
+
+    const updateValue = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const easedProgress = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.round(startValue + (value - startValue) * easedProgress));
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(updateValue);
+      } else {
+        previousValue.current = value;
+      }
+    };
+
+    frameId = requestAnimationFrame(updateValue);
+    return () => cancelAnimationFrame(frameId);
+  }, [value]);
+
+  return <>{displayValue}</>;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

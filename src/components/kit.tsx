@@ -317,18 +317,23 @@ export function EmptyState({
   title,
   description,
   action,
+  className,
 }: {
   icon: ReactNode;
   title: string;
   description: string;
   action?: ReactNode;
+  className?: string;
 }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.35, ease: smoothEase }}
-      className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center"
+      className={cn(
+        "flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border px-6 py-12 text-center",
+        className,
+      )}
     >
       <div className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground shadow-soft">
         {icon}
@@ -372,4 +377,3 @@ export function Timeline({ items }: { items: { date: string; title: string; deta
     </ol>
   );
 }
-
