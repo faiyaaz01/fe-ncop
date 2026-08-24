@@ -242,6 +242,20 @@ function ProductMaster() {
     );
   }
 
+  if (dosageConfigOpen) {
+    return (
+      <DosageConfigDialog
+        open
+        pageMode
+        onOpenChange={setDosageConfigOpen}
+        dosageForms={dosageForms}
+        onChanged={() => {
+          queryClient.invalidateQueries({ queryKey: ["dosage-forms"] });
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* ── Page Header ── */}
@@ -1315,7 +1329,7 @@ export function ProductFormDialog({
         <DialogFooter
           className={cn(
             "px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3",
-            pageMode && "mb-6 rounded-b-2xl border border-t-0 border-border/60",
+            pageMode && "!mt-0 rounded-b-2xl border border-t-0 border-border/60 bg-card",
           )}
         >
           <Button
@@ -1350,11 +1364,13 @@ function DosageConfigDialog({
   onOpenChange,
   dosageForms,
   onChanged,
+  pageMode = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   dosageForms: DosageForm[];
   onChanged: () => void;
+  pageMode?: boolean;
 }) {
   const [selectedForm, setSelectedForm] = useState<DosageForm | null>(null);
   const [formName, setFormName] = useState("");
@@ -1429,19 +1445,45 @@ function DosageConfigDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:h-[88vh] sm:w-[92vw] sm:max-w-3xl sm:rounded-2xl flex flex-col overflow-hidden p-0 shadow-2xl">
-        <DialogHeader className="shrink-0 border-b border-border/40 bg-muted/20 px-6 py-4">
-          <DialogTitle className="flex items-center gap-2 text-lg">
-            <SlidersHorizontal className="size-5 text-primary" />
-            Database-Configured Dosage Forms & Variants
-          </DialogTitle>
-          <DialogDescription>
-            Configure Level 1 Dosage Forms and Level 2 Variants directly in the backend MongoDB
-            database.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent
+        inline={pageMode}
+        className={cn(
+          "flex flex-col overflow-hidden p-0",
+          pageMode
+            ? "space-y-6"
+            : "max-sm:fixed max-sm:inset-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:h-[88vh] sm:w-[92vw] sm:max-w-3xl sm:rounded-2xl shadow-2xl",
+        )}
+      >
+        {pageMode ? (
+          <PageHeader
+            eyebrow="PRODUCTS"
+            title="Dosage Configurations"
+            description="Configure Level 1 Dosage Forms and Level 2 Variants directly in the backend MongoDB database."
+            actions={
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <ArrowLeft className="size-4" /> Back to Products
+              </Button>
+            }
+          />
+        ) : (
+          <DialogHeader className="shrink-0 border-b border-border/40 bg-muted/20 px-6 py-4">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <SlidersHorizontal className="size-5 text-primary" />
+              Database-Configured Dosage Forms & Variants
+            </DialogTitle>
+            <DialogDescription>
+              Configure Level 1 Dosage Forms and Level 2 Variants directly in the backend MongoDB
+              database.
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+        <div
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6",
+            pageMode && "rounded-2xl border border-border/60 bg-card sm:px-8 sm:py-8",
+          )}
+        >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
             {/* Left Column: List of Forms in DB */}
             <div className="md:col-span-5 rounded-xl border border-border/70 surface p-3 flex flex-col h-[260px] md:h-[480px]">
@@ -1594,15 +1636,20 @@ function DosageConfigDialog({
               </div>
             </div>
           </div>
+          <DialogFooter
+            className={cn(
+              "mt-6 shrink-0 gap-2.5 border-t border-border/40 bg-background px-6 py-4 sm:justify-end",
+              pageMode && "!bg-transparent px-0 pb-0",
+            )}
+          >
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+            <Button type="button" disabled={isSaving} onClick={handleSave}>
+              {isSaving ? "Saving…" : "Save to Database"}
+            </Button>
+          </DialogFooter>
         </div>
-        <DialogFooter className="shrink-0 gap-2.5 border-t border-border/40 bg-background px-6 py-4 sm:justify-end">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button type="button" disabled={isSaving} onClick={handleSave}>
-            {isSaving ? "Saving…" : "Save to Database"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -463,7 +463,7 @@ function ClientMaster() {
       />
 
       {/* â”€â”€ Filters â”€â”€ */}
-      <Panel className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="surface flex flex-col justify-between gap-3 p-5 lg:flex-row lg:items-center">
         <div className="relative w-full lg:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -492,7 +492,7 @@ function ClientMaster() {
             </button>
           ))}
         </div>
-      </Panel>
+      </div>
 
       {/* â”€â”€ Loading â”€â”€ */}
       {isLoading && (
