@@ -21,6 +21,7 @@ import {
   UserX,
   Clock,
   Ban,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -170,6 +171,25 @@ function UserManagementPage() {
       totalRights,
     };
   }, [allUsers, allRoles, allModuleRights]);
+
+  if (userModalOpen && !editingUser) {
+    return (
+      <UserFormDialog
+        open
+        pageMode
+        onOpenChange={setUserModalOpen}
+        editingUser={null}
+        roles={allRoles}
+        moduleRights={allModuleRights}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-roles-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-roles"] });
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -1392,13 +1412,14 @@ function ModuleRightsTab({
 // USER ADD / EDIT DIALOG
 // ══════════════════════════════════════════════════════════════════════════════
 
-function UserFormDialog({
+export function UserFormDialog({
   open,
   onOpenChange,
   editingUser,
   roles,
   moduleRights,
   onSuccess,
+  pageMode = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -1406,6 +1427,7 @@ function UserFormDialog({
   roles: RoleResponse[];
   moduleRights: ModuleRight[];
   onSuccess: () => void;
+  pageMode?: boolean;
 }) {
   const isEdit = !!editingUser;
 
@@ -1512,21 +1534,52 @@ function UserFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-2xl sm:h-[88vh] sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+      <DialogContent
+        inline={pageMode}
+        overlayClassName={pageMode ? "hidden" : undefined}
+        className={cn(
+          "flex flex-col p-0 overflow-hidden",
+          pageMode
+            ? "space-y-6"
+            : "max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-2xl sm:h-[88vh] sm:rounded-2xl shadow-2xl",
+        )}
+      >
         {/* Fixed Header */}
-        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
-          <DialogTitle className="text-lg font-semibold">
-            {isEdit ? "Edit User Account" : "Create New User Account"}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            {isEdit
-              ? "Update profile details, organizational roles, and module access rights."
-              : "Fill in the details below to create a new system user."}
-          </DialogDescription>
-        </DialogHeader>
+        {pageMode ? (
+          <PageHeader
+            eyebrow="USERS"
+            title={isEdit ? "Edit User Account" : "Create New User Account"}
+            description={
+              isEdit
+                ? "Update profile details, organizational roles, and module access rights."
+                : "Fill in the details below to create a new system user."
+            }
+            actions={
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <ArrowLeft className="size-4" /> Back to Users
+              </Button>
+            }
+          />
+        ) : (
+          <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
+            <DialogTitle className="text-lg font-semibold">
+              {isEdit ? "Edit User Account" : "Create New User Account"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {isEdit
+                ? "Update profile details, organizational roles, and module access rights."
+                : "Fill in the details below to create a new system user."}
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
         {/* Scrollable Form Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+        <div
+          className={cn(
+            "flex-1 min-h-0 overflow-y-auto px-6 py-5",
+            pageMode && "rounded-t-2xl border border-b-0 border-border/60 bg-card sm:px-8 sm:py-8",
+          )}
+        >
           <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
             {/* ── Section 1: Account & Profile ── */}
             <fieldset className="space-y-4">
@@ -1749,7 +1802,12 @@ function UserFormDialog({
         </div>
 
         {/* Fixed Footer */}
-        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
+        <DialogFooter
+          className={cn(
+            "px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3",
+            pageMode && "mb-6 rounded-b-2xl border border-t-0 border-border/60",
+          )}
+        >
           <Button
             type="button"
             variant="outline"

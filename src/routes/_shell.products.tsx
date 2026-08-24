@@ -26,6 +26,7 @@ import {
   RefreshCw,
   FolderOpen,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -224,6 +225,22 @@ function ProductMaster() {
   const productList = productsPage?.content ?? [];
   const totalElements = productsPage?.totalElements ?? 0;
   const totalPages = productsPage?.totalPages ?? 1;
+
+  if (productModalOpen && !editingProduct) {
+    return (
+      <ProductFormDialog
+        open
+        pageMode
+        onOpenChange={setProductModalOpen}
+        editingProduct={null}
+        dosageForms={dosageForms}
+        onSaved={() => {
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+          queryClient.invalidateQueries({ queryKey: ["product-metrics"] });
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -761,12 +778,14 @@ export function ProductFormDialog({
   editingProduct,
   dosageForms,
   onSaved,
+  pageMode = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingProduct: Product | null;
   dosageForms: DosageForm[];
   onSaved: (product?: Product) => void;
+  pageMode?: boolean;
 }) {
   const [brandName, setBrandName] = useState("");
   const [category, setCategory] = useState("Analgesics & Antipyretics");
@@ -907,21 +926,52 @@ export function ProductFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-2xl sm:h-[88vh] sm:rounded-2xl flex flex-col p-0 overflow-hidden shadow-2xl">
+      <DialogContent
+        inline={pageMode}
+        overlayClassName={pageMode ? "hidden" : undefined}
+        className={cn(
+          "flex flex-col p-0 overflow-hidden",
+          pageMode
+            ? "space-y-6"
+            : "max-sm:fixed max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:w-[92vw] sm:max-w-2xl sm:h-[88vh] sm:rounded-2xl shadow-2xl",
+        )}
+      >
         {/* Fixed Header */}
-        <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
-          <DialogTitle className="text-lg font-semibold">
-            {editingProduct ? "Edit Product" : "Add New Product"}
-          </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            {editingProduct
-              ? `Editing ${editingProduct.brandName} (${editingProduct.productCode})`
-              : "Fill in the details below. Product code will be auto-generated."}
-          </DialogDescription>
-        </DialogHeader>
+        {pageMode ? (
+          <PageHeader
+            eyebrow="PRODUCTS"
+            title={editingProduct ? "Edit Product" : "Add New Product"}
+            description={
+              editingProduct
+                ? `Editing ${editingProduct.brandName} (${editingProduct.productCode})`
+                : "Fill in the details below. Product code will be auto-generated."
+            }
+            actions={
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                <ArrowLeft className="size-4" /> Back to Products
+              </Button>
+            }
+          />
+        ) : (
+          <DialogHeader className="px-6 py-4 shrink-0 border-b border-border/40 bg-muted/20">
+            <DialogTitle className="text-lg font-semibold">
+              {editingProduct ? "Edit Product" : "Add New Product"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {editingProduct
+                ? `Editing ${editingProduct.brandName} (${editingProduct.productCode})`
+                : "Fill in the details below. Product code will be auto-generated."}
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
         {/* Scrollable Form Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
+        <div
+          className={cn(
+            "flex-1 min-h-0 overflow-y-auto px-6 py-5",
+            pageMode && "rounded-t-2xl border border-b-0 border-border/60 bg-card sm:px-8 sm:py-8",
+          )}
+        >
           <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
             {/* ── Section 1: Product Classification ── */}
             <fieldset className="space-y-4">
@@ -1262,7 +1312,12 @@ export function ProductFormDialog({
         </div>
 
         {/* Fixed Footer */}
-        <DialogFooter className="px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3">
+        <DialogFooter
+          className={cn(
+            "px-6 py-4 shrink-0 border-t border-border/40 bg-background flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3",
+            pageMode && "mb-6 rounded-b-2xl border border-t-0 border-border/60",
+          )}
+        >
           <Button
             type="button"
             variant="outline"
