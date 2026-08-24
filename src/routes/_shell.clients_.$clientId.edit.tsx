@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchClient, updateClient } from "@/lib/client-api";
 import type { ClientRequestDto } from "@/lib/client-types";
-import { ClientFormDialog } from "./_shell.clients";
+import { ClientFormView, formToDto } from "./_shell.clients";
 import { SectionLoader } from "@/components/kit";
 
 export const Route = createFileRoute("/_shell/clients_/$clientId/edit")({
@@ -25,12 +25,11 @@ function ClientEditRoute() {
   });
   if (isLoading || !client) return <SectionLoader />;
   return (
-    <ClientFormDialog
-      open
-      onOpenChange={() => navigate({ to: "/clients/$clientId", params: { clientId } })}
+    <ClientFormView
+      onClose={() => navigate({ to: "/clients/$clientId", params: { clientId } })}
       editingClient={client}
       isSubmitting={save.isPending}
-      onSubmit={(values) => save.mutate(values as ClientRequestDto)}
+      onSubmit={(values) => save.mutate(formToDto(values))}
     />
   );
 }
