@@ -4,12 +4,14 @@ type BrandLoaderProps = {
   label?: string;
   overlay?: boolean;
   lightMark?: boolean;
+  quote?: string;
 };
 
 export function BrandLoader({
   label = "Loading your workspace…",
   overlay = false,
   lightMark = false,
+  quote = "“Science with purpose. Care without compromise.”",
 }: BrandLoaderProps) {
   return (
     <div
@@ -35,15 +37,24 @@ export function BrandLoader({
             opacity: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
           }}
         />
-        <p
-          className={
-            overlay
-              ? "text-sm font-medium text-white/80"
-              : "text-sm font-medium text-muted-foreground"
-          }
-        >
-          {label}
-        </p>
+        <div className="space-y-1.5">
+          <p
+            className={
+              overlay
+                ? "text-sm font-medium text-white/80"
+                : "text-sm font-medium text-muted-foreground"
+            }
+          >
+            {label}
+          </p>
+          <p
+            className={
+              overlay ? "text-xs italic text-white/55" : "text-xs italic text-muted-foreground/80"
+            }
+          >
+            {quote}
+          </p>
+        </div>
       </div>
     </div>
   );
