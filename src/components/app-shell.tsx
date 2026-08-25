@@ -9,7 +9,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  ShieldCheck,
   UserCog,
   UserRound,
   Users,
@@ -81,27 +80,46 @@ function Brand({
     <div
       onClick={handleOnClickOfBranding}
       className="flex items-center gap-2.5 overflow-hidden cursor-pointer"
-      title={showExpandIcon ? "Expand sidebar" : "NCOP Pharma Dashboard"}
+      title={showExpandIcon ? "Expand sidebar" : "Nourish Pharmaceutical Dashboard"}
     >
-      <div
-        className={cn(
-          "grid shrink-0 place-items-center bg-primary text-primary-foreground shadow-soft",
-          collapsed ? "size-8 rounded-lg" : "size-9 rounded-xl",
-        )}
-      >
-        {showExpandIcon ? (
-          <PanelLeftOpen className="size-4" />
-        ) : (
-          <ShieldCheck className={collapsed ? "size-4" : "size-[18px]"} />
-        )}
-      </div>
-      {!collapsed && (
-        <div className="leading-tight">
-          <p className="text-sm font-bold">NCOP</p>
-          <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-            Pharma ERP
-          </p>
+      {collapsed ? (
+        <div className="grid size-11 shrink-0 place-items-center">
+          <AnimatePresence mode="wait" initial={false}>
+            {showExpandIcon ? (
+              <motion.span
+                key="expand"
+                className="grid size-full place-items-center"
+                initial={{ opacity: 0, scale: 0.72, rotate: -12 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                exit={{ opacity: 0, scale: 0.72, rotate: 12 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+              >
+                <PanelLeftOpen className="size-4" />
+              </motion.span>
+            ) : (
+              <motion.span
+                key="brand"
+                className="grid size-full place-items-center"
+                initial={{ opacity: 0, scale: 0.72, rotate: 12 }}
+                animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                exit={{ opacity: 0, scale: 0.72, rotate: -12 }}
+                transition={{ duration: 0.16, ease: "easeOut" }}
+              >
+                <img
+                  src="/nourish-app-icon.png"
+                  alt="Nourish Pharmaceutical"
+                  className="size-full object-contain"
+                />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
+      ) : (
+        <img
+          src="/nourish-pharmaceutical-logo.png"
+          alt="Nourish Pharmaceutical Pvt. Ltd."
+          className="h-10 w-auto"
+        />
       )}
     </div>
   );

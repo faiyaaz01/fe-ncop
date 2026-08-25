@@ -11,13 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export const Route = createFileRoute("/_shell/settings")({
   head: () => ({
     meta: [
-      { title: "Settings · NCOP ERP" },
+      { title: "Settings · Nourish Pharmaceutical ERP" },
       {
         name: "description",
         content:
           "Organisation profile, notification routing, compliance controls and integration preferences.",
       },
-      { property: "og:title", content: "Settings · NCOP ERP" },
+      { property: "og:title", content: "Settings · Nourish Pharmaceutical ERP" },
       {
         property: "og:description",
         content: "Configure organisation, notifications and compliance controls.",
@@ -33,7 +33,7 @@ function SettingsPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Settings"
-        description="Organisation, notification and compliance preferences for the NCOP workspace."
+        description="Organisation, notification and compliance preferences for the Nourish Pharmaceutical workspace."
         actions={<Button onClick={() => toast.success("Preferences saved")}>Save changes</Button>}
       />
 
@@ -48,7 +48,7 @@ function SettingsPage() {
           <Panel className="max-w-2xl space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               {[
-                ["Legal entity", "NCOP Pharma Trading AG"],
+                ["Legal entity", "Nourish Pharmaceutical Pvt. Ltd."],
                 ["Registration no.", "CHE-114.882.901"],
                 ["Head office", "Basel, Switzerland"],
                 ["Default currency", "USD"],
@@ -70,7 +70,10 @@ function SettingsPage() {
               ["Document expiry", "Alert 60 days before GMP certificate expiry", true],
               ["Weekly digest", "Email a Monday summary of pipeline movement", false],
             ].map(([title, desc, on]) => (
-              <div key={title as string} className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0">
+              <div
+                key={title as string}
+                className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+              >
                 <div>
                   <p className="text-sm font-medium">{title as string}</p>
                   <p className="text-xs text-muted-foreground">{desc as string}</p>
@@ -86,8 +89,8 @@ function SettingsPage() {
             <div>
               <p className="text-sm font-semibold">Audit trail</p>
               <p className="text-xs text-muted-foreground">
-                All record changes are captured with user, timestamp and reason for change
-                (21 CFR Part 11 aligned).
+                All record changes are captured with user, timestamp and reason for change (21 CFR
+                Part 11 aligned).
               </p>
             </div>
             <Separator />

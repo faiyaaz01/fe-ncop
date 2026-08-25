@@ -107,6 +107,7 @@ function authHeaders(): HeadersInit {
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     let errorMsg = `API error ${res.status}`;
     try {
       const errJson = await res.json();
@@ -244,7 +245,9 @@ export async function fetchModuleRights(): Promise<ModuleRightItem[]> {
 }
 
 /** POST /auth/module-rights — create a new module right */
-export async function createModuleRight(payload: CreateModuleRightPayload): Promise<ModuleRightItem> {
+export async function createModuleRight(
+  payload: CreateModuleRightPayload,
+): Promise<ModuleRightItem> {
   const res = await fetch(apiUrl("/api/v1/auth/module-rights"), {
     method: "POST",
     headers: authHeaders(),
@@ -254,7 +257,10 @@ export async function createModuleRight(payload: CreateModuleRightPayload): Prom
 }
 
 /** PUT /auth/module-rights/:id — update a module right */
-export async function updateModuleRight(id: string, payload: UpdateModuleRightPayload): Promise<ModuleRightItem> {
+export async function updateModuleRight(
+  id: string,
+  payload: UpdateModuleRightPayload,
+): Promise<ModuleRightItem> {
   const res = await fetch(apiUrl(`/api/v1/auth/module-rights/${id}`), {
     method: "PUT",
     headers: authHeaders(),

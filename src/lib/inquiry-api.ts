@@ -13,6 +13,7 @@ function headers(): HeadersInit {
 
 async function response<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const body = await res.json().catch(() => null);
     throw new Error(body?.message || `API error ${res.status}`);
   }

@@ -27,6 +27,7 @@ function authToken(): string | null {
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const body = await res.text().catch(() => "");
     throw new Error(body || `API error ${res.status}`);
   }
@@ -39,14 +40,16 @@ async function handleResponse<T>(res: Response): Promise<T> {
 // ─── Product APIs ────────────────────────────────────────────────────────────
 
 /** GET /api/v1/products — fetch paginated products */
-export async function fetchProducts(params: {
-  page?: number | undefined;
-  size?: number | undefined;
-  search?: string | undefined;
-  category?: string | undefined;
-  dosageForm?: string | undefined;
-  status?: string | undefined;
-} = {}): Promise<PageResponse<Product>> {
+export async function fetchProducts(
+  params: {
+    page?: number | undefined;
+    size?: number | undefined;
+    search?: string | undefined;
+    category?: string | undefined;
+    dosageForm?: string | undefined;
+    status?: string | undefined;
+  } = {},
+): Promise<PageResponse<Product>> {
   const query = new URLSearchParams();
   query.set("page", String(params.page ?? 0));
   query.set("size", String(params.size ?? 10));
@@ -106,10 +109,7 @@ export async function createProduct(dto: ProductRequestDto): Promise<Product> {
 }
 
 /** PUT /api/v1/products/:id — update an existing product */
-export async function updateProduct(
-  id: string,
-  dto: ProductRequestDto,
-): Promise<Product> {
+export async function updateProduct(id: string, dto: ProductRequestDto): Promise<Product> {
   const res = await fetch(apiUrl(`/api/v1/products/${id}`), {
     method: "PUT",
     headers: authHeaders(),
@@ -125,6 +125,7 @@ export async function deleteProduct(id: string): Promise<void> {
     headers: authHeaders(),
   });
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const body = await res.text().catch(() => "");
     throw new Error(body || `API error ${res.status}`);
   }
@@ -153,15 +154,13 @@ export async function uploadProductDocument(
 }
 
 /** DELETE /api/v1/products/:id/documents/:docId — delete document */
-export async function deleteProductDocument(
-  id: string,
-  docId: string,
-): Promise<void> {
+export async function deleteProductDocument(id: string, docId: string): Promise<void> {
   const res = await fetch(apiUrl(`/api/v1/products/${id}/documents/${docId}`), {
     method: "DELETE",
     headers: authHeaders(),
   });
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const body = await res.text().catch(() => "");
     throw new Error(body || `API error ${res.status}`);
   }
@@ -189,10 +188,7 @@ export async function createDosageForm(dto: DosageFormRequestDto): Promise<Dosag
 }
 
 /** PUT /api/v1/dosage-forms/:id — update dosage form and its variants */
-export async function updateDosageForm(
-  id: string,
-  dto: DosageFormRequestDto,
-): Promise<DosageForm> {
+export async function updateDosageForm(id: string, dto: DosageFormRequestDto): Promise<DosageForm> {
   const res = await fetch(apiUrl(`/api/v1/dosage-forms/${id}`), {
     method: "PUT",
     headers: authHeaders(),
@@ -208,6 +204,7 @@ export async function deleteDosageForm(id: string): Promise<void> {
     headers: authHeaders(),
   });
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const body = await res.text().catch(() => "");
     throw new Error(body || `API error ${res.status}`);
   }

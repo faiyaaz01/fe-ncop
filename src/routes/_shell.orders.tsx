@@ -11,13 +11,13 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/_shell/orders")({
   head: () => ({
     meta: [
-      { title: "Final Order · NCOP ERP" },
+      { title: "Final Order · Nourish Pharmaceutical ERP" },
       {
         name: "description",
         content:
           "Confirmed export order summary with products, shipping details, commercial totals, payment info and a live status tracker.",
       },
-      { property: "og:title", content: "Final Order · NCOP ERP" },
+      { property: "og:title", content: "Final Order · Nourish Pharmaceutical ERP" },
       {
         property: "og:description",
         content: "Export order summary and shipment status tracker for pharmaceutical trade.",
@@ -140,7 +140,8 @@ function FinalOrder() {
                 </div>
                 <p className="text-xs text-muted-foreground">{(i + 2) * 250_000} units</p>
                 <p className="text-sm font-semibold tabular-nums">
-                  ${((i + 2) * 250_000 * p.price).toLocaleString("en-US", {
+                  $
+                  {((i + 2) * 250_000 * p.price).toLocaleString("en-US", {
                     maximumFractionDigits: 0,
                   })}
                 </p>
@@ -229,10 +230,26 @@ function FinalOrder() {
         <h3 className="mb-4 text-base font-semibold">Order activity</h3>
         <Timeline
           items={[
-            { date: order.eta, title: "Estimated delivery", detail: `${order.incoterm} · consignee warehouse` },
-            { date: "28 Jul 2026", title: "Batch documentation issued", detail: "CoA & CoO uploaded by QA" },
-            { date: "21 Jul 2026", title: "Production completed", detail: `${order.items} line items packed` },
-            { date: "12 Jul 2026", title: "Order confirmed", detail: `PO received from ${order.client}` },
+            {
+              date: order.eta,
+              title: "Estimated delivery",
+              detail: `${order.incoterm} · consignee warehouse`,
+            },
+            {
+              date: "28 Jul 2026",
+              title: "Batch documentation issued",
+              detail: "CoA & CoO uploaded by QA",
+            },
+            {
+              date: "21 Jul 2026",
+              title: "Production completed",
+              detail: `${order.items} line items packed`,
+            },
+            {
+              date: "12 Jul 2026",
+              title: "Order confirmed",
+              detail: `PO received from ${order.client}`,
+            },
           ]}
         />
       </Panel>

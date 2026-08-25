@@ -1,13 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, Lock, Mail, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ArrowRight, Lock, Mail, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { userSessionService } from "@/lib/user-session";
 import { apiUrl } from "@/lib/api-config";
+import { BrandLoader } from "@/components/brand-loader";
 import lab from "@/assets/slide-lab.jpg";
 import manufacturing from "@/assets/slide-manufacturing.jpg";
 import capsules from "@/assets/slide-capsules.jpg";
@@ -16,17 +17,17 @@ import warehouse from "@/assets/slide-warehouse.jpg";
 export const Route = createFileRoute("/index/login")({
   head: () => ({
     meta: [
-      { title: "Sign in · NCOP Pharma ERP" },
+      { title: "Sign in · Nourish Pharmaceutical ERP" },
       {
         name: "description",
         content:
-          "Secure access to the NCOP pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
+          "Secure access to the Nourish Pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
       },
-      { property: "og:title", content: "Sign in · NCOP Pharma ERP" },
+      { property: "og:title", content: "Sign in · Nourish Pharmaceutical ERP" },
       {
         property: "og:description",
         content:
-          "Secure access to the NCOP pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
+          "Secure access to the Nourish Pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
       },
     ],
   }),
@@ -56,8 +57,6 @@ function LoginPage() {
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const active = slides[index] ?? slides[0]!;
 
-  const userInfo = userSessionService.getCurrentUser();
-
   // Check if we arrived here due to session expiry
   const [sessionExpiredReason, setSessionExpiredReason] = useState<string | null>(() => {
     const reason = userSessionService.getLastLogoutReason();
@@ -69,12 +68,21 @@ function LoginPage() {
   });
 
   useEffect(() => {
-    if (userInfo?.isAuthenticated) {
-      navigate({ to: "/dashboard" });
-    }
+    let mounted = true;
+    const redirectAuthenticatedUser = () => {
+      if (mounted && userSessionService.getCurrentUser()?.isAuthenticated) {
+        navigate({ to: "/dashboard" });
+      }
+    };
+    const unsubscribe = userSessionService.subscribe(() => redirectAuthenticatedUser());
+    void userSessionService.whenReady().then(redirectAuthenticatedUser);
     const t = setInterval(() => setIndex((i) => (i + 1) % slides.length), 6000);
-    return () => clearInterval(t);
-  }, []);
+    return () => {
+      mounted = false;
+      unsubscribe();
+      clearInterval(t);
+    };
+  }, [navigate]);
 
   const trimmedEmail = email.trim();
   const trimmedPassword = password.trim();
@@ -221,18 +229,16 @@ function LoginPage() {
       </div>
 
       <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
-        <div className="flex items-center gap-2.5 text-white">
-          <div className="grid size-9 place-items-center rounded-xl bg-white/12 backdrop-blur-md ring-1 ring-white/20">
-            <ShieldCheck className="size-4.5" />
-          </div>
-          <div className="leading-tight">
-            <p className="text-sm font-bold">NCOP</p>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-white/60">Pharma ERP</p>
-          </div>
+        <div className="rounded-xl bg-white/35 px-3 py-2.5 shadow-lg ring-1 ring-white/10 backdrop-blur-sm">
+          <img
+            src="/nourish-pharmaceutical-logo.png"
+            alt="Nourish Pharmaceutical Pvt. Ltd."
+            className="h-12 w-auto drop-shadow-md sm:h-14"
+          />
         </div>
         <div className="flex items-center gap-2 [&_button]:text-white [&_button:hover]:bg-white/10">
           <span className="hidden text-xs text-white/70 sm:inline">
-            GxP-aligned · ISO 27001 hosting
+            All rights reserved © Nourish Pharmaceutical Pvt. Ltd. 2024
           </span>
         </div>
       </header>
@@ -295,7 +301,9 @@ function LoginPage() {
             className="glass-dark w-full rounded-[18px] p-6 text-white sm:p-7"
           >
             <h2 className="text-xl font-bold">Welcome back</h2>
-            <p className="mt-1 text-sm text-white/65">Sign in to your NCOP workspace.</p>
+            <p className="mt-1 text-sm text-white/65">
+              Sign in to your Nourish Pharmaceutical workspace.
+            </p>
 
             <form
               className="mt-6 space-y-4"
@@ -443,6 +451,14 @@ function LoginPage() {
           )}
         </div>
       </main>
+
+      <AnimatePresence>
+        {isSubmitting ? (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <BrandLoader overlay lightMark label="Signing you in…" />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

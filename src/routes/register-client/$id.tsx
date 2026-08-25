@@ -2,14 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
-import {
-  Building2,
-  CheckCircle2,
-  Eye,
-  FileText,
-  Loader2,
-  Upload,
-} from "lucide-react";
+import { Building2, CheckCircle2, Eye, FileText, Loader2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -28,8 +21,11 @@ import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
 export const Route = createFileRoute("/register-client/$id")({
   head: () => ({
     meta: [
-      { title: "Complete Registration · NCOP" },
-      { name: "description", content: "Upload documents and provide bank details to complete your client registration." },
+      { title: "Complete Registration · Nourish Pharmaceutical" },
+      {
+        name: "description",
+        content: "Upload documents and provide bank details to complete your client registration.",
+      },
     ],
   }),
   component: ClientRegistration,
@@ -192,7 +188,11 @@ function ClientRegistration() {
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
-          <img src="/NCOP.png" alt="NCOP" className="size-8" />
+          <img
+            src="/nourish-app-icon.png"
+            alt="Nourish Pharmaceutical"
+            className="size-8 object-contain"
+          />
           <div>
             <h1 className="text-lg font-bold">Client Registration</h1>
             <p className="text-xs text-muted-foreground">
@@ -204,11 +204,10 @@ function ClientRegistration() {
 
       <main className="mx-auto max-w-3xl px-4 py-8 space-y-8">
         <div>
-          <h2 className="text-xl font-bold">
-            Complete Your Registration
-          </h2>
+          <h2 className="text-xl font-bold">Complete Your Registration</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Please upload the required regulatory dossiers, legal licenses and provide your bank details below.
+            Please upload the required regulatory dossiers, legal licenses and provide your bank
+            details below.
           </p>
         </div>
 
@@ -270,12 +269,14 @@ function ClientRegistration() {
                     ["Branch", client.bankDetail.branchName],
                     ["IFSC", client.bankDetail.ifscCode],
                     ["SWIFT", client.bankDetail.swiftCode],
-                  ].filter(([, v]) => v).map(([l, v]) => (
-                    <div key={l}>
-                      <dt className="text-xs text-muted-foreground">{l}</dt>
-                      <dd className="font-medium">{v}</dd>
-                    </div>
-                  ))}
+                  ]
+                    .filter(([, v]) => v)
+                    .map(([l, v]) => (
+                      <div key={l}>
+                        <dt className="text-xs text-muted-foreground">{l}</dt>
+                        <dd className="font-medium">{v}</dd>
+                      </div>
+                    ))}
                 </dl>
               )}
             </div>
@@ -290,31 +291,49 @@ function ClientRegistration() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Account Holder Name *</Label>
-                  <Input {...bankForm.register("accountHolderName", { required: true })} placeholder="Full name on account" />
+                  <Input
+                    {...bankForm.register("accountHolderName", { required: true })}
+                    placeholder="Full name on account"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Account Number *</Label>
-                  <Input {...bankForm.register("accountNumber", { required: true })} placeholder="Account number" />
+                  <Input
+                    {...bankForm.register("accountNumber", { required: true })}
+                    placeholder="Account number"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Bank Name *</Label>
-                  <Input {...bankForm.register("bankName", { required: true })} placeholder="e.g. HDFC Bank" />
+                  <Input
+                    {...bankForm.register("bankName", { required: true })}
+                    placeholder="e.g. HDFC Bank"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Branch Name *</Label>
-                  <Input {...bankForm.register("branchName", { required: true })} placeholder="e.g. Andheri West" />
+                  <Input
+                    {...bankForm.register("branchName", { required: true })}
+                    placeholder="e.g. Andheri West"
+                  />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>IFSC Code *</Label>
-                  <Input {...bankForm.register("ifscCode", { required: true })} placeholder="e.g. HDFC0001234" />
+                  <Input
+                    {...bankForm.register("ifscCode", { required: true })}
+                    placeholder="e.g. HDFC0001234"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>SWIFT Code *</Label>
-                  <Input {...bankForm.register("swiftCode", { required: true })} placeholder="e.g. HDFCINCBBXXX" />
+                  <Input
+                    {...bankForm.register("swiftCode", { required: true })}
+                    placeholder="e.g. HDFCINCBBXXX"
+                  />
                 </div>
               </div>
               <Button type="submit" disabled={bankMutation.isPending} className="w-full">
@@ -367,9 +386,7 @@ function DocUploadRow({
     <div
       className={cn(
         "flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-colors gap-2",
-        uploaded
-          ? "border-accent/30 bg-accent/5"
-          : "border-border hover:bg-secondary/50",
+        uploaded ? "border-accent/30 bg-accent/5" : "border-border hover:bg-secondary/50",
       )}
     >
       <span className={cn("truncate font-medium flex-1", uploaded && "text-accent")}>

@@ -46,7 +46,7 @@ import type { DosageForm, ProductSourcing } from "@/lib/product-types";
 import { ProductFormDialog } from "./_shell.products";
 
 export const Route = createFileRoute("/_shell/inquiry")({
-  head: () => ({ meta: [{ title: "Customer Inquiry · NCOP ERP" }] }),
+  head: () => ({ meta: [{ title: "Customer Inquiry · Nourish Pharmaceutical ERP" }] }),
   component: InquiryWizard,
 });
 
@@ -134,10 +134,18 @@ function tabletCalculation(line: EditableLine) {
 }
 
 function inferOrderQuantityUnit(line: Partial<InquiryLineRequestDto>): OrderQuantityUnit | "" {
-  if (line.orderQuantityUnit) return line.orderQuantityUnit;
+  const savedUnit = String(line.orderQuantityUnit || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "_");
+  if (["TERTIARY", "SECONDARY", "MONO_BOX", "STRIP", "TABLET", "JAR"].includes(savedUnit)) {
+    return savedUnit as OrderQuantityUnit;
+  }
   const quantity = Number(line.quantityRequired);
   const total = Number(line.calculatedTabletQuantity);
-  if (!Number.isFinite(quantity) || !Number.isFinite(total) || quantity < 1) return "";
+  // RFQs created before pack-level selection used their requested quantity as tablets.
+  if (!Number.isFinite(quantity) || quantity < 1) return "TABLET";
+  if (!Number.isFinite(total)) return "TABLET";
   if (total === quantity) return "TABLET";
   for (const [unit, fields] of [
     [
@@ -161,7 +169,7 @@ function inferOrderQuantityUnit(line: Partial<InquiryLineRequestDto>): OrderQuan
       return unit;
   }
   if (line.tabletPackRequired && quantity * line.tabletPackRequired === total) return "JAR";
-  return "";
+  return "TABLET";
 }
 
 export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInquiry } = {}) {
@@ -446,7 +454,13 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
             <Button variant="outline" onClick={() => setPreviewingDraft(true)}>
               Preview inquiry
             </Button>
-            <Button variant="outline" onClick={() => setView("list")}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setView("list");
+                if (initialInquiry) navigate({ to: "/inquiry" });
+              }}
+            >
               <ChevronLeft className="size-4" /> Back to inquiries
             </Button>
           </div>
@@ -724,7 +738,7 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
                           type="number"
                           min="1"
                           value={
-                            line.orderQuantityUnit === "JAR" ? line.quantityRequired || "" : ""
+                            line.orderQuantityUnit === "JAR" ? (line.quantityRequired ?? "") : ""
                           }
                           onChange={(event) =>
                             updateLine(line.key, {
@@ -781,7 +795,9 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
                                 min="1"
                                 className="h-8"
                                 value={
-                                  line.orderQuantityUnit === unit ? line.quantityRequired || "" : ""
+                                  line.orderQuantityUnit === unit
+                                    ? (line.quantityRequired ?? "")
+                                    : ""
                                 }
                                 placeholder={
                                   line.orderQuantityUnit && line.orderQuantityUnit !== unit

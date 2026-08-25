@@ -78,25 +78,38 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Sign in · NCOP Pharma ERP" },
+      { title: "Sign in · Nourish Pharmaceutical ERP" },
       {
         name: "description",
         content:
-          "Secure access to the NCOP pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
+          "Secure access to the Nourish Pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
       },
-      { name: "author", content: "NCOP" },
-      { property: "og:title", content: "Sign in · NCOP Pharma ERP" },
+      { name: "author", content: "Nourish Pharmaceutical Pvt. Ltd." },
+      { property: "og:title", content: "Sign in · Nourish Pharmaceutical ERP" },
       {
         property: "og:description",
-        content: "Secure access to the NCOP pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
+        content:
+          "Secure access to the Nourish Pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Sign in · NCOP Pharma ERP" },
-      { name: "twitter:description", content: "Secure access to the NCOP pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/da93a83a-685c-49af-bcee-2a4f4ab19159/id-preview-18bb0606--7fd14e46-48d0-40ac-a3ea-184cce8160fe.lovable.app-1785731914386.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/da93a83a-685c-49af-bcee-2a4f4ab19159/id-preview-18bb0606--7fd14e46-48d0-40ac-a3ea-184cce8160fe.lovable.app-1785731914386.png" },
+      { name: "twitter:title", content: "Sign in · Nourish Pharmaceutical ERP" },
+      {
+        name: "twitter:description",
+        content:
+          "Secure access to the Nourish Pharmaceutical ERP: clients, catalogue, inquiries, orders and analytics.",
+      },
+      {
+        property: "og:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/da93a83a-685c-49af-bcee-2a4f4ab19159/id-preview-18bb0606--7fd14e46-48d0-40ac-a3ea-184cce8160fe.lovable.app-1785731914386.png",
+      },
+      {
+        name: "twitter:image",
+        content:
+          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/da93a83a-685c-49af-bcee-2a4f4ab19159/id-preview-18bb0606--7fd14e46-48d0-40ac-a3ea-184cce8160fe.lovable.app-1785731914386.png",
+      },
     ],
     links: [
       {
@@ -109,7 +122,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap",
       },
-      { rel: "icon", href: "/NCOP.png", type: "image/x-icon" },
+      { rel: "icon", href: "/nourish-app-icon.ico", type: "image/x-icon" },
+      { rel: "shortcut icon", href: "/nourish-app-icon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/nourish-app-icon-512.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,

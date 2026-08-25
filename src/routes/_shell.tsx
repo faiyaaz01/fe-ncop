@@ -2,6 +2,7 @@ import { Outlet, createFileRoute, Navigate, useRouterState } from "@tanstack/rea
 import { useEffect, useState } from "react";
 import { canAccessRoute, userSessionService } from "@/lib/user-session";
 import { AppShell } from "@/components/app-shell";
+import { BrandLoader } from "@/components/brand-loader";
 
 export const Route = createFileRoute("/_shell")({
   component: ShellLayout,
@@ -15,7 +16,14 @@ function ShellLayout() {
 
   // @ts-ignore
   useEffect(() => {
+    let mounted = true;
+    const syncSession = () => {
+      if (!mounted) return;
+      setUser(userSessionService.getCurrentUser());
+      setChecked(true);
+    };
     const unsub = userSessionService.subscribe((u) => {
+      if (!mounted) return;
       setUser(u);
       setChecked(true);
 
@@ -31,21 +39,25 @@ function ShellLayout() {
       }
     });
 
-    setUser(userSessionService.getCurrentUser());
-    setChecked(true);
+    void userSessionService.whenReady().then(syncSession);
 
-    return unsub;
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, []);
 
   // Only redirect to login for user-initiated logout or no-session-on-load.
   // When expired/invalid, AppShell stays mounted and shows the expired dialog.
-  if (checked && !user && !sessionExpired) {
+  const isAuthenticated = Boolean(user && user.isAuthenticated !== false);
+
+  if (checked && !isAuthenticated && !sessionExpired) {
     return <Navigate to="/index/login" />;
   }
 
-  if (!checked) return null;
+  if (!checked) return <BrandLoader />;
 
-  if (user && !canAccessRoute(user, pathname)) {
+  if (isAuthenticated && !canAccessRoute(user, pathname)) {
     return (
       <AppShell>
         <div className="grid min-h-[50vh] place-items-center p-6 text-center">

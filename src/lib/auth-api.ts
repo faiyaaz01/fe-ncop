@@ -24,8 +24,10 @@ function getAuthHeaders(): HeadersInit {
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const errorData = await res.json().catch(() => null);
-    const message = errorData?.message || errorData?.detail || `Request failed with status ${res.status}`;
+    const message =
+      errorData?.message || errorData?.detail || `Request failed with status ${res.status}`;
     throw new Error(message);
   }
   if (res.status === 204) {
@@ -36,13 +38,15 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 // ─── Users API ──────────────────────────────────────────────────────────────
 
-export async function fetchUsers(params: {
-  page?: number | undefined;
-  size?: number | undefined;
-  search?: string | undefined;
-  status?: string | undefined;
-  role?: string | undefined;
-} = {}): Promise<PageResponse<UserResponse>> {
+export async function fetchUsers(
+  params: {
+    page?: number | undefined;
+    size?: number | undefined;
+    search?: string | undefined;
+    status?: string | undefined;
+    role?: string | undefined;
+  } = {},
+): Promise<PageResponse<UserResponse>> {
   const query = new URLSearchParams();
   query.set("page", String(params.page ?? 0));
   query.set("size", String(params.size ?? 10));
@@ -98,11 +102,13 @@ export async function deleteUser(id: string): Promise<void> {
 
 // ─── Roles API ──────────────────────────────────────────────────────────────
 
-export async function fetchRoles(params: {
-  page?: number | undefined;
-  size?: number | undefined;
-  search?: string | undefined;
-} = {}): Promise<PageResponse<RoleResponse>> {
+export async function fetchRoles(
+  params: {
+    page?: number | undefined;
+    size?: number | undefined;
+    search?: string | undefined;
+  } = {},
+): Promise<PageResponse<RoleResponse>> {
   const query = new URLSearchParams();
   query.set("page", String(params.page ?? 0));
   query.set("size", String(params.size ?? 10));
@@ -156,11 +162,13 @@ export async function deleteRole(id: string): Promise<void> {
 
 // ─── Module Rights API ──────────────────────────────────────────────────────
 
-export async function fetchModuleRights(params: {
-  page?: number | undefined;
-  size?: number | undefined;
-  search?: string | undefined;
-} = {}): Promise<PageResponse<ModuleRight>> {
+export async function fetchModuleRights(
+  params: {
+    page?: number | undefined;
+    size?: number | undefined;
+    search?: string | undefined;
+  } = {},
+): Promise<PageResponse<ModuleRight>> {
   const query = new URLSearchParams();
   query.set("page", String(params.page ?? 0));
   query.set("size", String(params.size ?? 10));
@@ -179,7 +187,11 @@ export async function fetchAllModuleRights(): Promise<ModuleRight[]> {
   return handleResponse<ModuleRight[]>(res);
 }
 
-export async function createModuleRight(data: { name: string; label?: string | undefined; description?: string | undefined }): Promise<ModuleRight> {
+export async function createModuleRight(data: {
+  name: string;
+  label?: string | undefined;
+  description?: string | undefined;
+}): Promise<ModuleRight> {
   const res = await fetch(apiUrl("/api/v1/auth/module-rights"), {
     method: "POST",
     headers: getAuthHeaders(),
@@ -188,7 +200,10 @@ export async function createModuleRight(data: { name: string; label?: string | u
   return handleResponse<ModuleRight>(res);
 }
 
-export async function updateModuleRight(id: string, data: { name?: string | undefined; label?: string | undefined; description?: string | undefined }): Promise<ModuleRight> {
+export async function updateModuleRight(
+  id: string,
+  data: { name?: string | undefined; label?: string | undefined; description?: string | undefined },
+): Promise<ModuleRight> {
   const res = await fetch(apiUrl(`/api/v1/auth/module-rights/${id}`), {
     method: "PUT",
     headers: getAuthHeaders(),

@@ -9,7 +9,7 @@ import { formatDateTime, getLocalTimezoneName } from "@/lib/date-utils";
 export const Route = createFileRoute("/_shell/profile")({
   head: () => ({
     meta: [
-      { title: "My Profile · NCOP ERP" },
+      { title: "My Profile · Nourish Pharmaceutical ERP" },
       {
         name: "description",
         content: "Account details, assigned organizational roles, and active module rights.",
@@ -23,13 +23,12 @@ function ProfilePage() {
   const user = userSessionService.getCurrentUser();
 
   const fullName =
-    (user?.firstName || user?.lastName)
+    user?.firstName || user?.lastName
       ? `${user?.firstName || ""} ${user?.lastName || ""}`.trim()
       : user?.name || user?.email?.split("@")[0] || "User";
 
   const initials =
-    (user?.firstName?.[0] || "") +
-    (user?.lastName?.[0] || user?.email?.[0] || "U").toUpperCase();
+    (user?.firstName?.[0] || "") + (user?.lastName?.[0] || user?.email?.[0] || "U").toUpperCase();
 
   const roles = user?.roles || (user?.role ? [user.role] : []);
 
@@ -59,7 +58,10 @@ function ProfilePage() {
             <div>
               <h2 className="text-xl font-bold text-foreground">{fullName}</h2>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-xs">
+                <Badge
+                  variant="outline"
+                  className="bg-primary/5 text-primary border-primary/20 text-xs"
+                >
                   {user?.userType || "Employee"}
                 </Badge>
                 {roles.map((r) => (
@@ -122,7 +124,9 @@ function ProfilePage() {
               </h3>
             </div>
             {moduleRights.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">No direct module rights assigned.</p>
+              <p className="text-xs text-muted-foreground italic">
+                No direct module rights assigned.
+              </p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {moduleRights.map((right) => (
@@ -148,7 +152,8 @@ function ProfilePage() {
 
           <div className="space-y-3 text-xs text-muted-foreground leading-relaxed">
             <p>
-              Your session is protected with GxP-validated JWT encryption and session inactivity monitoring.
+              Your session is protected with GxP-validated JWT encryption and session inactivity
+              monitoring.
             </p>
             <div className="surface p-3 rounded-lg border border-border/60 space-y-1.5">
               <div className="flex justify-between">

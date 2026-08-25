@@ -1,0 +1,15 @@
+{
+  "name": "Nourish Pharmaceutical ERP",
+  "short_name": "Nourish ERP",
+  "icons": [
+    {
+      "src": "/nourish-app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#0b5fd3",
+  "background_color": "#ffffff",
+  "display": "standalone"
+}

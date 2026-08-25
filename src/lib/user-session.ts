@@ -115,6 +115,7 @@ class UserSessionService {
   private allUsers: AppUser[] = [];
   private listeners = new Set<SessionListener>();
   private initialized = false;
+  private initializationPromise: Promise<void>;
 
   private warningTimerId: number | null = null;
   private expiryTimerId: number | null = null;
@@ -151,7 +152,12 @@ class UserSessionService {
     try {
       console.debug && console.debug("user-session: constructor");
     } catch {}
-    void this.initialize();
+    this.initializationPromise = this.initialize();
+  }
+
+  /** Resolves only after persisted session state has been restored or cleared. */
+  public whenReady() {
+    return this.initializationPromise;
   }
 
   public subscribe(listener: SessionListener) {
@@ -173,6 +179,11 @@ class UserSessionService {
 
   public getAuthToken() {
     return this.currentUser?.token ?? null;
+  }
+
+  /** Clears the local session after an API rejects the current access token. */
+  public async handleUnauthorizedResponse() {
+    if (this.currentUser) await this.logout("invalid");
   }
 
   public registerRefreshUiHandler(

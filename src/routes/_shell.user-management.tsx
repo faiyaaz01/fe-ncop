@@ -88,7 +88,7 @@ export const Route = createFileRoute("/_shell/user-management")({
   head: () => ({
     meta: [
       {
-        title: "User Management | Nourish Pharma ERP",
+        title: "User Management | Nourish Pharmaceutical ERP",
       },
       {
         name: "description",

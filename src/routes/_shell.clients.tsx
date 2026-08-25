@@ -94,7 +94,7 @@ import {
 export const Route = createFileRoute("/_shell/clients")({
   head: () => ({
     meta: [
-      { title: "Clients · NCOP ERP" },
+      { title: "Clients · Nourish Pharmaceutical ERP" },
       {
         name: "description",
         content:
@@ -751,11 +751,9 @@ function ClientMaster() {
           )}
         </SheetContent>
       </Sheet>
-
-          </div>
+    </div>
   );
 }
-
 
 // ─── Detail Drawer ───────────────────────────────────────────────────────────
 
@@ -1089,7 +1087,6 @@ export function ClientFormView({
 
       <Panel className="space-y-8 p-6 sm:p-8">
         <form id="client-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          
           {/* Company Information */}
           <section className="space-y-4">
             <div>
@@ -1098,7 +1095,7 @@ export function ClientFormView({
                 Enter the basic details about the client.
               </p>
             </div>
-            
+
             {isEdit && (
               <div className="surface flex items-center gap-3 p-3 rounded-lg w-fit">
                 <span className="text-xs font-medium text-muted-foreground">Customer Code</span>
@@ -1111,7 +1108,9 @@ export function ClientFormView({
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="customerType">Customer Type <span className="text-destructive">*</span></Label>
+                <Label htmlFor="customerType">
+                  Customer Type <span className="text-destructive">*</span>
+                </Label>
                 <Select
                   value={form.watch("customerType")}
                   onValueChange={(v) => form.setValue("customerType", v as CustomerType)}
@@ -1129,7 +1128,9 @@ export function ClientFormView({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="companyName">Company Name <span className="text-destructive">*</span></Label>
+                <Label htmlFor="companyName">
+                  Company Name <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="companyName"
                   placeholder="e.g. Acme Global Industries"
@@ -1169,7 +1170,7 @@ export function ClientFormView({
 
             <div className="space-y-8">
               <AddressBlock title="Registered Address" prefix="registeredAddress" form={form} />
-              
+
               <AddressBlock
                 title="Billing Address"
                 prefix="billingAddress"
@@ -1284,15 +1285,15 @@ export function ClientFormView({
                 <Plus className="size-3.5 mr-1.5" /> Add contact
               </Button>
             </div>
-            
+
             {pocFields.length === 0 && (
-              <EmptyState 
-                icon={<Users className="size-6 text-muted-foreground" />} 
-                title="No contacts added" 
-                description="Add at least one point of contact for this client." 
+              <EmptyState
+                icon={<Users className="size-6 text-muted-foreground" />}
+                title="No contacts added"
+                description="Add at least one point of contact for this client."
               />
             )}
-            
+
             <div className="space-y-4">
               {pocFields.map((field, idx) => (
                 <div key={field.id} className="surface space-y-4 p-5 rounded-xl border">
@@ -1334,7 +1335,9 @@ export function ClientFormView({
                   </div>
                   <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     <div className="space-y-2">
-                      <Label>Person Name <span className="text-destructive">*</span></Label>
+                      <Label>
+                        Person Name <span className="text-destructive">*</span>
+                      </Label>
                       <Input
                         {...form.register(`pointOfContacts.${idx}.personName`, { required: true })}
                         placeholder="Full name"
@@ -1379,19 +1382,10 @@ export function ClientFormView({
 
           {/* Form Actions */}
           <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full sm:w-auto"
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onClose}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full sm:w-auto"
-            >
+            <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
               {isSubmitting && <Loader2 className="size-4 animate-spin mr-2" />}
               {isEdit ? "Update Client" : "Create Client"}
             </Button>

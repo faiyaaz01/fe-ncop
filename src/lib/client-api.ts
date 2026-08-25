@@ -19,6 +19,7 @@ function authToken(): string | null {
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const body = await res.text().catch(() => "");
     throw new Error(body || `API error ${res.status}`);
   }
@@ -28,11 +29,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
 // ─── Client API ──────────────────────────────────────────────────────────────
 
 /** GET /api/clients — fetch paginated clients */
-export async function fetchClients(params: {
-  page?: number | undefined;
-  size?: number | undefined;
-  search?: string | undefined;
-} = {}): Promise<PageResponse<Client>> {
+export async function fetchClients(
+  params: {
+    page?: number | undefined;
+    size?: number | undefined;
+    search?: string | undefined;
+  } = {},
+): Promise<PageResponse<Client>> {
   const query = new URLSearchParams();
   query.set("page", String(params.page ?? 0));
   query.set("size", String(params.size ?? 10));
@@ -92,10 +95,7 @@ export async function createClient(dto: ClientRequestDto): Promise<Client> {
 }
 
 /** PUT /api/clients/:id — update an existing client */
-export async function updateClient(
-  id: string,
-  dto: ClientRequestDto,
-): Promise<Client> {
+export async function updateClient(id: string, dto: ClientRequestDto): Promise<Client> {
   const res = await fetch(apiUrl(`/api/v1/clients/${id}`), {
     method: "PUT",
     headers: authHeaders(),
@@ -111,6 +111,7 @@ export async function resendRegistrationEmail(id: string): Promise<void> {
     headers: authHeaders(),
   });
   if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
     const body = await res.text().catch(() => "");
     throw new Error(body || `API error ${res.status}`);
   }
@@ -149,10 +150,7 @@ export function getDocumentDownloadUrl(clientId: string, docId: string): string 
 }
 
 /** DELETE /api/clients/:id/documents/:docId — delete a document */
-export async function deleteDocument(
-  clientId: string,
-  docId: string,
-): Promise<Client> {
+export async function deleteDocument(clientId: string, docId: string): Promise<Client> {
   const headers: HeadersInit = authHeaders();
   const res = await fetch(apiUrl(`/api/v1/clients/${clientId}/documents/${docId}`), {
     method: "DELETE",
@@ -160,5 +158,3 @@ export async function deleteDocument(
   });
   return handleResponse<Client>(res);
 }
-
-

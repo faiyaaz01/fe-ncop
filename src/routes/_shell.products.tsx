@@ -81,7 +81,7 @@ import type {
 export const Route = createFileRoute("/_shell/products")({
   head: () => ({
     meta: [
-      { title: "Products · NCOP ERP" },
+      { title: "Products · Nourish Pharmaceutical ERP" },
       {
         name: "description",
         content:
@@ -525,7 +525,12 @@ function ProductMaster() {
                       variant="outline"
                       size="sm"
                       className="w-full shrink-0 justify-center"
-                      onClick={() => navigate({ to: `/products/${product.id}` })}
+                      onClick={() =>
+                        navigate({
+                          to: "/products/$productId",
+                          params: { productId: product.id },
+                        })
+                      }
                     >
                       <Eye className="size-4" /> View
                     </Button>
@@ -576,7 +581,12 @@ function ProductMaster() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.02, duration: 0.25 }}
-                      onClick={() => navigate({ to: `/products/${product.id}` })}
+                      onClick={() =>
+                        navigate({
+                          to: "/products/$productId",
+                          params: { productId: product.id },
+                        })
+                      }
                       className="hover:bg-secondary/40 transition-colors duration-150 cursor-pointer"
                     >
                       {/* Product & SKU */}
@@ -670,7 +680,10 @@ function ProductMaster() {
                             title="View Details & Dossier"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate({ to: `/products/${product.id}` });
+                              navigate({
+                                to: "/products/$productId",
+                                params: { productId: product.id },
+                              });
                             }}
                           >
                             <Eye className="size-4" />
