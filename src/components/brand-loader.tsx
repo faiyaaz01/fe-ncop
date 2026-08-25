@@ -25,9 +25,15 @@ export function BrandLoader({
         <motion.img
           src="/nourish-app-icon.png"
           alt=""
-          className={`size-20 object-contain sm:size-24 ${lightMark ? "brightness-0 invert" : ""}`}
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+          className={`size-20 object-contain sm:size-24`}
+          animate={{
+            scale: [0.92, 1.05, 0.96, 1.02, 0.92],
+            opacity: [0.78, 1, 0.86, 1, 0.78],
+          }}
+          transition={{
+            scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
+            opacity: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
+          }}
         />
         <p
           className={
