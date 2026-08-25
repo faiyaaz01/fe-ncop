@@ -1,9 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Mail, Shield, KeyRound, Globe, UserCheck, Calendar, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Mail, Shield, KeyRound, Globe, UserCheck, Clock, Pencil, LockKeyhole } from "lucide-react";
 import { PageHeader, Panel } from "@/components/kit";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { userSessionService } from "@/lib/user-session";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { type AppUser, userSessionService } from "@/lib/user-session";
+import { resetUserPassword, updateUser } from "@/lib/user-api";
 import { formatDateTime, getLocalTimezoneName } from "@/lib/date-utils";
 
 export const Route = createFileRoute("/_shell/profile")({
@@ -20,7 +35,10 @@ export const Route = createFileRoute("/_shell/profile")({
 });
 
 function ProfilePage() {
-  const user = userSessionService.getCurrentUser();
+  const [user, setUser] = useState(() => userSessionService.getCurrentUser());
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+
+  useEffect(() => userSessionService.subscribe((currentUser) => setUser(currentUser)), []);
 
   const fullName =
     user?.firstName || user?.lastName
@@ -44,6 +62,11 @@ function ProfilePage() {
         eyebrow="Account"
         title="My Profile"
         description="Your verified identity, organizational credentials, and active ERP permissions."
+        actions={
+          <Button onClick={() => setIsEditorOpen(true)}>
+            <Pencil className="size-4" /> Edit profile
+          </Button>
+        }
       />
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -172,6 +195,185 @@ function ProfilePage() {
           </div>
         </Panel>
       </div>
+
+      <EditProfileDialog open={isEditorOpen} onOpenChange={setIsEditorOpen} user={user} />
     </div>
+  );
+}
+
+function EditProfileDialog({
+  open,
+  onOpenChange,
+  user,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  user: AppUser | null;
+}) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setFirstName(user?.firstName ?? "");
+    setLastName(user?.lastName ?? "");
+    setNewPassword("");
+    setConfirmPassword("");
+  }, [open, user?.id, user?.firstName, user?.lastName]);
+
+  const userId = user?.id;
+
+  const saveProfile = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!userId) {
+      toast.error("Your profile could not be identified. Please sign in again.");
+      return;
+    }
+    if (!firstName.trim() && !lastName.trim()) {
+      toast.error("Enter at least a first name or last name.");
+      return;
+    }
+
+    setIsSavingProfile(true);
+    try {
+      const updated = await updateUser(userId, {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+      });
+      await userSessionService.updateCurrentUser({
+        firstName: updated.firstName ?? firstName.trim(),
+        lastName: updated.lastName ?? lastName.trim(),
+      });
+      toast.success("Profile details updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update your profile.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const resetPassword = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!userId) {
+      toast.error("Your profile could not be identified. Please sign in again.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("Your new password must contain at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("The new passwords do not match.");
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      await resetUserPassword(userId, newPassword);
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Password updated successfully.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to update your password.");
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Edit profile</DialogTitle>
+          <DialogDescription>
+            Update your display name or choose a new password for your account.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form className="space-y-4" onSubmit={saveProfile}>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Pencil className="size-4 text-primary" /> Profile details
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="profile-first-name">First name</Label>
+              <Input
+                id="profile-first-name"
+                value={firstName}
+                onChange={(event) => setFirstName(event.target.value)}
+                autoComplete="given-name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-last-name">Last name</Label>
+              <Input
+                id="profile-last-name"
+                value={lastName}
+                onChange={(event) => setLastName(event.target.value)}
+                autoComplete="family-name"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Your email address and account access are managed by an administrator.
+          </p>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isSavingProfile}>
+              {isSavingProfile ? "Saving…" : "Save name"}
+            </Button>
+          </div>
+        </form>
+
+        <Separator />
+
+        <form className="space-y-4" onSubmit={resetPassword}>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <LockKeyhole className="size-4 text-primary" /> Reset password
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="profile-new-password">New password</Label>
+              <Input
+                id="profile-new-password"
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                minLength={6}
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-confirm-password">Confirm new password</Label>
+              <Input
+                id="profile-confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                minLength={6}
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Use at least 6 characters. You will use this password the next time you sign in.
+          </p>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isSavingPassword}>
+              {isSavingPassword ? "Updating…" : "Update password"}
+            </Button>
+          </div>
+        </form>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -285,6 +285,36 @@ class UserSessionService {
     return normalizedUser;
   }
 
+  /** Updates the in-memory and persisted copy after a user changes their own profile. */
+  public async updateCurrentUser(profile: Partial<AppUser>) {
+    if (!this.currentUser) {
+      throw new Error("No active session");
+    }
+
+    const nextUser: AppUser = {
+      ...this.currentUser,
+      ...profile,
+      name:
+        profile.name ??
+        ([
+          profile.firstName ?? this.currentUser.firstName,
+          profile.lastName ?? this.currentUser.lastName,
+        ]
+          .filter(Boolean)
+          .join(" ") ||
+          this.currentUser.name),
+    };
+
+    this.currentUser = nextUser;
+    this.allUsers = this.allUsers.map((entry) =>
+      entry.email === nextUser.email || entry.id === nextUser.id ? nextUser : entry,
+    );
+    await this.persistSession(nextUser.rememberMe ?? false);
+    this.emit();
+
+    return nextUser;
+  }
+
   public async logout(reason: "user" | "expired" | "invalid" | null = "user") {
     // mark reason for callers/UI to react to
     this.lastLogoutReason = reason;
