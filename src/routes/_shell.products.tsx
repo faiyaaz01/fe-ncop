@@ -272,8 +272,12 @@ function ProductMaster() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ViewModeToggle value={viewMode} onChange={setViewMode} />
-            <Button variant="outline" onClick={() => setDosageConfigOpen(true)} className="gap-2">
-              <SlidersHorizontal className="size-4" />
+            <Button
+              variant="outline"
+              onClick={() => setDosageConfigOpen(true)}
+              className="gap-2 font-medium"
+            >
+              <SlidersHorizontal className="size-4 text-primary dark:text-accent" />
               Dosage Configurations
             </Button>
             <Button

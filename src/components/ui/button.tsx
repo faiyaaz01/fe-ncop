@@ -15,9 +15,9 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:shadow-md dark:hover:brightness-110",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-secondary hover:text-secondary-foreground hover:border-border",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        ghost: "hover:bg-accent/60 hover:text-accent-foreground",
+          "border border-border/80 bg-card text-foreground shadow-xs hover:bg-secondary hover:text-foreground hover:border-accent/40 hover:shadow-sm dark:bg-card/90 dark:border-white/20 dark:text-foreground dark:hover:bg-secondary/90 dark:hover:border-accent/60 dark:hover:text-accent-foreground dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)]",
+        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 border border-border/40 dark:border-white/10",
+        ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/85 active:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
@@ -37,9 +37,9 @@ const buttonVariants = cva(
 const rippleColorByVariant: Record<string, string> = {
   default: "bg-black/25 dark:bg-white/25",
   destructive: "bg-black/20 dark:bg-white/20",
-  outline: "bg-primary/10 dark:bg-white/15",
+  outline: "bg-accent/30 dark:bg-white/15",
   secondary: "bg-primary/10 dark:bg-white/15",
-  ghost: "bg-accent/70 dark:bg-accent/50",
+  ghost: "bg-accent/75 dark:bg-accent/65",
   link: "",
 };
 
@@ -61,6 +61,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       children,
       onMouseEnter,
       onMouseLeave,
+      onPointerLeave,
+      onPointerCancel,
+      onBlur,
       disabled,
       ...props
     },
@@ -70,7 +73,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const [ripple, setRipple] = React.useState<{ x: number; y: number; size: number } | null>(null);
     const [isHovered, setIsHovered] = React.useState(false);
 
-    React.useImperativeHandle(ref, () => internalRef.current as HTMLButtonElement);
+    const handleRef = React.useCallback(
+      (node: HTMLButtonElement | null) => {
+        internalRef.current = node;
+        if (typeof ref === "function") {
+          ref(node);
+        } else if (ref && "current" in ref) {
+          (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+        }
+      },
+      [ref],
+    );
 
     if (asChild) {
       return (
@@ -86,6 +99,15 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
       if (disabled || currentVariant === "link") {
+        onMouseEnter?.(e);
+        return;
+      }
+      // On mobile / touch devices (without hover capability), avoid hover ripple
+      if (
+        typeof window !== "undefined" &&
+        window.matchMedia &&
+        !window.matchMedia("(hover: hover) and (pointer: fine)").matches
+      ) {
         onMouseEnter?.(e);
         return;
       }
@@ -116,11 +138,29 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       onMouseLeave?.(e);
     };
 
+    const handlePointerLeave = (e: React.PointerEvent<HTMLButtonElement>) => {
+      setIsHovered(false);
+      onPointerLeave?.(e);
+    };
+
+    const handlePointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
+      setIsHovered(false);
+      onPointerCancel?.(e);
+    };
+
+    const handleBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
+      setIsHovered(false);
+      onBlur?.(e);
+    };
+
     return (
       <button
-        ref={internalRef}
+        ref={handleRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onPointerLeave={handlePointerLeave}
+        onPointerCancel={handlePointerCancel}
+        onBlur={handleBlur}
         disabled={disabled}
         className={cn(buttonVariants({ variant, size, className }))}
         {...props}

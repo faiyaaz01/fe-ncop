@@ -45,8 +45,12 @@ function FinalOrder() {
         description="Confirmed orders with commercial summary, shipping documents and live status tracking."
         actions={
           <>
-            <Button variant="outline" onClick={() => toast("Proforma invoice exported as PDF")}>
-              <Download className="size-4" /> Proforma
+            <Button
+              variant="outline"
+              onClick={() => toast("Proforma invoice exported as PDF")}
+              className="gap-2 font-medium"
+            >
+              <Download className="size-4 text-primary dark:text-accent" /> Proforma
             </Button>
             <Button onClick={() => toast.success("Packing list shared with logistics")}>
               <Ship className="size-4" /> Share with logistics

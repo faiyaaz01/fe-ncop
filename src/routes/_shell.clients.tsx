@@ -461,8 +461,12 @@ function ClientMaster() {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <ViewModeToggle value={viewMode} onChange={setViewMode} />
-            <Button variant="outline" onClick={() => toast("Client list exported as XLSX")}>
-              <Download className="size-4" /> Export
+            <Button
+              variant="outline"
+              onClick={() => toast("Client list exported as XLSX")}
+              className="gap-2 font-medium"
+            >
+              <Download className="size-4 text-primary dark:text-accent" /> Export
             </Button>
             <Button onClick={openCreate}>
               <Plus className="size-4" /> Add client

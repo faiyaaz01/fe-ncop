@@ -46,6 +46,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const nav = [
   { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
@@ -164,6 +165,7 @@ function HeaderSearchInput() {
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [currentUser, setCurrentUser] = useState(() => userSessionService.getCurrentUser());
   const navigate = useNavigate();
@@ -429,24 +431,70 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border/60 bg-background/60 px-4 backdrop-blur-xl sm:px-6">
           <div className="lg:hidden">
             <div className="flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+                <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label="Open navigation menu">
                     <Menu className="size-5" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuLabel>Navigation</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {visibleNav.map((item) => (
-                    <DropdownMenuItem key={item.to} asChild>
-                      <Link to={item.to}>
-                        <item.icon className="size-4" /> {item.label}
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[280px] p-0 flex flex-col glass">
+                  <div className="flex h-16 items-center px-4 border-b border-border/60">
+                    <Brand
+                      collapsed={false}
+                      onClick={() => {
+                        setMobileNavOpen(false);
+                        navigate({ to: "/dashboard" });
+                      }}
+                    />
+                  </div>
+
+                  <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
+                    {visibleNav.map((item) => {
+                      const active = pathname === item.to;
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setMobileNavOpen(false)}
+                          className={cn(
+                            "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
+                            active
+                              ? "bg-primary/10 text-primary font-semibold shadow-xs"
+                              : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground active:scale-[0.98]",
+                          )}
+                        >
+                          {active && (
+                            <span className="absolute left-0 h-6 w-[3px] rounded-r-full bg-primary" />
+                          )}
+                          <item.icon className="size-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+
+                  {userInfo && (
+                    <div className="border-t border-border/60 p-3 bg-secondary/20">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar className="size-9 border border-border shadow-xs">
+                          <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                            {userInfo?.firstName?.trim().charAt(0).toUpperCase()}
+                            {userInfo?.lastName?.trim().charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-semibold">
+                            {userInfo?.firstName} {userInfo?.lastName}
+                          </p>
+                          <p className="truncate text-[11px] text-muted-foreground">
+                            {userInfo?.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </SheetContent>
+              </Sheet>
               <Brand collapsed={false} />
             </div>
           </div>
@@ -463,12 +511,16 @@ export function AppShell({ children }: { children: ReactNode }) {
                   <span className="absolute right-2 top-2 size-2 rounded-full bg-accent ring-2 ring-background animate-pulse-subtle" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="glass w-80 rounded-2xl p-0">
+              <PopoverContent
+                align="end"
+                collisionPadding={16}
+                className="glass w-[calc(100vw-2rem)] max-w-sm sm:w-80 rounded-2xl p-0"
+              >
                 <div className="border-b border-border/60 px-4 py-3">
                   <p className="text-sm font-semibold">Notifications</p>
                   <p className="text-xs text-muted-foreground">4 unread updates</p>
                 </div>
-                <ul className="divide-y divide-border/50">
+                <ul className="divide-y divide-border/50 max-h-[340px] overflow-y-auto">
                   {notifications.map((n) => (
                     <li key={n.title} className="px-4 py-3 transition-colors hover:bg-secondary/50">
                       <div className="flex items-start gap-2.5">
@@ -495,7 +547,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             {/*User Information Avatar*/}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-all hover:opacity-85 hover:scale-105 active:scale-95">
+                <button
+                  type="button"
+                  className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-all hover:opacity-85 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
                   <Avatar className="size-9 border border-border cursor-pointer shadow-xs">
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
                       {userInfo?.firstName?.trim().charAt(0).toUpperCase()}
@@ -504,7 +559,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass w-56 rounded-2xl">
+              <DropdownMenuContent align="end" collisionPadding={16} className="glass w-56 rounded-2xl">
                 <DropdownMenuLabel className="space-y-0.5">
                   <p className="text-sm font-semibold">
                     {userInfo?.firstName} {userInfo?.lastName}
@@ -516,17 +571,18 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {currentUser && canAccessRoute(currentUser, "/profile") && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile">
-                      <UserRound className="size-4" /> Profile
-                    </Link>
+                  <DropdownMenuItem
+                    className="cursor-pointer"
+                    onSelect={() => navigate({ to: "/profile" })}
+                  >
+                    <UserRound className="size-4" /> Profile
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
                   className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive hover:bg-destructive/15 hover:text-destructive data-[highlighted]:bg-destructive/15 data-[highlighted]:text-destructive transition-colors duration-150 rounded-xl font-medium"
-                  onClick={async () => {
+                  onSelect={async () => {
                     await userSessionService.logout();
                     navigate({ to: "/index/login" });
                   }}
