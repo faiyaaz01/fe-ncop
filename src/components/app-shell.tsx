@@ -2,13 +2,17 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Bell,
   Boxes,
+  Check,
   ClipboardList,
+  Clock,
   LayoutDashboard,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  RefreshCw,
   Search,
+  UserCheck,
   UserCog,
   UserRound,
   Users,
@@ -529,18 +533,43 @@ export function AppShell({ children }: { children: ReactNode }) {
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Session expiring soon</DialogTitle>
+        <DialogContent
+          className={cn(
+            "max-sm:fixed max-sm:inset-auto max-sm:left-1/2 max-sm:top-1/2 max-sm:-translate-x-1/2 max-sm:-translate-y-1/2",
+            "max-sm:w-[calc(100%-2rem)] max-sm:max-w-md max-sm:h-auto max-sm:rounded-2xl max-sm:border max-sm:p-5 max-sm:shadow-2xl",
+            "sm:max-w-md sm:rounded-2xl sm:p-6",
+            "bg-card text-card-foreground border-border/80",
+          )}
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20">
+              <Clock className="size-5" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <DialogTitle className="text-base sm:text-lg font-semibold leading-snug">
+                Session Expiring Soon
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                Your session is about to expire for security. Refresh now to continue working without losing your progress.
+              </DialogDescription>
+            </div>
+          </div>
 
-            <DialogDescription>
-              Your session will expire in {Math.floor(remainingSecs / 60)}:
-              {String(remainingSecs % 60).padStart(2, "0")}. Refresh to continue your session.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 flex justify-end gap-2">
+          <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3.5 py-2.5 border border-border/60">
+            <span className="text-xs font-medium text-muted-foreground">Time Remaining</span>
+            <div className="flex items-center gap-1.5 font-mono text-sm font-bold text-amber-600 dark:text-amber-400">
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>
+                {Math.floor(remainingSecs / 60)}:{String(remainingSecs % 60).padStart(2, "0")}
+              </span>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-2.5">
             <Button
-              variant="ghost"
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto h-9 text-xs sm:text-sm"
               onClick={() => {
                 if (resolveRef.current) {
                   resolveRef.current(false);
@@ -557,6 +586,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Button>
 
             <Button
+              type="button"
+              className="w-full sm:w-auto h-9 text-xs sm:text-sm gap-1.5"
               onClick={async () => {
                 const refreshed = await userSessionService.refreshSession();
 
@@ -571,9 +602,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }
               }}
             >
-              Refresh
+              <RefreshCw className="size-3.5" /> Refresh Session
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -595,21 +626,64 @@ export function AppShell({ children }: { children: ReactNode }) {
           }
         }}
       >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Are you still there?</DialogTitle>
-            <DialogDescription>
-              You&apos;ve been inactive. For your security, you&apos;ll be automatically logged out
-              in{" "}
-              <span className="font-semibold tabular-nums">
+        <DialogContent
+          className={cn(
+            "max-sm:fixed max-sm:inset-auto max-sm:left-1/2 max-sm:top-1/2 max-sm:-translate-x-1/2 max-sm:-translate-y-1/2",
+            "max-sm:w-[calc(100%-2rem)] max-sm:max-w-md max-sm:h-auto max-sm:rounded-2xl max-sm:border max-sm:p-5 max-sm:shadow-2xl",
+            "sm:max-w-md sm:rounded-2xl sm:p-6",
+            "bg-card text-card-foreground border-border/80",
+          )}
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+              <UserCheck className="size-5" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-1">
+              <DialogTitle className="text-base sm:text-lg font-semibold leading-snug">
+                Are you still there?
+              </DialogTitle>
+              <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                You&apos;ve been inactive for a while. For your security, you will be automatically logged out unless you confirm you&apos;re still active.
+              </DialogDescription>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl bg-muted/50 px-3.5 py-2.5 border border-border/60">
+            <span className="text-xs font-medium text-muted-foreground">Auto logout in</span>
+            <div className="flex items-center gap-1.5 font-mono text-sm font-bold text-primary">
+              <span className="size-2 rounded-full bg-primary animate-pulse" />
+              <span>
                 {Math.floor(inactivityRemainingSecs / 60)}:
                 {String(inactivityRemainingSecs % 60).padStart(2, "0")}
               </span>
-              .
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4 flex justify-end">
+            </div>
+          </div>
+
+          <DialogFooter className="mt-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-2.5">
             <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto h-9 text-xs sm:text-sm"
+              onClick={async () => {
+                if (inactivityResolveRef.current) {
+                  inactivityResolveRef.current(false);
+                  inactivityResolveRef.current = null;
+                }
+                setIsInactivityWarningOpen(false);
+                if (inactivityCountdownRef.current) {
+                  clearInterval(inactivityCountdownRef.current);
+                  inactivityCountdownRef.current = null;
+                }
+                await userSessionService.logout();
+                navigate({ to: "/index/login" });
+              }}
+            >
+              Logout
+            </Button>
+
+            <Button
+              type="button"
+              className="w-full sm:w-auto h-9 text-xs sm:text-sm gap-1.5"
               onClick={() => {
                 if (inactivityResolveRef.current) {
                   inactivityResolveRef.current(true);
@@ -622,9 +696,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                 }
               }}
             >
-              Stay signed in
+              <Check className="size-3.5" /> Stay signed in
             </Button>
-          </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
