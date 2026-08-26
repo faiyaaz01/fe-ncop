@@ -36,6 +36,7 @@ import {
   PageHeader,
   StatusChip,
   SectionLoader,
+  TableRowLoader,
 } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -447,291 +448,293 @@ function ProductMaster() {
       </div>
 
       {/* ── Products Table ── */}
-      <div className="surface rounded-xl border border-border/70 overflow-hidden">
-        {productsLoading ? (
-          <>
-            <div className={viewMode === "list" ? "md:hidden" : ""}>
-              <CardGridLoader />
-            </div>
-            {viewMode === "list" && (
-              <div className="hidden md:block">
-                <SectionLoader />
+      <div className="surface rounded-xl border border-border/60 overflow-hidden">
+        {/* Mobile / Card View */}
+        <div
+          className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
+        >
+          {productsLoading ? (
+            <CardGridLoader cards={6} />
+          ) : productList.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center py-16 px-4 text-center">
+              <div className="size-12 rounded-full bg-secondary/80 flex items-center justify-center mb-3">
+                <Boxes className="size-6 text-muted-foreground" />
               </div>
-            )}
-          </>
-        ) : productList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <div className="size-12 rounded-full bg-secondary/80 flex items-center justify-center mb-3">
-              <Boxes className="size-6 text-muted-foreground" />
+              <h3 className="text-base font-semibold">No products found</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mt-1">
+                No product matches the current search and filter criteria. Try adjusting your filters
+                or add a new product.
+              </p>
+              <Button
+                onClick={() => {
+                  setEditingProduct(null);
+                  setProductModalOpen(true);
+                }}
+                className="mt-4 gap-2"
+                size="sm"
+              >
+                <Plus className="size-4" /> Add Product
+              </Button>
             </div>
-            <h3 className="text-base font-semibold">No products found</h3>
-            <p className="text-xs text-muted-foreground max-w-sm mt-1">
-              No product matches the current search and filter criteria. Try adjusting your filters
-              or add a new product.
-            </p>
-            <Button
-              onClick={() => {
-                setEditingProduct(null);
-                setProductModalOpen(true);
-              }}
-              className="mt-4 gap-2"
-              size="sm"
-            >
-              <Plus className="size-4" /> Add Product
-            </Button>
-          </div>
-        ) : (
-          <>
-            <div
-              className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
-            >
-              {productList.map((product, index) => (
-                <motion.article
-                  key={product.id}
-                  className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:border-primary/30"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.3,
-                    delay: Math.min(index * 0.04, 0.25),
-                    ease: [0.22, 1, 0.36, 1],
-                  }}
-                >
-                  <div className="flex min-w-0 items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-semibold">{product.brandName}</p>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {product.productCode} · {product.category || "General"}
-                      </p>
-                    </div>
-                    <StatusChip status={product.status as any} />
+          ) : (
+            productList.map((product, index) => (
+              <motion.article
+                key={product.id}
+                className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md hover:border-primary/30"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.3,
+                  delay: Math.min(index * 0.04, 0.25),
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-semibold">{product.brandName}</p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {product.productCode} · {product.category || "General"}
+                    </p>
                   </div>
-                  <p className="break-words text-xs text-muted-foreground">
-                    {product.composition || "No composition recorded"}
-                  </p>
-                  <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/45 p-3 text-xs">
-                    <div>
-                      <p className="text-muted-foreground">Dosage</p>
-                      <p className="mt-0.5 font-medium">
-                        {product.dosageForm}
-                        {product.dosageVariant ? ` · ${product.dosageVariant}` : ""}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">Price</p>
-                      <p className="mt-0.5 font-medium">
-                        {product.unitPrice != null
-                          ? `${product.currency || "USD"} ${product.unitPrice.toFixed(2)}`
-                          : "—"}
-                      </p>
-                    </div>
+                  <StatusChip status={product.status as any} />
+                </div>
+                <p className="break-words text-xs text-muted-foreground">
+                  {product.composition || "No composition recorded"}
+                </p>
+                <div className="grid grid-cols-2 gap-3 rounded-lg bg-muted/45 p-3 text-xs">
+                  <div>
+                    <p className="text-muted-foreground">Dosage</p>
+                    <p className="mt-0.5 font-medium">
+                      {product.dosageForm}
+                      {product.dosageVariant ? ` · ${product.dosageVariant}` : ""}
+                    </p>
                   </div>
-                  <div className="flex min-w-0 flex-col gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full shrink-0 justify-center"
-                      onClick={() =>
-                        navigate({
-                          to: "/products/$productId",
-                          params: { productId: product.id },
-                        })
-                      }
-                    >
-                      <Eye className="size-4" /> View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full shrink-0 justify-center"
-                      onClick={() => {
-                        navigate({
-                          to: "/products/$productId/edit",
-                          params: { productId: product.id },
-                        });
-                      }}
-                    >
-                      <Pencil className="size-4" /> Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full shrink-0 justify-center text-destructive"
-                      onClick={() => setDeleteConfirm({ id: product.id, name: product.brandName })}
-                    >
-                      <Trash2 className="size-4" /> Delete
-                    </Button>
+                  <div>
+                    <p className="text-muted-foreground">Price</p>
+                    <p className="mt-0.5 font-medium">
+                      {product.unitPrice != null
+                        ? `${product.currency || "USD"} ${product.unitPrice.toFixed(2)}`
+                        : "—"}
+                    </p>
                   </div>
-                </motion.article>
-              ))}
-            </div>
-            <div
-              className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}
-            >
-              <table className="min-w-[850px] w-full border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-secondary/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-3">Product / SKU</th>
-                    <th className="px-4 py-3">Dosage & Variant</th>
-                    <th className="px-4 py-3">Formulation / Composition</th>
-                    <th className="px-4 py-3">Packaging & MOQ</th>
-                    <th className="px-4 py-3">Unit Price</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {productList.map((product, i) => (
-                    <motion.tr
-                      key={product.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.02, duration: 0.25 }}
-                      onClick={() =>
-                        navigate({
-                          to: "/products/$productId",
-                          params: { productId: product.id },
-                        })
-                      }
-                      className="hover:bg-secondary/40 transition-colors duration-150 cursor-pointer"
-                    >
-                      {/* Product & SKU */}
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-start gap-3">
-                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs mt-0.5">
-                            <Pill className="size-4" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-foreground text-sm hover:text-primary transition-colors">
-                              {product.brandName}
-                            </p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                {product.productCode}
-                              </Badge>
-                              <span className="text-[11px] text-muted-foreground">
-                                {product.category || "General"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
+                </div>
+                <div className="flex min-w-0 flex-col gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full shrink-0 justify-center"
+                    onClick={() =>
+                      navigate({
+                        to: "/products/$productId",
+                        params: { productId: product.id },
+                      })
+                    }
+                  >
+                    <Eye className="size-4" /> View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full shrink-0 justify-center"
+                    onClick={() => {
+                      navigate({
+                        to: "/products/$productId/edit",
+                        params: { productId: product.id },
+                      });
+                    }}
+                  >
+                    <Pencil className="size-4" /> Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full shrink-0 justify-center text-destructive"
+                    onClick={() => setDeleteConfirm({ id: product.id, name: product.brandName })}
+                  >
+                    <Trash2 className="size-4" /> Delete
+                  </Button>
+                </div>
+              </motion.article>
+            ))
+          )}
+        </div>
 
-                      {/* Dosage & Variant */}
-                      <td className="px-4 py-3.5 align-middle">
+        {/* Desktop List View */}
+        <div
+          className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}
+        >
+          <table className="min-w-[850px] w-full border-collapse text-left text-sm">
+            <thead className="border-b border-border/60 bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3">Product / SKU</th>
+                <th className="px-4 py-3">Dosage & Variant</th>
+                <th className="px-4 py-3">Formulation / Composition</th>
+                <th className="px-4 py-3">Packaging & MOQ</th>
+                <th className="px-4 py-3">Unit Price</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60">
+              {productsLoading ? (
+                <TableRowLoader colSpan={7} rows={6} />
+              ) : productList.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                    No products found matching your criteria.
+                  </td>
+                </tr>
+              ) : (
+                productList.map((product, i) => (
+                  <motion.tr
+                    key={product.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.02, duration: 0.25 }}
+                    onClick={() =>
+                      navigate({
+                        to: "/products/$productId",
+                        params: { productId: product.id },
+                      })
+                    }
+                    className="hover:bg-muted/30 transition-colors duration-150 cursor-pointer"
+                  >
+                    {/* Product & SKU */}
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-start gap-3">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-xs mt-0.5">
+                          <Pill className="size-4" />
+                        </div>
                         <div>
-                          <span className="font-medium text-foreground text-xs">
-                            {product.dosageForm}
-                          </span>
-                          {product.dosageVariant && (
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {product.dosageVariant}
-                            </p>
-                          )}
+                          <p className="font-semibold text-foreground text-sm hover:text-primary transition-colors">
+                            {product.brandName}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                              {product.productCode}
+                            </Badge>
+                            <span className="text-[11px] text-muted-foreground">
+                              {product.category || "General"}
+                            </span>
+                          </div>
                         </div>
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Composition */}
-                      <td className="px-4 py-3.5 align-middle max-w-[280px]">
-                        <p
-                          className="text-xs font-medium text-foreground line-clamp-2"
-                          title={product.composition}
-                        >
-                          {product.composition || "—"}
-                        </p>
-                        {product.ingredients && product.ingredients.length > 0 && (
+                    {/* Dosage & Variant */}
+                    <td className="px-4 py-3.5 align-middle">
+                      <div>
+                        <span className="font-medium text-foreground text-xs">
+                          {product.dosageForm}
+                        </span>
+                        {product.dosageVariant && (
                           <p className="text-[11px] text-muted-foreground mt-0.5">
-                            {product.ingredients.length} active API
-                            {product.ingredients.length > 1 ? "s" : ""}
+                            {product.dosageVariant}
                           </p>
                         )}
-                      </td>
+                      </div>
+                    </td>
 
-                      {/* Packaging & MOQ */}
-                      <td className="px-4 py-3.5 align-middle">
-                        <p className="text-xs text-foreground font-medium">
-                          {product.packaging || "Standard"}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          MOQ: {product.moq ? product.moq.toLocaleString() : "—"}
-                        </p>
-                      </td>
-
-                      {/* Price */}
-                      <td className="px-4 py-3.5 align-middle">
-                        {product.unitPrice !== undefined && product.unitPrice !== null ? (
-                          <p className="text-sm font-semibold text-foreground tabular-nums">
-                            {product.currency || "USD"} {product.unitPrice.toFixed(2)}
-                          </p>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-3.5 align-middle">
-                        <StatusChip status={product.status as any} />
-                      </td>
-
-                      {/* Actions */}
-                      <td
-                        className="px-4 py-3.5 text-right align-middle"
-                        onClick={(e) => e.stopPropagation()}
+                    {/* Composition */}
+                    <td className="px-4 py-3.5 align-middle max-w-[280px]">
+                      <p
+                        className="text-xs font-medium text-foreground line-clamp-2"
+                        title={product.composition}
                       >
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-muted-foreground hover:text-foreground"
-                            title="View Details & Dossier"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate({
-                                to: "/products/$productId",
-                                params: { productId: product.id },
-                              });
-                            }}
-                          >
-                            <Eye className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-muted-foreground hover:text-foreground"
-                            title="Edit Product"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate({
-                                to: "/products/$productId/edit",
-                                params: { productId: product.id },
-                              });
-                            }}
-                          >
-                            <Pencil className="size-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 text-destructive hover:bg-destructive/10"
-                            title="Delete Product"
-                            onClick={() =>
-                              setDeleteConfirm({
-                                id: product.id,
-                                name: product.brandName,
-                              })
-                            }
-                          >
-                            <Trash2 className="size-4" />
-                          </Button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
+                        {product.composition || "—"}
+                      </p>
+                      {product.ingredients && product.ingredients.length > 0 && (
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {product.ingredients.length} active API
+                          {product.ingredients.length > 1 ? "s" : ""}
+                        </p>
+                      )}
+                    </td>
+
+                    {/* Packaging & MOQ */}
+                    <td className="px-4 py-3.5 align-middle">
+                      <p className="text-xs text-foreground font-medium">
+                        {product.packaging || "Standard"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        MOQ: {product.moq ? product.moq.toLocaleString() : "—"}
+                      </p>
+                    </td>
+
+                    {/* Price */}
+                    <td className="px-4 py-3.5 align-middle">
+                      {product.unitPrice !== undefined && product.unitPrice !== null ? (
+                        <p className="text-sm font-semibold text-foreground tabular-nums">
+                          {product.currency || "USD"} {product.unitPrice.toFixed(2)}
+                        </p>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-4 py-3.5 align-middle">
+                      <StatusChip status={product.status as any} />
+                    </td>
+
+                    {/* Actions */}
+                    <td
+                      className="px-4 py-3.5 text-right align-middle"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-foreground"
+                          title="View Details & Dossier"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/products/$productId",
+                              params: { productId: product.id },
+                            });
+                          }}
+                        >
+                          <Eye className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-foreground"
+                          title="Edit Product"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate({
+                              to: "/products/$productId/edit",
+                              params: { productId: product.id },
+                            });
+                          }}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-destructive hover:bg-destructive/10"
+                          title="Delete Product"
+                          onClick={() =>
+                            setDeleteConfirm({
+                              id: product.id,
+                              name: product.brandName,
+                            })
+                          }
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
         {/* ── Pagination Bar ── */}
         <PaginationBar

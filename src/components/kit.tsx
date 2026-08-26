@@ -229,8 +229,9 @@ export function SectionLoader({ rows = 5 }: { rows?: number }) {
 export function TableRowLoader({ colSpan, rows = 5 }: { colSpan: number; rows?: number }) {
   // Build per-cell widths for a natural look
   const cellWidths: Record<number, string[]> = {
-    7: ["w-32", "w-20", "w-16", "w-24", "w-20", "w-20", "w-16"],
-    6: ["w-32", "w-40", "w-16", "w-16", "w-24", "w-16"],
+    8: ["w-28", "w-20", "w-36", "w-32", "w-24", "w-16", "w-20", "w-16"],
+    7: ["w-32", "w-24", "w-28", "w-20", "w-20", "w-16", "w-16"],
+    6: ["w-32", "w-40", "w-20", "w-16", "w-24", "w-16"],
     5: ["w-32", "w-28", "w-40", "w-20", "w-16"],
   };
   const widths = cellWidths[colSpan] ?? Array(colSpan).fill("w-24");
@@ -240,12 +241,12 @@ export function TableRowLoader({ colSpan, rows = 5 }: { colSpan: number; rows?: 
       {Array.from({ length: rows }).map((_, rowIdx) => (
         <tr key={rowIdx} className="border-b border-border/40 last:border-0">
           {widths.map((w, colIdx) => (
-            <td key={colIdx} className="px-5 py-4">
+            <td key={colIdx} className="px-4 py-3.5 sm:px-5">
               {colIdx === 0 ? (
                 <div className="flex items-center gap-3">
                   <SkeletonBox className="size-8 rounded-lg shrink-0" />
-                  <div className="space-y-1.5">
-                    <SkeletonBox className={cn("h-3", w)} />
+                  <div className="space-y-1.5 min-w-0">
+                    <SkeletonBox className={cn("h-3.5", w)} />
                     <SkeletonBox className="h-2.5 w-16" />
                   </div>
                 </div>

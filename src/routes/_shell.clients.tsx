@@ -39,6 +39,7 @@ import {
   Panel,
   Reveal,
   StatusChip,
+  TableRowLoader,
 } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -503,21 +504,7 @@ function ClientMaster() {
         </div>
       </div>
 
-      {/* ── Loading ── */}
-      {isLoading && (
-        <>
-          <div className={viewMode === "list" ? "md:hidden" : ""}>
-            <ClientCardGridLoader cards={pageSize || 6} />
-          </div>
-          {viewMode === "list" && (
-            <div className="hidden overflow-hidden rounded-xl border border-border/60 bg-card md:block">
-              <ClientTableLoader rows={pageSize || 6} />
-            </div>
-          )}
-        </>
-      )}
-
-      {/* â”€â”€ Error â”€â”€ */}
+      {/* ── Error ── */}
       {isError && (
         <EmptyState
           icon={<Users className="size-5" />}
@@ -535,199 +522,194 @@ function ClientMaster() {
         />
       )}
 
-      {/* ── Empty / No matches ── */}
-      {!isLoading && !isError && filtered.length === 0 && (
-        <EmptyState
-          icon={<Users className="size-5" />}
-          title={clients.length === 0 ? "No clients yet" : "No clients match your filters"}
-          description={
-            clients.length === 0
-              ? "Add your first client to get started."
-              : "Try a different segment or clear the search term."
-          }
-          action={
-            clients.length === 0 ? (
-              <Button size="sm" onClick={openCreate}>
-                <Plus className="size-4" /> Add client
-              </Button>
+      {/* ── Clients Content Container ── */}
+      {!isError && (
+        <div className="surface rounded-xl border border-border/60 overflow-hidden">
+          {/* Card Grid (Mobile or Card View) */}
+          <div
+            className={`grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
+          >
+            {isLoading ? (
+              <ClientCardGridLoader cards={pageSize || 6} />
+            ) : filtered.length === 0 ? (
+              <div className="col-span-full py-12 text-center text-sm text-muted-foreground">
+                {clients.length === 0
+                  ? "No clients yet. Add your first client to get started."
+                  : "No clients match your search and filter criteria."}
+              </div>
             ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setQuery("");
-                  setSegment("All");
-                }}
-              >
-                Reset filters
-              </Button>
-            )
-          }
-        />
-      )}
-
-      {/* â”€â”€ Card Grid â”€â”€ */}
-      {!isLoading && !isError && filtered.length > 0 && (
-        <div
-          className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
-        >
-          {filtered.map((c, i) => {
-            const poc = firstPoc(c);
-            const addr = firstAddr(c);
-            return (
-              <Reveal key={c.id} delay={i * 0.05}>
-                <div className="h-full">
-                  <Panel hover className="h-full">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
-                          {c.companyName.slice(0, 2).toUpperCase()}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="break-words font-semibold leading-tight">{c.companyName}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {c.customerCode} Â· {CUSTOMER_TYPE_LABELS[c.customerType]}
-                          </p>
-                        </div>
-                      </div>
-                      <TierBadge level={c.clientLevel} />
-                    </div>
-
-                    <dl className="mt-5 space-y-2 text-xs text-muted-foreground">
-                      {addr && (
-                        <div className="flex items-center gap-2">
-                          <Globe2 className="size-3.5" /> {addr.city}, {addr.country}
-                        </div>
-                      )}
-                      {poc && (
-                        <div className="flex items-center gap-2">
-                          <Mail className="size-3.5" /> {poc.email}
-                        </div>
-                      )}
-                    </dl>
-
-                    <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-                      <div>
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Annual Turnover
-                        </p>
-                        <p className="text-sm font-semibold tabular-nums">
-                          {c.annualTurnover ? formatINR(c.annualTurnover) : "—"}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Documents
-                        </p>
-                        <p className="text-sm font-semibold">{c.documents?.length ?? 0}</p>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          navigate({ to: "/clients/$clientId", params: { clientId: c.id } })
-                        }
-                      >
-                        <Eye className="size-4" /> View
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          navigate({ to: "/clients/$clientId/edit", params: { clientId: c.id } })
-                        }
-                      >
-                        <Pencil className="size-4" /> Edit
-                      </Button>
-                    </div>
-                  </Panel>
-                </div>
-              </Reveal>
-            );
-          })}
-        </div>
-      )}
-
-      {!isLoading && !isError && filtered.length > 0 && viewMode === "list" && (
-        <div className="hidden overflow-x-auto overflow-y-hidden rounded-xl border border-border/60 bg-card md:block">
-          <table className="min-w-[900px] w-full text-left text-sm">
-            <thead className="border-b border-border/60 bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">Client</th>
-                <th className="px-4 py-3">Contact</th>
-                <th className="px-4 py-3">Location</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Turnover</th>
-                <th className="px-4 py-3">Tier</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {filtered.map((client, i) => {
-                const poc = firstPoc(client);
-                const address = firstAddr(client);
+              filtered.map((c, i) => {
+                const poc = firstPoc(c);
+                const addr = firstAddr(c);
                 return (
-                  <motion.tr
-                    key={client.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.02, duration: 0.25 }}
-                    className="hover:bg-muted/30 transition-colors duration-150"
-                  >
-                    <td className="px-4 py-3">
-                      <p className="font-semibold">{client.companyName}</p>
-                      <p className="text-xs text-muted-foreground">{client.customerCode}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <p>{poc?.personName || "—"}</p>
-                      <p className="text-xs text-muted-foreground">{poc?.email || "—"}</p>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {address?.city || address?.country
-                        ? [address.city, address.country].filter(Boolean).join(", ")
-                        : "-"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline">{CUSTOMER_TYPE_LABELS[client.customerType]}</Badge>
-                    </td>
-                    <td className="px-4 py-3 font-medium">
-                      {client.annualTurnover ? formatINR(client.annualTurnover) : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <TierBadge level={client.clientLevel} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            navigate({ to: "/clients/$clientId", params: { clientId: client.id } })
-                          }
-                        >
-                          <Eye className="size-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            navigate({
-                              to: "/clients/$clientId/edit",
-                              params: { clientId: client.id },
-                            })
-                          }
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </motion.tr>
+                  <Reveal key={c.id} delay={i * 0.05}>
+                    <div className="h-full">
+                      <Panel hover className="h-full">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className="grid size-11 place-items-center rounded-xl bg-primary/10 text-sm font-bold text-primary">
+                              {c.companyName.slice(0, 2).toUpperCase()}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="break-words font-semibold leading-tight">{c.companyName}</p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {c.customerCode} · {CUSTOMER_TYPE_LABELS[c.customerType]}
+                              </p>
+                            </div>
+                          </div>
+                          <TierBadge level={c.clientLevel} />
+                        </div>
+
+                        <dl className="mt-5 space-y-2 text-xs text-muted-foreground">
+                          {addr && (
+                            <div className="flex items-center gap-2">
+                              <Globe2 className="size-3.5" /> {addr.city}, {addr.country}
+                            </div>
+                          )}
+                          {poc && (
+                            <div className="flex items-center gap-2">
+                              <Mail className="size-3.5" /> {poc.email}
+                            </div>
+                          )}
+                        </dl>
+
+                        <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+                          <div>
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              Annual Turnover
+                            </p>
+                            <p className="text-sm font-semibold tabular-nums">
+                              {c.annualTurnover ? formatINR(c.annualTurnover) : "—"}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                              Documents
+                            </p>
+                            <p className="text-sm font-semibold">{c.documents?.length ?? 0}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 grid grid-cols-2 gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigate({ to: "/clients/$clientId", params: { clientId: c.id } })
+                            }
+                          >
+                            <Eye className="size-4" /> View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              navigate({ to: "/clients/$clientId/edit", params: { clientId: c.id } })
+                            }
+                          >
+                            <Pencil className="size-4" /> Edit
+                          </Button>
+                        </div>
+                      </Panel>
+                    </div>
+                  </Reveal>
                 );
-              })}
-            </tbody>
-          </table>
+              })
+            )}
+          </div>
+
+          {/* Table List (Desktop List View) */}
+          <div
+            className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}
+          >
+            <table className="min-w-[900px] w-full text-left text-sm">
+              <thead className="border-b border-border/60 bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Client</th>
+                  <th className="px-4 py-3">Contact</th>
+                  <th className="px-4 py-3">Location</th>
+                  <th className="px-4 py-3">Type</th>
+                  <th className="px-4 py-3">Turnover</th>
+                  <th className="px-4 py-3">Tier</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/60">
+                {isLoading ? (
+                  <TableRowLoader colSpan={7} rows={pageSize || 6} />
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                      {clients.length === 0
+                        ? "No clients yet. Add your first client to get started."
+                        : "No clients match your search and filter criteria."}
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((client, i) => {
+                    const poc = firstPoc(client);
+                    const address = firstAddr(client);
+                    return (
+                      <motion.tr
+                        key={client.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.02, duration: 0.25 }}
+                        className="hover:bg-muted/30 transition-colors duration-150"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-semibold">{client.companyName}</p>
+                          <p className="text-xs text-muted-foreground">{client.customerCode}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p>{poc?.personName || "—"}</p>
+                          <p className="text-xs text-muted-foreground">{poc?.email || "—"}</p>
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {address?.city || address?.country
+                            ? [address.city, address.country].filter(Boolean).join(", ")
+                            : "-"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline">{CUSTOMER_TYPE_LABELS[client.customerType]}</Badge>
+                        </td>
+                        <td className="px-4 py-3 font-medium">
+                          {client.annualTurnover ? formatINR(client.annualTurnover) : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <TierBadge level={client.clientLevel} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                navigate({ to: "/clients/$clientId", params: { clientId: client.id } })
+                              }
+                            >
+                              <Eye className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                navigate({
+                                  to: "/clients/$clientId/edit",
+                                  params: { clientId: client.id },
+                                })
+                              }
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
