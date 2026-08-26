@@ -23,6 +23,7 @@ function ProductEditRoute() {
   return (
     <ProductFormDialog
       open
+      pageMode
       onOpenChange={() => navigate({ to: "/products/$productId", params: { productId } })}
       editingProduct={product}
       dosageForms={dosageForms}
