@@ -11,14 +11,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow hover:shadow-md dark:hover:brightness-110",
+          "bg-primary text-primary-foreground shadow [@media(hover:hover)]:hover:shadow-md [@media(hover:hover)]:dark:hover:brightness-110 active:opacity-90",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:shadow-md dark:hover:brightness-110",
+          "bg-destructive text-destructive-foreground shadow-sm [@media(hover:hover)]:hover:shadow-md [@media(hover:hover)]:dark:hover:brightness-110 active:opacity-90",
         outline:
-          "border border-border/80 bg-card text-foreground shadow-xs hover:bg-secondary hover:text-foreground hover:border-accent/40 hover:shadow-sm dark:bg-card/90 dark:border-white/20 dark:text-foreground dark:hover:bg-secondary/90 dark:hover:border-accent/60 dark:hover:text-accent-foreground dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)]",
-        secondary: "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 border border-border/40 dark:border-white/10",
-        ghost: "hover:bg-accent hover:text-accent-foreground active:bg-accent/85 active:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border border-border/80 bg-card text-foreground shadow-xs [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground [@media(hover:hover)]:hover:border-accent/40 [@media(hover:hover)]:hover:shadow-sm dark:bg-card/90 dark:border-white/20 dark:text-foreground [@media(hover:hover)]:dark:hover:bg-secondary/90 [@media(hover:hover)]:dark:hover:border-accent/60 [@media(hover:hover)]:dark:hover:text-accent-foreground dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] active:bg-secondary/70",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-xs [@media(hover:hover)]:hover:bg-secondary/80 border border-border/40 dark:border-white/10 active:bg-secondary/90",
+        ghost:
+          "bg-transparent text-foreground [@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground active:bg-secondary/60 dark:active:bg-secondary/60",
+        link: "text-primary underline-offset-4 [@media(hover:hover)]:hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -148,9 +150,22 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       onPointerCancel?.(e);
     };
 
+    const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
+      setIsHovered(false);
+      setRipple(null);
+      props.onTouchStart?.(e);
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent<HTMLButtonElement>) => {
+      setIsHovered(false);
+      setRipple(null);
+      props.onTouchEnd?.(e);
+    };
+
     const handleBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
       setIsHovered(false);
-      onBlur?.(e);
+      setRipple(null);
+      props.onBlur?.(e);
     };
 
     return (
@@ -161,6 +176,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerCancel}
         onBlur={handleBlur}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         disabled={disabled}
         className={cn(buttonVariants({ variant, size, className }))}
         {...props}

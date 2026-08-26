@@ -460,3 +460,12 @@
     scroll-behavior: auto !important;
   }
 }
+
+@media (hover: none) and (pointer: coarse) {
+  button,
+  [role="button"],
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
