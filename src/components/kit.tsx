@@ -1,5 +1,14 @@
-import { motion, useInView, useMotionValue, useSpring } from "motion/react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { AnimatePresence, motion, useInView, useMotionValue, useSpring } from "motion/react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+  type ReactNode,
+  type ButtonHTMLAttributes,
+  type MouseEvent,
+} from "react";
 import { cn } from "@/lib/utils";
 import { smoothEase, fadeInUp, staggerContainer } from "@/lib/animations";
 
@@ -511,3 +520,4 @@ export function Timeline({ items }: { items: { date: string; title: string; deta
     </ol>
   );
 }
+
