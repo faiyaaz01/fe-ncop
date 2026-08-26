@@ -15,7 +15,7 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:shadow-md dark:hover:brightness-110",
         outline:
-          "border border-input bg-background shadow-sm hover:bg-accent/50 hover:text-accent-foreground hover:border-accent",
+          "border border-input bg-background shadow-sm hover:bg-secondary hover:text-secondary-foreground hover:border-border",
         secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
         ghost: "hover:bg-accent/60 hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
@@ -37,7 +37,7 @@ const buttonVariants = cva(
 const rippleColorByVariant: Record<string, string> = {
   default: "bg-black/25 dark:bg-white/25",
   destructive: "bg-black/20 dark:bg-white/20",
-  outline: "bg-accent/80 dark:bg-accent/60",
+  outline: "bg-primary/10 dark:bg-white/15",
   secondary: "bg-primary/10 dark:bg-white/15",
   ghost: "bg-accent/70 dark:bg-accent/50",
   link: "",

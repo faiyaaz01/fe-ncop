@@ -178,15 +178,15 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       <Reveal>
-        <section className="relative overflow-hidden rounded-[24px] bg-primary px-6 py-8 text-primary-foreground shadow-soft sm:px-8 sm:py-10">
-          <div className="absolute inset-0 opacity-50 [background:radial-gradient(36rem_22rem_at_85%_-30%,color-mix(in_oklab,var(--accent)_70%,transparent),transparent)]" />
+        <section className="relative overflow-hidden rounded-[20px] border border-border/60 bg-primary p-6 text-primary-foreground shadow-soft sm:p-8">
+          <div className="absolute inset-0 opacity-40 [background:radial-gradient(28rem_18rem_at_85%_-20%,color-mix(in_oklab,var(--accent)_60%,transparent),transparent)]" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-foreground/70">
                 {todayLabel}
               </p>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Good day, {firstName}
+                {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName}
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80 sm:text-base">
                 Your live workspace summary, tailored to the modules assigned to your account.
@@ -201,8 +201,7 @@ function Dashboard() {
               {canAccessRoute(user, "/reports") && (
                 <Button
                   asChild
-                  variant="outline"
-                  className="border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
+                  className="backdrop-blur-md bg-white/15 hover:bg-white/25 text-white hover:text-white border border-white/25 hover:border-white/40 shadow-none transition-all"
                 >
                   <Link to="/reports">View reports</Link>
                 </Button>
