@@ -22,6 +22,8 @@ import {
   Trash2,
   Upload,
   Users,
+  User,
+  RotateCcw,
   Pencil,
   Crown,
   Award,
@@ -414,6 +416,14 @@ function ClientMaster() {
         .includes(query.toLowerCase()),
   );
 
+  const hasActiveFilters = query.trim().length > 0 || segment !== "All";
+
+  function handleResetFilters() {
+    setQuery("");
+    setSegment("All");
+    setPage(0);
+  }
+
   const firstPoc = (c: Client) => c.pointOfContacts?.[0];
   const firstAddr = (c: Client) => c.addresses?.[0];
 
@@ -490,7 +500,7 @@ function ClientMaster() {
             className="pl-9"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {filterSegments.map((s) => (
             <button
               key={s}
@@ -505,6 +515,17 @@ function ClientMaster() {
               {s === "All" ? "All" : CUSTOMER_TYPE_LABELS[s as CustomerType]}
             </button>
           ))}
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetFilters}
+              className="text-xs text-muted-foreground hover:text-foreground h-7 px-2.5 gap-1.5"
+            >
+              <RotateCcw className="size-3" />
+              Reset
+            </Button>
+          )}
         </div>
       </div>
 
@@ -536,10 +557,34 @@ function ClientMaster() {
             {isLoading ? (
               <ClientCardGridLoader cards={pageSize || 6} />
             ) : filtered.length === 0 ? (
-              <div className="col-span-full py-12 text-center text-sm text-muted-foreground">
-                {clients.length === 0
-                  ? "No clients yet. Add your first client to get started."
-                  : "No clients match your search and filter criteria."}
+              <div className="col-span-full py-4">
+                <EmptyState
+                  icon={<User className="size-6 text-muted-foreground" />}
+                  title="No clients found"
+                  description={
+                    clients.length === 0
+                      ? "No clients yet. Add your first client to get started."
+                      : "No clients match your search and filter criteria."
+                  }
+                  action={
+                    hasActiveFilters ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleResetFilters}
+                        className="gap-2"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        Reset filters
+                      </Button>
+                    ) : (
+                      <Button size="sm" onClick={openCreate} className="gap-2">
+                        <Plus className="size-4" /> Add client
+                      </Button>
+                    )
+                  }
+                  className="border-none py-8 shadow-none"
+                />
               </div>
             ) : (
               filtered.map((c, i) => {
@@ -642,10 +687,34 @@ function ClientMaster() {
                   <TableRowLoader colSpan={7} rows={pageSize || 6} />
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
-                      {clients.length === 0
-                        ? "No clients yet. Add your first client to get started."
-                        : "No clients match your search and filter criteria."}
+                    <td colSpan={7} className="px-6 py-8">
+                      <EmptyState
+                        icon={<User className="size-6 text-muted-foreground" />}
+                        title="No clients found"
+                        description={
+                          clients.length === 0
+                            ? "No clients yet. Add your first client to get started."
+                            : "No clients match your search and filter criteria."
+                        }
+                        action={
+                          hasActiveFilters ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleResetFilters}
+                              className="gap-2"
+                            >
+                              <RotateCcw className="size-3.5" />
+                              Reset filters
+                            </Button>
+                          ) : (
+                            <Button size="sm" onClick={openCreate} className="gap-2">
+                              <Plus className="size-4" /> Add client
+                            </Button>
+                          )
+                        }
+                        className="border-none py-8 shadow-none"
+                      />
                     </td>
                   </tr>
                 ) : (
@@ -714,6 +783,19 @@ function ClientMaster() {
               </tbody>
             </table>
           </div>
+
+          {/* ── Pagination Bar ── */}
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            totalElements={totalElements}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              setPage(0);
+            }}
+          />
         </div>
       )}
 
