@@ -49,6 +49,140 @@ export function CardGridLoader({ cards = 6 }: { cards?: number }) {
   );
 }
 
+/** Responsive client card skeleton matching the actual Client Card structure */
+export function ClientCardSkeleton() {
+  return (
+    <div className="surface flex h-full flex-col justify-between p-5">
+      <div>
+        {/* Top Header: Avatar initials + Company Name / Code + Tier Badge */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <SkeletonBox className="size-11 rounded-xl shrink-0" />
+            <div className="min-w-0 space-y-1.5 flex-1">
+              <SkeletonBox className="h-4 w-32 sm:w-36" />
+              <SkeletonBox className="h-3 w-24 sm:w-28" />
+            </div>
+          </div>
+          <SkeletonBox className="h-5 w-16 rounded-full shrink-0" />
+        </div>
+
+        {/* Middle Info: Location & Contact with icons */}
+        <div className="mt-5 space-y-2">
+          <div className="flex items-center gap-2">
+            <SkeletonBox className="size-3.5 rounded shrink-0" />
+            <SkeletonBox className="h-3 w-28" />
+          </div>
+          <div className="flex items-center gap-2">
+            <SkeletonBox className="size-3.5 rounded shrink-0" />
+            <SkeletonBox className="h-3 w-36" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        {/* Footer Stats: Turnover & Documents */}
+        <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+          <div className="space-y-1">
+            <SkeletonBox className="h-2.5 w-20" />
+            <SkeletonBox className="h-4 w-20" />
+          </div>
+          <div className="space-y-1 flex flex-col items-end">
+            <SkeletonBox className="h-2.5 w-16" />
+            <SkeletonBox className="h-4 w-8" />
+          </div>
+        </div>
+
+        {/* Action Buttons: View & Edit */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <SkeletonBox className="h-8 w-full rounded-md" />
+          <SkeletonBox className="h-8 w-full rounded-md" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Responsive client card grid loader */
+export function ClientCardGridLoader({ cards = 6 }: { cards?: number }) {
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: cards }).map((_, index) => (
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.04, duration: 0.3 }}
+          className="h-full"
+        >
+          <ClientCardSkeleton />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
+/** Client table loader matching the 7 columns of the client table */
+export function ClientTableLoader({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="overflow-x-auto overflow-y-hidden">
+      <table className="min-w-[900px] w-full text-left text-sm">
+        <thead className="border-b border-border/60 bg-muted/40 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <tr>
+            <th className="px-4 py-3">Client</th>
+            <th className="px-4 py-3">Contact</th>
+            <th className="px-4 py-3">Location</th>
+            <th className="px-4 py-3">Type</th>
+            <th className="px-4 py-3">Turnover</th>
+            <th className="px-4 py-3">Tier</th>
+            <th className="px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border/60">
+          {Array.from({ length: rows }).map((_, i) => (
+            <motion.tr
+              key={i}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.025, duration: 0.25 }}
+            >
+              <td className="px-4 py-3.5">
+                <div className="space-y-1.5">
+                  <SkeletonBox className="h-3.5 w-32" />
+                  <SkeletonBox className="h-2.5 w-20" />
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="space-y-1.5">
+                  <SkeletonBox className="h-3.5 w-24" />
+                  <SkeletonBox className="h-2.5 w-32" />
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <SkeletonBox className="h-3 w-28" />
+              </td>
+              <td className="px-4 py-3.5">
+                <SkeletonBox className="h-5 w-20 rounded-md" />
+              </td>
+              <td className="px-4 py-3.5">
+                <SkeletonBox className="h-3.5 w-16" />
+              </td>
+              <td className="px-4 py-3.5">
+                <SkeletonBox className="h-5 w-16 rounded-full" />
+              </td>
+              <td className="px-4 py-3.5 text-right">
+                <div className="flex justify-end gap-1">
+                  <SkeletonBox className="size-8 rounded-md" />
+                  <SkeletonBox className="size-8 rounded-md" />
+                </div>
+              </td>
+            </motion.tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
  * Consistent section-level skeleton — use inside a `<div>` container
  * (e.g. product table div wrapper)

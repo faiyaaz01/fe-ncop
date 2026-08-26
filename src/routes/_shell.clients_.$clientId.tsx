@@ -2,7 +2,8 @@ import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PageHeader, Panel, SectionLoader } from "@/components/kit";
+import { PageHeader, Panel } from "@/components/kit";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchClient } from "@/lib/client-api";
 
 export const Route = createFileRoute("/_shell/clients_/$clientId")({ component: ClientDetail });
@@ -17,7 +18,25 @@ function ClientDetail() {
     isError,
   } = useQuery({ queryKey: ["clients", clientId], queryFn: () => fetchClient(clientId) });
   if (pathname.endsWith("/edit")) return <Outlet />;
-  if (isLoading) return <SectionLoader />;
+  if (isLoading)
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-9 w-32 rounded-md" />
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-4 w-40" />
+        </div>
+        <Panel className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="space-y-1.5">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+          ))}
+        </Panel>
+      </div>
+    );
   if (isError || !client)
     return (
       <div className="grid min-h-[50vh] place-items-center">

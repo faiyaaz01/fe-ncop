@@ -31,7 +31,15 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { EmptyState, PageHeader, Panel, Reveal, SectionLoader, StatusChip } from "@/components/kit";
+import {
+  ClientCardGridLoader,
+  ClientTableLoader,
+  EmptyState,
+  PageHeader,
+  Panel,
+  Reveal,
+  StatusChip,
+} from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -463,6 +471,7 @@ function ClientMaster() {
       />
 
       {/* â”€â”€ Filters â”€â”€ */}
+      {/* ─── Filters ────────────────────────────────────────────────────────── */}
       <div className="surface flex flex-col justify-between gap-3 p-5 lg:flex-row lg:items-center">
         <div className="relative w-full lg:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -494,31 +503,15 @@ function ClientMaster() {
         </div>
       </div>
 
-      {/* â”€â”€ Loading â”€â”€ */}
+      {/* ── Loading ── */}
       {isLoading && (
         <>
-          <div
-            className={`grid gap-4 md:grid-cols-2 xl:grid-cols-3 ${viewMode === "list" ? "md:hidden" : ""}`}
-          >
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Panel key={i}>
-                <div className="flex items-start gap-3">
-                  <Skeleton className="size-11 rounded-xl" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                </div>
-                <div className="mt-5 space-y-2">
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
-              </Panel>
-            ))}
+          <div className={viewMode === "list" ? "md:hidden" : ""}>
+            <ClientCardGridLoader cards={pageSize || 6} />
           </div>
           {viewMode === "list" && (
             <div className="hidden overflow-hidden rounded-xl border border-border/60 bg-card md:block">
-              <SectionLoader />
+              <ClientTableLoader rows={pageSize || 6} />
             </div>
           )}
         </>
@@ -542,10 +535,9 @@ function ClientMaster() {
         />
       )}
 
-      {/* â”€â”€ Empty / No matches â”€â”€ */}
+      {/* ── Empty / No matches ── */}
       {!isLoading && !isError && filtered.length === 0 && (
         <EmptyState
-          className="bg-white"
           icon={<Users className="size-5" />}
           title={clients.length === 0 ? "No clients yet" : "No clients match your filters"}
           description={
