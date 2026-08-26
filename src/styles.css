@@ -43,9 +43,11 @@
     box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
     border-color 0.25s ease;
   will-change: transform, box-shadow;
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lift);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lift);
+    }
   }
   &:active {
     transform: translateY(-1px);
@@ -341,6 +343,7 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    transition: background-color 0.35s ease, color 0.35s ease;
   }
 
   button,

@@ -381,7 +381,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 shrink-0 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="size-7 shrink-0 text-muted-foreground [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground"
               onClick={() => setCollapsed(true)}
               title="Collapse sidebar"
               aria-label="Collapse sidebar"
@@ -403,7 +403,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   collapsed ? "justify-center px-2" : "gap-3 px-3",
                   active
                     ? "bg-primary/10 text-primary font-semibold shadow-xs"
-                    : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground active:scale-[0.98]",
+                    : "text-muted-foreground [@media(hover:hover)]:hover:bg-secondary/80 [@media(hover:hover)]:hover:text-foreground active:scale-[0.98]",
                 )}
                 title={collapsed ? item.label : undefined}
               >
@@ -414,7 +414,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     transition={{ type: "spring", stiffness: 400, damping: 32 }}
                   />
                 )}
-                <item.icon className="size-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                <item.icon className="size-[18px] shrink-0 transition-transform duration-200 [@media(hover:hover)]:group-hover:scale-110" />
                 {!collapsed && <span className="truncate">{item.label}</span>}
               </Link>
             );
@@ -460,13 +460,13 @@ export function AppShell({ children }: { children: ReactNode }) {
                             "group relative flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
                             active
                               ? "bg-primary/10 text-primary font-semibold shadow-xs"
-                              : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground active:scale-[0.98]",
+                              : "text-muted-foreground [@media(hover:hover)]:hover:bg-secondary/80 [@media(hover:hover)]:hover:text-foreground active:scale-[0.98]",
                           )}
                         >
                           {active && (
                             <span className="absolute left-0 h-6 w-[3px] rounded-r-full bg-primary" />
                           )}
-                          <item.icon className="size-5 shrink-0 transition-transform duration-200 group-hover:scale-110" />
+                          <item.icon className="size-5 shrink-0 transition-transform duration-200 [@media(hover:hover)]:group-hover:scale-110" />
                           <span className="truncate">{item.label}</span>
                         </Link>
                       );
@@ -522,7 +522,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
                 <ul className="divide-y divide-border/50 max-h-[340px] overflow-y-auto">
                   {notifications.map((n) => (
-                    <li key={n.title} className="px-4 py-3 transition-colors hover:bg-secondary/50">
+                    <li key={n.title} className="px-4 py-3 transition-colors [@media(hover:hover)]:hover:bg-secondary/50">
                       <div className="flex items-start gap-2.5">
                         <span
                           className={cn(
@@ -549,7 +549,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-all hover:opacity-85 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-all [@media(hover:hover)]:hover:opacity-85 [@media(hover:hover)]:hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Avatar className="size-9 border border-border cursor-pointer shadow-xs">
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
@@ -581,7 +581,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
-                  className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive hover:bg-destructive/15 hover:text-destructive data-[highlighted]:bg-destructive/15 data-[highlighted]:text-destructive transition-colors duration-150 rounded-xl font-medium"
+                  className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive [@media(hover:hover)]:hover:bg-destructive/15 [@media(hover:hover)]:hover:text-destructive data-[highlighted]:bg-destructive/15 data-[highlighted]:text-destructive transition-colors duration-150 rounded-xl font-medium"
                   onSelect={async () => {
                     await userSessionService.logout();
                     navigate({ to: "/index/login" });
