@@ -129,6 +129,38 @@ function Brand({
   );
 }
 
+function HeaderSearchInput() {
+  const fullText = "Search clients, products, RFQs…";
+  const [placeholder, setPlaceholder] = useState("");
+
+  useEffect(() => {
+    let index = 0;
+    const timeout = setTimeout(() => {
+      const interval = setInterval(() => {
+        index += 1;
+        setPlaceholder(fullText.slice(0, index));
+        if (index >= fullText.length) {
+          clearInterval(interval);
+        }
+      }, 40);
+
+      return () => clearInterval(interval);
+    }, 280);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  return (
+    <div className="relative ml-auto hidden w-full max-w-sm md:block">
+      <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input
+        placeholder={placeholder}
+        className="bg-card/70 pl-9 backdrop-blur"
+      />
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -419,13 +451,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <div className="relative ml-auto hidden w-full max-w-sm md:block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search clients, products, RFQs…"
-              className="bg-card/70 pl-9 backdrop-blur"
-            />
-          </div>
+          <HeaderSearchInput />
 
           <div className="ml-auto flex items-center gap-1 md:ml-0">
             <ThemeToggle />
@@ -498,7 +524,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className="text-destructive focus:text-destructive"
+                  variant="destructive"
+                  className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive hover:bg-destructive/15 hover:text-destructive data-[highlighted]:bg-destructive/15 data-[highlighted]:text-destructive transition-colors duration-150 rounded-xl font-medium"
                   onClick={async () => {
                     await userSessionService.logout();
                     navigate({ to: "/index/login" });
