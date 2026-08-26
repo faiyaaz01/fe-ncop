@@ -410,10 +410,13 @@ function LoginPage() {
               <Button
                 type="submit"
                 disabled={!isFormValid || isSubmitting}
-                className="h-11 w-full bg-white text-slate-900 hover:bg-white/90 disabled:cursor-not-allowed disabled:bg-white/70"
+                liquidColor="bg-slate-900/15"
+                className="group relative h-11 w-full overflow-hidden bg-white text-slate-900 shadow-md transition-shadow duration-300 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-white/70"
               >
-                {isSubmitting ? "Signing in..." : "Login"}
-                {!isSubmitting && <ArrowRight className="size-4" />}
+                <span>{isSubmitting ? "Signing in..." : "Login"}</span>
+                {!isSubmitting && (
+                  <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                )}
               </Button>
             </form>
           </motion.section>
