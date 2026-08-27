@@ -8,6 +8,7 @@ import {
   ShieldAlert,
   ShieldOff,
   Plus,
+  RotateCcw,
   Search,
   Trash2,
   Edit2,
@@ -189,6 +190,40 @@ function UserManagementPage() {
           queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
           queryClient.invalidateQueries({ queryKey: ["auth-roles-paged"] });
           queryClient.invalidateQueries({ queryKey: ["auth-all-roles"] });
+        }}
+      />
+    );
+  }
+
+  if (roleModalOpen) {
+    return (
+      <RoleFormDialog
+        open
+        pageMode
+        onOpenChange={setRoleModalOpen}
+        editingRole={editingRole}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["auth-roles-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-roles"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
+        }}
+      />
+    );
+  }
+
+  if (rightModalOpen) {
+    return (
+      <ModuleRightFormDialog
+        open
+        pageMode
+        onOpenChange={setRightModalOpen}
+        editingRight={editingRight}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["auth-rights-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-module-rights"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-users-paged"] });
+          queryClient.invalidateQueries({ queryKey: ["auth-all-users"] });
         }}
       />
     );
@@ -419,16 +454,28 @@ function UserManagementPage() {
 
       {/* ── Main Tab Navigation ── */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
-        <div className="flex justify-start overflow-x-auto pb-1">
-          <TabsList className="surface p-1 border border-border/60 h-auto inline-flex justify-start w-fit">
-            <TabsTrigger value="users" className="gap-2 text-xs py-2 px-3 sm:px-4">
-              <Users className="size-3.5" /> Users ({stats.totalUsers})
+        <div className="surface overflow-x-auto rounded-xl border border-border/60 p-2">
+          <TabsList className="grid h-auto min-w-[520px] w-full grid-cols-3 rounded-lg bg-muted/70 p-1">
+            <TabsTrigger value="users" className="min-w-0 gap-2 px-3 py-2.5 text-sm">
+              <Users className="size-4 shrink-0" />
+              <span>Users</span>
+              <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground data-[state=active]:text-foreground">
+                {stats.totalUsers}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="roles" className="gap-2 text-xs py-2 px-3 sm:px-4">
-              <Shield className="size-3.5" /> Roles ({stats.totalRoles})
+            <TabsTrigger value="roles" className="min-w-0 gap-2 px-3 py-2.5 text-sm">
+              <Shield className="size-4 shrink-0" />
+              <span>Roles</span>
+              <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground data-[state=active]:text-foreground">
+                {stats.totalRoles}
+              </span>
             </TabsTrigger>
-            <TabsTrigger value="rights" className="gap-2 text-xs py-2 px-3 sm:px-4">
-              <KeyRound className="size-3.5" /> Module Rights ({stats.totalRights})
+            <TabsTrigger value="rights" className="min-w-0 gap-2 px-3 py-2.5 text-sm">
+              <KeyRound className="size-4 shrink-0" />
+              <span>Module Rights</span>
+              <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground data-[state=active]:text-foreground">
+                {stats.totalRights}
+              </span>
             </TabsTrigger>
           </TabsList>
         </div>
@@ -621,6 +668,7 @@ function UsersTab({
   const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const hasActiveFilters = Boolean(search.trim()) || statusFilter !== "ALL" || roleFilter !== "ALL";
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -634,6 +682,13 @@ function UsersTab({
 
   const handleRoleChange = (val: string) => {
     setRoleFilter(val);
+    setPage(0);
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    onStatusFilterChange("ALL");
+    setRoleFilter("ALL");
     setPage(0);
   };
 
@@ -656,20 +711,25 @@ function UsersTab({
   return (
     <div className="space-y-4">
       {/* ── Search & Filter Controls ── */}
-      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
-        <div className="relative flex-1">
+      <div className="surface grid gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-center">
+        <div className="relative min-w-0">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search users by name, email, or role..."
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
-            className="pl-9 h-10 text-xs sm:text-sm"
+            className="h-10 pl-9 text-xs sm:text-sm"
           />
         </div>
 
-        <div className="flex flex-wrap sm:flex-nowrap gap-2 shrink-0">
+        <div
+          className={cn(
+            "grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2",
+            hasActiveFilters && "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]",
+          )}
+        >
           <Select value={statusFilter} onValueChange={handleStatusChange}>
-            <SelectTrigger className="w-full sm:w-38 h-10 text-xs">
+            <SelectTrigger className="h-10 w-full min-w-0 text-xs">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -683,7 +743,7 @@ function UsersTab({
           </Select>
 
           <Select value={roleFilter} onValueChange={handleRoleChange}>
-            <SelectTrigger className="w-full sm:w-38 h-10 text-xs">
+            <SelectTrigger className="h-10 w-full min-w-0 text-xs">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
@@ -695,6 +755,17 @@ function UsersTab({
               ))}
             </SelectContent>
           </Select>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetFilters}
+              className="h-10 shrink-0 self-center whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="size-3" />
+              Reset
+            </Button>
+          )}
         </div>
       </div>
 
@@ -974,6 +1045,7 @@ function RolesTab({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const hasActiveSearch = Boolean(search.trim());
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -1013,8 +1085,8 @@ function RolesTab({
   // @ts-ignore
   return (
     <div className="space-y-4">
-      {/* Search Input */}
-      <div className="flex items-center gap-3">
+      {/* Search & filter bar */}
+      <div className="surface flex items-center gap-3 p-4 sm:p-5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -1024,6 +1096,17 @@ function RolesTab({
             className="pl-9 h-10 text-xs sm:text-sm"
           />
         </div>
+        {hasActiveSearch && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleSearchChange("")}
+            className="h-10 shrink-0 whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="size-3" />
+            Reset
+          </Button>
+        )}
       </div>
 
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
@@ -1231,6 +1314,7 @@ function ModuleRightsTab({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  const hasActiveSearch = Boolean(search.trim());
 
   const handleSearchChange = (val: string) => {
     setSearch(val);
@@ -1253,8 +1337,8 @@ function ModuleRightsTab({
 
   return (
     <div className="space-y-4">
-      {/* Search Input */}
-      <div className="flex items-center gap-3">
+      {/* Search & filter bar */}
+      <div className="surface flex items-center gap-3 p-4 sm:p-5">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -1264,6 +1348,17 @@ function ModuleRightsTab({
             className="pl-9 h-10 text-xs sm:text-sm"
           />
         </div>
+        {hasActiveSearch && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleSearchChange("")}
+            className="h-10 shrink-0 whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw className="size-3" />
+            Reset
+          </Button>
+        )}
       </div>
 
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
@@ -1858,11 +1953,13 @@ function RoleFormDialog({
   onOpenChange,
   editingRole,
   onSuccess,
+  pageMode = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingRole: RoleResponse | null;
   onSuccess: () => void;
+  pageMode?: boolean;
 }) {
   const isEdit = !!editingRole;
   const [name, setName] = useState("");
@@ -1916,6 +2013,61 @@ function RoleFormDialog({
       setIsSubmitting(false);
     }
   };
+
+  if (pageMode) {
+    if (!open) return null;
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="ROLES"
+          title={isEdit ? "Edit Organizational Role" : "Create New Role"}
+          description="Define an organizational role and control whether its assigned users can sign in."
+          actions={
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <ArrowLeft className="size-4" /> Back to Roles
+            </Button>
+          }
+        />
+        <Panel className="overflow-hidden p-0">
+          <form id="role-page-form" onSubmit={handleSubmit} className="flex flex-col">
+            <div className="p-6 sm:p-8">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-base font-semibold">Role details</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Use a clear, reusable name for this organizational role.</p>
+                </div>
+                <Separator />
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="role-name">Role Name *</Label>
+                    <Input id="role-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. SALES_MANAGER, QA_LEAD" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role-description">Description</Label>
+                    <Input id="role-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Oversees commercial export operations" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/30 p-4">
+                  <div>
+                    <Label htmlFor="role-active" className="font-semibold">Active Status</Label>
+                    <p className="mt-1 text-sm text-muted-foreground">Deactivating the role blocks login for users assigned only to it.</p>
+                  </div>
+                  <Switch id="role-active" checked={active} onCheckedChange={setActive} />
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2.5 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-8">
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting} className="w-full gap-1.5 sm:w-auto">
+                {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+                {isEdit ? "Update Role" : "Create Role"}
+              </Button>
+            </div>
+          </form>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1985,11 +2137,13 @@ function ModuleRightFormDialog({
   onOpenChange,
   editingRight,
   onSuccess,
+  pageMode = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingRight: ModuleRight | null;
   onSuccess: () => void;
+  pageMode?: boolean;
 }) {
   const isEdit = !!editingRight;
   const [name, setName] = useState("");
@@ -2043,6 +2197,59 @@ function ModuleRightFormDialog({
       setIsSubmitting(false);
     }
   };
+
+  if (pageMode) {
+    if (!open) return null;
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          eyebrow="MODULE RIGHTS"
+          title={isEdit ? "Edit Module Right" : "Register New Module Right"}
+          description="Create a reusable permission that can be granted directly to system users."
+          actions={
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <ArrowLeft className="size-4" /> Back to Module Rights
+            </Button>
+          }
+        />
+        <Panel className="overflow-hidden p-0">
+          <form id="right-page-form" onSubmit={handleSubmit} className="flex flex-col">
+            <div className="p-6 sm:p-8">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-base font-semibold">Permission details</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">Give this permission a stable system key and a clear label for administrators.</p>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <Label htmlFor="right-name">System Identifier (Key) *</Label>
+                  <Input id="right-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. INQUIRY_VIEW, ORDER_APPROVE" disabled={isEdit} required />
+                  <p className="text-xs text-muted-foreground">Unique code used for navigation and permission checks.</p>
+                </div>
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="right-label">Display Label</Label>
+                    <Input id="right-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. View Customer Inquiries" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="right-description">Description</Label>
+                    <Input id="right-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Grants access to customer inquiries" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col-reverse gap-2.5 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-8">
+              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button type="submit" disabled={isSubmitting} className="w-full gap-1.5 sm:w-auto">
+                {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+                {isEdit ? "Update Right" : "Register Right"}
+              </Button>
+            </div>
+          </form>
+        </Panel>
+      </div>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

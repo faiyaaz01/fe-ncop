@@ -10,7 +10,7 @@ import {
   TriangleAlert,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ import {
 import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 import type { CustomerInquiry } from "@/lib/inquiry-types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -58,6 +59,8 @@ export function InquiryList({
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [sourceFilter, setSourceFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const metrics = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -114,12 +117,22 @@ export function InquiryList({
     priorityFilter !== "ALL" ||
     sourceFilter !== "ALL" ||
     statusFilter !== "ALL";
+  const totalPages = Math.max(1, Math.ceil(filteredInquiries.length / pageSize));
+  const paginatedInquiries = useMemo(
+    () => filteredInquiries.slice(page * pageSize, (page + 1) * pageSize),
+    [filteredInquiries, page, pageSize],
+  );
+
+  useEffect(() => {
+    setPage((currentPage) => Math.min(currentPage, totalPages - 1));
+  }, [totalPages]);
 
   function resetFilters() {
     setSearch("");
     setPriorityFilter("ALL");
     setSourceFilter("ALL");
     setStatusFilter("ALL");
+    setPage(0);
   }
 
   return (
@@ -182,7 +195,10 @@ export function InquiryList({
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setPage(0);
+            }}
             placeholder="Search RFQ number, customer, contact, or product"
             className="pl-9"
           />
@@ -194,7 +210,13 @@ export function InquiryList({
               : "sm:grid-cols-3"
           }`}
         >
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <Select
+            value={priorityFilter}
+            onValueChange={(value) => {
+              setPriorityFilter(value);
+              setPage(0);
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All priorities" />
             </SelectTrigger>
@@ -207,7 +229,13 @@ export function InquiryList({
               ))}
             </SelectContent>
           </Select>
-          <Select value={sourceFilter} onValueChange={setSourceFilter}>
+          <Select
+            value={sourceFilter}
+            onValueChange={(value) => {
+              setSourceFilter(value);
+              setPage(0);
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All sources" />
             </SelectTrigger>
@@ -220,7 +248,13 @@ export function InquiryList({
               ))}
             </SelectContent>
           </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter}
+            onValueChange={(value) => {
+              setStatusFilter(value);
+              setPage(0);
+            }}
+          >
             <SelectTrigger>
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
@@ -277,7 +311,7 @@ export function InquiryList({
               )}
             </div>
           ) : (
-            filteredInquiries.map((inquiry, index) => (
+            paginatedInquiries.map((inquiry, index) => (
               <motion.article
                 key={inquiry.id}
                 className="space-y-3 rounded-xl border border-border bg-card p-4 shadow-soft transition-all duration-200 hover:-translate-y-1 hover:shadow-md hover:border-primary/30"
@@ -363,7 +397,7 @@ export function InquiryList({
         <div
           className={`hidden overflow-x-auto overflow-y-hidden ${viewMode === "list" ? "md:block" : ""}`}
         >
-          <table className="min-w-[720px] w-full text-sm">
+          <table className="min-w-[900px] w-full border-collapse text-left text-sm">
             <thead className="border-b border-border/60 bg-muted/40 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">RFQ no.</th>
@@ -376,7 +410,7 @@ export function InquiryList({
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border/40">
+            <tbody className="divide-y divide-border/60">
               {loading ? (
                 <TableRowLoader colSpan={8} rows={6} />
               ) : filteredInquiries.length === 0 ? (
@@ -390,53 +424,85 @@ export function InquiryList({
                   </td>
                 </tr>
               ) : (
-                filteredInquiries.map((inquiry, i) => (
+                paginatedInquiries.map((inquiry, i) => (
                   <motion.tr
                     key={inquiry.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: i * 0.025, duration: 0.25 }}
-                    className="hover:bg-muted/30 transition-colors duration-150"
+                    onClick={() => onView(inquiry)}
+                    className="cursor-pointer transition-colors duration-150 hover:bg-muted/30"
                   >
-                    <td className="px-4 py-3 font-mono font-medium">{inquiry.rfqNo}</td>
-                    <td className="whitespace-nowrap px-4 py-3">{inquiry.inquiryDate}</td>
-                    <td className="px-4 py-3">
-                      <p className="font-medium">{inquiry.customerName}</p>
-                      <p className="text-xs text-muted-foreground">{inquiry.contactPersonName}</p>
+                    <td className="px-4 py-3.5 align-middle">
+                      <div className="flex items-start gap-3">
+                        <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <ClipboardList className="size-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-mono text-sm font-semibold text-foreground transition-colors hover:text-primary">
+                            {inquiry.rfqNo}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-muted-foreground">RFQ request</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-1">
+                    <td className="whitespace-nowrap px-4 py-3.5 align-middle text-xs text-muted-foreground">
+                      {inquiry.inquiryDate}
+                    </td>
+                    <td className="px-4 py-3.5 align-middle">
+                      <p className="font-semibold text-foreground">{inquiry.customerName}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        {inquiry.contactPersonName || "—"}
+                      </p>
+                    </td>
+                    <td className="max-w-[280px] px-4 py-3.5 align-middle">
+                      <div className="space-y-1.5">
                         {inquiry.lines.map((line) => (
-                          <p key={`${inquiry.id}-${line.productId}`} className="text-xs">
+                          <p key={`${inquiry.id}-${line.productId}`} className="line-clamp-1 text-xs">
                             <span className="font-medium">{line.productName}</span>
                             <span className="text-muted-foreground">
                               {" "}
                               · {line.sourcing === "OUTSOURCED" ? "QC" : "QA"}:{" "}
                               {line.sourcing === "OUTSOURCED"
-                                ? inquiry.qcAssigneeName
-                                : inquiry.qaAssigneeName}
+                                ? inquiry.qcAssigneeName || "Unassigned"
+                                : inquiry.qaAssigneeName || "Unassigned"}
                             </span>
                           </p>
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5 align-middle text-xs">
                       {inquiry.salesAssigneeName || inquiry.raisedByUserName || "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5 align-middle">
                       <Badge variant="outline">{inquiry.priority}</Badge>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5 align-middle">
                       <StatusChip status={inquiry.status.replaceAll("_", " ")} />
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td
+                      className="px-4 py-3.5 text-right align-middle"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => onView(inquiry)}>
-                          <Eye className="size-4" /> View RFQ
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-8 text-muted-foreground hover:text-foreground"
+                          title="View RFQ"
+                          onClick={() => onView(inquiry)}
+                        >
+                          <Eye className="size-4" />
                         </Button>
                         {onEdit && canEdit?.(inquiry) && (
-                          <Button variant="ghost" size="sm" onClick={() => onEdit(inquiry)}>
-                            <Pencil className="size-4" /> Edit
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 text-muted-foreground hover:text-foreground"
+                            title="Edit RFQ"
+                            onClick={() => onEdit(inquiry)}
+                          >
+                            <Pencil className="size-4" />
                           </Button>
                         )}
                       </div>
@@ -447,6 +513,19 @@ export function InquiryList({
             </tbody>
           </table>
         </div>
+        {!loading && (
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            totalElements={filteredInquiries.length}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(0);
+            }}
+          />
+        )}
       </div>
     </div>
   );
