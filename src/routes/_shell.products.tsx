@@ -27,6 +27,7 @@ import {
   FolderOpen,
   Loader2,
   ArrowLeft,
+  ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ import {
   CardGridLoader,
   Counter,
   PageHeader,
+  Panel,
   StatusChip,
   SectionLoader,
   TableRowLoader,
@@ -265,189 +267,193 @@ function ProductMaster() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* ── Page Header ── */}
-      <PageHeader
-        title="Products"
-        description="Manage pharmaceutical catalog, dosage forms, active pharmaceutical ingredients (APIs), and dossiers."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <ViewModeToggle value={viewMode} onChange={setViewMode} />
-            <Button
-              variant="outline"
-              onClick={() => setDosageConfigOpen(true)}
-              className="gap-2 font-medium"
-            >
-              <SlidersHorizontal className="size-4 text-primary dark:text-accent" />
-              Dosage Configurations
-            </Button>
-            <Button
-              onClick={() => {
-                setEditingProduct(null);
-                setProductModalOpen(true);
-              }}
-              className="gap-2"
-            >
-              <Plus className="size-4" />
-              Add Product
-            </Button>
-          </div>
-        }
-      />
-
-      {/* ── Metrics Cards ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Boxes className="size-5" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight">
-              <Counter
-                key={metrics?.total ?? totalElements}
-                value={metrics?.total ?? totalElements}
-              />
-            </p>
-            <p className="text-xs text-muted-foreground font-medium">Total Products</p>
-          </div>
-        </div>
-
-        <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="size-5" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight">
-              <Counter key={metrics?.active ?? 0} value={metrics?.active ?? 0} />
-            </p>
-            <p className="text-xs text-muted-foreground font-medium">Active SKUs</p>
-          </div>
-        </div>
-
-        <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Clock className="size-5" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight">
-              <Counter
-                key={metrics?.underDevelopment ?? 0}
-                value={metrics?.underDevelopment ?? 0}
-              />
-            </p>
-            <p className="text-xs text-muted-foreground font-medium">In Development</p>
-          </div>
-        </div>
-
-        <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-            <Layers className="size-5" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold tracking-tight">
-              <Counter key={dosageForms.length} value={dosageForms.length} />
-            </p>
-            <p className="text-xs text-muted-foreground font-medium">Dosage Forms</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Filters & Search ── */}
-      <div className="surface p-4 rounded-xl border border-border/70 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(0);
-            }}
-            placeholder="Search by brand name, SKU code, API ingredient, or composition..."
-            className="pl-9"
+      <div className="contents">
+        <div className="space-y-6">
+          {/* ── Page Header ── */}
+          <PageHeader
+            title="Products"
+            description="Manage pharmaceutical catalog, dosage forms, active pharmaceutical ingredients (APIs), and dossiers."
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
+                <ViewModeToggle value={viewMode} onChange={setViewMode} />
+                <Button
+                  variant="outline"
+                  onClick={() => setDosageConfigOpen(true)}
+                  className="gap-2 font-medium"
+                >
+                  <SlidersHorizontal className="size-4 text-primary dark:text-accent" />
+                  Dosage Configurations
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEditingProduct(null);
+                    setProductModalOpen(true);
+                  }}
+                  className="gap-2"
+                >
+                  <Plus className="size-4" />
+                  Add Product
+                </Button>
+              </div>
+            }
           />
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Category Filter */}
-          <Select
-            value={categoryFilter}
-            onValueChange={(val) => {
-              setCategoryFilter(val);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {DEFAULT_CATEGORIES.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* ── Metrics Cards ── */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Boxes className="size-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight">
+                  <Counter
+                    key={metrics?.total ?? totalElements}
+                    value={metrics?.total ?? totalElements}
+                  />
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">Total Products</p>
+              </div>
+            </div>
 
-          {/* Dosage Form Filter */}
-          <Select
-            value={dosageFilter}
-            onValueChange={(val) => {
-              setDosageFilter(val);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger className="w-[170px]">
-              <SelectValue placeholder="Dosage Form" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Dosage Forms</SelectItem>
-              {dosageForms.map((df) => (
-                <SelectItem key={df.id || df.name} value={df.name}>
-                  {df.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="size-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight">
+                  <Counter key={metrics?.active ?? 0} value={metrics?.active ?? 0} />
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">Active SKUs</p>
+              </div>
+            </div>
 
-          {/* Status Filter */}
-          <Select
-            value={statusFilter}
-            onValueChange={(val) => {
-              setStatusFilter(val);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="UNDER_DEVELOPMENT">In Development</SelectItem>
-              <SelectItem value="DISCONTINUED">Discontinued</SelectItem>
-              <SelectItem value="DRAFT">Draft</SelectItem>
-            </SelectContent>
-          </Select>
+            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                <Clock className="size-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight">
+                  <Counter
+                    key={metrics?.underDevelopment ?? 0}
+                    value={metrics?.underDevelopment ?? 0}
+                  />
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">In Development</p>
+              </div>
+            </div>
 
-          {(search ||
-            categoryFilter !== "all" ||
-            dosageFilter !== "all" ||
-            statusFilter !== "all") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setCategoryFilter("all");
-                setDosageFilter("all");
-                setStatusFilter("all");
-                setPage(0);
-              }}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              Reset
-            </Button>
-          )}
+            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                <Layers className="size-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tracking-tight">
+                  <Counter key={dosageForms.length} value={dosageForms.length} />
+                </p>
+                <p className="text-xs text-muted-foreground font-medium">Dosage Forms</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Filters & Search ── */}
+          <div className="surface mb-6 flex flex-col gap-3 rounded-xl border border-border/70 p-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                placeholder="Search by brand name, SKU code, API ingredient, or composition..."
+                className="pl-9"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Category Filter */}
+              <Select
+                value={categoryFilter}
+                onValueChange={(val) => {
+                  setCategoryFilter(val);
+                  setPage(0);
+                }}
+              >
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {DEFAULT_CATEGORIES.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Dosage Form Filter */}
+              <Select
+                value={dosageFilter}
+                onValueChange={(val) => {
+                  setDosageFilter(val);
+                  setPage(0);
+                }}
+              >
+                <SelectTrigger className="w-[170px]">
+                  <SelectValue placeholder="Dosage Form" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Dosage Forms</SelectItem>
+                  {dosageForms.map((df) => (
+                    <SelectItem key={df.id || df.name} value={df.name}>
+                      {df.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Status Filter */}
+              <Select
+                value={statusFilter}
+                onValueChange={(val) => {
+                  setStatusFilter(val);
+                  setPage(0);
+                }}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="ACTIVE">Active</SelectItem>
+                  <SelectItem value="UNDER_DEVELOPMENT">In Development</SelectItem>
+                  <SelectItem value="DISCONTINUED">Discontinued</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(search ||
+                categoryFilter !== "all" ||
+                dosageFilter !== "all" ||
+                statusFilter !== "all") && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearch("");
+                    setCategoryFilter("all");
+                    setDosageFilter("all");
+                    setStatusFilter("all");
+                    setPage(0);
+                  }}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -466,8 +472,8 @@ function ProductMaster() {
               </div>
               <h3 className="text-base font-semibold">No products found</h3>
               <p className="text-xs text-muted-foreground max-w-sm mt-1">
-                No product matches the current search and filter criteria. Try adjusting your filters
-                or add a new product.
+                No product matches the current search and filter criteria. Try adjusting your
+                filters or add a new product.
               </p>
               <Button
                 onClick={() => {
@@ -968,7 +974,12 @@ export function ProductFormDialog({
     <>
       {/* ── Section 1: Product Classification ── */}
       <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold">Product Classification</legend>
+        <div>
+          <h2 className="text-lg font-semibold">Product Classification</h2>
+          <p className="text-sm text-muted-foreground">
+            Define the product identity, therapeutic category, and availability.
+          </p>
+        </div>
 
         <div className="surface flex items-center gap-3 p-3 rounded-lg">
           <span className="text-xs font-medium text-muted-foreground">Product Code</span>
@@ -1041,7 +1052,12 @@ export function ProductFormDialog({
 
       {/* ── Section 2: Dosage Form ── */}
       <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold">Dosage Form *</legend>
+        <div>
+          <h2 className="text-lg font-semibold">Dosage Form</h2>
+          <p className="text-sm text-muted-foreground">
+            Select the dosage form and its applicable variant.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -1050,9 +1066,7 @@ export function ProductFormDialog({
               value={dosageForm}
               onValueChange={(val) => {
                 setDosageForm(val);
-                const found = dosageForms.find(
-                  (df) => df.name.toLowerCase() === val.toLowerCase(),
-                );
+                const found = dosageForms.find((df) => df.name.toLowerCase() === val.toLowerCase());
                 setDosageVariant(found?.variants?.[0]?.name || "");
               }}
             >
@@ -1079,9 +1093,7 @@ export function ProductFormDialog({
               <SelectTrigger id="dosageVariant">
                 <SelectValue
                   placeholder={
-                    currentVariants.length === 0
-                      ? "Select dosage form first"
-                      : "Choose variant"
+                    currentVariants.length === 0 ? "Select dosage form first" : "Choose variant"
                   }
                 />
               </SelectTrigger>
@@ -1101,8 +1113,13 @@ export function ProductFormDialog({
 
       {/* ── Section 3: Generic Name / APIs ── */}
       <fieldset className="space-y-4">
-        <div className="flex items-center justify-between">
-          <legend className="text-sm font-semibold">Generic Name *</legend>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold">Generic Name</h2>
+            <p className="text-sm text-muted-foreground">
+              Add the active pharmaceutical ingredients and their strengths.
+            </p>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -1216,7 +1233,12 @@ export function ProductFormDialog({
 
       {/* ── Section 4: Packaging & Commercial Terms ── */}
       <fieldset className="space-y-4">
-        <legend className="text-sm font-semibold">Packaging & Commercial Terms</legend>
+        <div>
+          <h2 className="text-lg font-semibold">Packaging & Commercial Terms</h2>
+          <p className="text-sm text-muted-foreground">
+            Record packaging, commercial, storage, and clinical information.
+          </p>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
@@ -1257,9 +1279,7 @@ export function ProductFormDialog({
               type="number"
               step="0.01"
               value={unitPrice}
-              onChange={(e) =>
-                setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))
-              }
+              onChange={(e) => setUnitPrice(e.target.value === "" ? "" : Number(e.target.value))}
               placeholder="e.g. 1.25"
             />
           </div>
@@ -1307,30 +1327,29 @@ export function ProductFormDialog({
   if (pageMode) {
     if (!open) return null;
     return (
-      <div className="space-y-6 pb-12">
+      <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col gap-6">
         <PageHeader
           eyebrow="PRODUCTS"
           title={editingProduct ? "Edit Product" : "Add New Product"}
-          description={
-            editingProduct
-              ? `Editing ${editingProduct.brandName} (${editingProduct.productCode})`
-              : "Fill in the details below. Product code will be auto-generated."
-          }
+          description="Fill in the details below. Product code will be auto-generated."
           actions={
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              <ArrowLeft className="size-4" /> Back to Products
+              <ChevronLeft className="mr-2 size-4" /> Back to products
             </Button>
           }
         />
 
-        <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8">
-          <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
-            {formFields}
+        <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+          <form
+            id="product-form"
+            onSubmit={handleSubmit}
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
+              <div className="space-y-8">{formFields}</div>
+            </div>
 
-            <Separator />
-
-            {/* Form Actions within the single card */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3 pt-2">
+            <div className="relative z-10 flex shrink-0 flex-col gap-3 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
               <Button
                 type="button"
                 variant="outline"
@@ -1339,17 +1358,13 @@ export function ProductFormDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto gap-1.5"
-              >
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto gap-1.5">
                 {isSubmitting && <Loader2 className="size-4 animate-spin" />}
                 {isSubmitting ? "Saving…" : editingProduct ? "Save Changes" : "Create Product"}
               </Button>
             </div>
           </form>
-        </div>
+        </Panel>
       </div>
     );
   }

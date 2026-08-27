@@ -186,7 +186,12 @@ function Dashboard() {
                 {todayLabel}
               </p>
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}, {firstName}
+                {new Date().getHours() < 12
+                  ? "Good morning"
+                  : new Date().getHours() < 17
+                    ? "Good afternoon"
+                    : "Good evening"}
+                , {firstName}
               </h1>
               <p className="max-w-2xl text-sm leading-6 text-primary-foreground/80 sm:text-base">
                 Your live workspace summary, tailored to the modules assigned to your account.
@@ -230,7 +235,7 @@ function Dashboard() {
                 <div>
                   <p className="text-3xl font-bold tracking-tight tabular-nums">
                     {card.loading ? (
-                      <span className="inline-block h-8 w-16 animate-pulse rounded bg-muted" />
+                      <span className="relative inline-block h-8 w-16 overflow-hidden rounded bg-muted before:absolute before:inset-y-0 before:-left-1/2 before:w-1/2 before:bg-gradient-to-r before:from-transparent before:via-background/80 before:to-transparent before:animate-[skeleton-shimmer_1.6s_ease-in-out_infinite]" />
                     ) : (
                       <Counter key={card.value ?? 0} value={card.value ?? 0} />
                     )}

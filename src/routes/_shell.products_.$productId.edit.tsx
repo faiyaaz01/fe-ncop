@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchDosageForms, fetchProductById } from "@/lib/product-api";
 import { ProductFormDialog } from "./_shell.products";
-import { SectionLoader } from "@/components/kit";
+import { ProductFormSkeleton } from "@/components/page-skeletons";
 
 export const Route = createFileRoute("/_shell/products_/$productId/edit")({
   component: ProductEditRoute,
@@ -19,12 +19,12 @@ function ProductEditRoute() {
     queryKey: ["dosage-forms"],
     queryFn: () => fetchDosageForms(false),
   });
-  if (isLoading || !product) return <SectionLoader />;
+  if (isLoading || !product) return <ProductFormSkeleton />;
   return (
     <ProductFormDialog
       open
       pageMode
-      onOpenChange={() => navigate({ to: "/products/$productId", params: { productId } })}
+      onOpenChange={() => navigate({ to: "/products" })}
       editingProduct={product}
       dosageForms={dosageForms}
       onSaved={() => {

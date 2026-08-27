@@ -3,7 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader, Panel, SectionLoader, StatusChip } from "@/components/kit";
+import { PageHeader, Panel, StatusChip } from "@/components/kit";
+import { InquiryDetailSkeleton } from "@/components/page-skeletons";
 import { fetchInquiryById } from "@/lib/inquiry-api";
 
 export const Route = createFileRoute("/_shell/inquiry_/$inquiryId")({ component: InquiryDetail });
@@ -27,7 +28,7 @@ function InquiryDetail() {
     queryFn: () => fetchInquiryById(inquiryId),
   });
   if (pathname.endsWith("/edit")) return <Outlet />;
-  if (isLoading) return <SectionLoader />;
+  if (isLoading) return <InquiryDetailSkeleton />;
   if (isError || !inquiry)
     return (
       <div className="grid min-h-[50vh] place-items-center gap-3 text-center">

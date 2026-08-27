@@ -11,19 +11,12 @@ import {
 } from "react";
 import { cn } from "@/lib/utils";
 import { smoothEase, fadeInUp, staggerContainer } from "@/lib/animations";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ── Shared Skeleton Loading States ───────────────────────────────────────────
 
 function SkeletonBox({ className }: { className?: string }) {
-  return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-md bg-muted/70",
-        "after:absolute after:inset-0 after:animate-shimmer after:bg-gradient-to-r after:from-transparent after:via-primary/10 after:to-transparent",
-        className,
-      )}
-    />
-  );
+  return <Skeleton className={className} />;
 }
 
 /** Responsive card skeletons for card-based listings. */
@@ -252,11 +245,7 @@ export function TableRowLoader({ colSpan, rows = 5 }: { colSpan: number; rows?: 
                 </div>
               ) : (
                 <SkeletonBox
-                  className={cn(
-                    "h-3 rounded",
-                    w,
-                    rowIdx % 2 === 0 ? "opacity-90" : "opacity-70",
-                  )}
+                  className={cn("h-3 rounded", w, rowIdx % 2 === 0 ? "opacity-90" : "opacity-70")}
                 />
               )}
             </td>
@@ -375,13 +364,7 @@ export function StaggerContainer({
   );
 }
 
-export function StaggerItem({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <motion.div variants={fadeInUp} className={className}>
       {children}
@@ -521,4 +504,3 @@ export function Timeline({ items }: { items: { date: string; title: string; deta
     </ol>
   );
 }
-

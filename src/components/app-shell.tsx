@@ -154,10 +154,7 @@ function HeaderSearchInput() {
   return (
     <div className="relative ml-auto hidden w-full max-w-sm md:block">
       <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        placeholder={placeholder}
-        className="bg-card/70 pl-9 backdrop-blur"
-      />
+      <Input placeholder={placeholder} className="bg-card/70 pl-9 backdrop-blur" />
     </div>
   );
 }
@@ -522,7 +519,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </div>
                 <ul className="divide-y divide-border/50 max-h-[340px] overflow-y-auto">
                   {notifications.map((n) => (
-                    <li key={n.title} className="px-4 py-3 transition-colors [@media(hover:hover)]:hover:bg-secondary/50">
+                    <li
+                      key={n.title}
+                      className="px-4 py-3 transition-colors [@media(hover:hover)]:hover:bg-secondary/50"
+                    >
                       <div className="flex items-start gap-2.5">
                         <span
                           className={cn(
@@ -559,7 +559,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                   </Avatar>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" collisionPadding={16} className="glass w-56 rounded-2xl">
+              <DropdownMenuContent
+                align="end"
+                collisionPadding={16}
+                className="glass w-56 rounded-2xl"
+              >
                 <DropdownMenuLabel className="space-y-0.5">
                   <p className="text-sm font-semibold">
                     {userInfo?.firstName} {userInfo?.lastName}
@@ -633,7 +637,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 Session Expiring Soon
               </DialogTitle>
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                Your session is about to expire for security. Refresh now to continue working without losing your progress.
+                Your session is about to expire for security. Refresh now to continue working
+                without losing your progress.
               </DialogDescription>
             </div>
           </div>
@@ -726,7 +731,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 Are you still there?
               </DialogTitle>
               <DialogDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                You&apos;ve been inactive for a while. For your security, you will be automatically logged out unless you confirm you&apos;re still active.
+                You&apos;ve been inactive for a while. For your security, you will be automatically
+                logged out unless you confirm you&apos;re still active.
               </DialogDescription>
             </div>
           </div>

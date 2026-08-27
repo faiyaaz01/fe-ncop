@@ -26,7 +26,7 @@ function ClientEditRoute() {
   if (isLoading || !client) return <SectionLoader />;
   return (
     <ClientFormView
-      onClose={() => navigate({ to: "/clients/$clientId", params: { clientId } })}
+      onClose={() => navigate({ to: "/clients" })}
       editingClient={client}
       isSubmitting={save.isPending}
       onSubmit={(values) => save.mutate(formToDto(values))}

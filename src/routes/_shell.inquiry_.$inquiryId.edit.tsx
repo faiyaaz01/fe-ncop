@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { SectionLoader } from "@/components/kit";
+import { InquiryFormSkeleton } from "@/components/page-skeletons";
 import { fetchInquiryById } from "@/lib/inquiry-api";
 import { InquiryWizard } from "./_shell.inquiry";
 
@@ -15,7 +15,7 @@ function EditInquiry() {
     isLoading,
     isError,
   } = useQuery({ queryKey: ["inquiries", inquiryId], queryFn: () => fetchInquiryById(inquiryId) });
-  if (isLoading) return <SectionLoader />;
+  if (isLoading) return <InquiryFormSkeleton />;
   if (isError || !inquiry)
     return (
       <p className="p-6 text-sm text-muted-foreground">

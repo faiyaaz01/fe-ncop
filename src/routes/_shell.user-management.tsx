@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 
 import { CardGridLoader, PageHeader, Panel, TableRowLoader } from "@/components/kit";
+import { UserFormSkeleton } from "@/components/page-skeletons";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -114,12 +115,12 @@ function UserManagementPage() {
     queryFn: fetchAllUsers,
   });
 
-  const { data: allRoles = [] } = useQuery({
+  const { data: allRoles = [], isLoading: rolesLoading } = useQuery({
     queryKey: ["auth-all-roles"],
     queryFn: fetchAllRoles,
   });
 
-  const { data: allModuleRights = [] } = useQuery({
+  const { data: allModuleRights = [], isLoading: moduleRightsLoading } = useQuery({
     queryKey: ["auth-all-module-rights"],
     queryFn: fetchAllModuleRights,
   });
@@ -172,13 +173,15 @@ function UserManagementPage() {
     };
   }, [allUsers, allRoles, allModuleRights]);
 
-  if (userModalOpen && !editingUser) {
+  if (userModalOpen) {
+    if (rolesLoading || moduleRightsLoading) return <UserFormSkeleton />;
+
     return (
       <UserFormDialog
         open
         pageMode
         onOpenChange={setUserModalOpen}
-        editingUser={null}
+        editingUser={editingUser}
         roles={allRoles}
         moduleRights={allModuleRights}
         onSuccess={() => {
@@ -1626,8 +1629,7 @@ export function UserFormDialog({
         <div>
           <legend className="text-sm font-semibold">Organizational Roles</legend>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Assign user to one or more roles. If all roles are inactive, login will be
-            blocked.
+            Assign user to one or more roles. If all roles are inactive, login will be blocked.
           </p>
         </div>
 
@@ -1714,8 +1716,7 @@ export function UserFormDialog({
 
         {moduleRights.length === 0 ? (
           <div className="p-6 text-center rounded-xl border border-dashed text-xs text-muted-foreground">
-            No module rights registered. Register module rights in the "Module Rights" tab
-            first.
+            No module rights registered. Register module rights in the "Module Rights" tab first.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -1741,9 +1742,7 @@ export function UserFormDialog({
                     <p className="font-semibold text-xs text-foreground leading-tight">
                       {mr.label || mr.name}
                     </p>
-                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                      {mr.name}
-                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate mt-0.5">{mr.name}</p>
                   </div>
                 </div>
               );
@@ -1757,7 +1756,7 @@ export function UserFormDialog({
   if (pageMode) {
     if (!open) return null;
     return (
-      <div className="space-y-6 pb-12">
+      <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col gap-6">
         <PageHeader
           eyebrow="USERS"
           title={isEdit ? "Edit User Account" : "Create New User Account"}
@@ -1773,14 +1772,17 @@ export function UserFormDialog({
           }
         />
 
-        <div className="rounded-2xl border border-border/60 bg-card p-6 sm:p-8">
-          <form id="user-form" onSubmit={handleSubmit} className="space-y-6">
-            {formFields}
+        <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+          <form
+            id="user-form"
+            onSubmit={handleSubmit}
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
+              <div className="space-y-6">{formFields}</div>
+            </div>
 
-            <Separator />
-
-            {/* Form Actions within the single card */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5 sm:gap-3 pt-2">
+            <div className="relative z-10 flex shrink-0 flex-col-reverse gap-2.5 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-8">
               <Button
                 type="button"
                 variant="outline"
@@ -1789,17 +1791,13 @@ export function UserFormDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full sm:w-auto gap-1.5"
-              >
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto gap-1.5">
                 {isSubmitting && <Loader2 className="size-4 animate-spin" />}
                 {isEdit ? "Update User" : "Create User"}
               </Button>
             </div>
           </form>
-        </div>
+        </Panel>
       </div>
     );
   }

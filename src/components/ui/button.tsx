@@ -1,26 +1,25 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { AnimatePresence, motion } from "motion/react";
 
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "relative isolate overflow-hidden inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-all duration-200 ease-out active:scale-[0.975] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer transition-[transform,box-shadow,background-color,border-color,color] duration-150 ease-out active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow [@media(hover:hover)]:hover:shadow-md [@media(hover:hover)]:dark:hover:brightness-110 active:opacity-90",
+          "bg-primary text-primary-foreground shadow-sm [@media(hover:hover)]:hover:-translate-y-px [@media(hover:hover)]:hover:bg-primary/90 [@media(hover:hover)]:hover:shadow-md active:bg-primary/95",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-sm [@media(hover:hover)]:hover:shadow-md [@media(hover:hover)]:dark:hover:brightness-110 active:opacity-90",
+          "bg-destructive text-destructive-foreground shadow-sm [@media(hover:hover)]:hover:-translate-y-px [@media(hover:hover)]:hover:bg-destructive/90 [@media(hover:hover)]:hover:shadow-md active:bg-destructive/95",
         outline:
-          "border border-border/80 bg-card text-foreground shadow-xs [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground [@media(hover:hover)]:hover:border-accent/40 [@media(hover:hover)]:hover:shadow-sm dark:bg-card/90 dark:border-white/20 dark:text-foreground [@media(hover:hover)]:dark:hover:bg-secondary/90 [@media(hover:hover)]:dark:hover:border-accent/60 [@media(hover:hover)]:dark:hover:text-accent-foreground dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] active:bg-secondary/70",
+          "border border-border/80 bg-card text-foreground shadow-xs [@media(hover:hover)]:hover:-translate-y-px [@media(hover:hover)]:hover:border-primary/35 [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:shadow-sm dark:bg-card/90 dark:border-white/20 dark:text-foreground [@media(hover:hover)]:dark:hover:bg-secondary/90 [@media(hover:hover)]:dark:hover:border-primary/50 dark:shadow-[0_2px_10px_-2px_rgba(0,0,0,0.5)] active:bg-secondary/70",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs [@media(hover:hover)]:hover:bg-secondary/80 border border-border/40 dark:border-white/10 active:bg-secondary/90",
+          "border border-border/40 bg-secondary text-secondary-foreground shadow-xs [@media(hover:hover)]:hover:-translate-y-px [@media(hover:hover)]:hover:border-border/70 [@media(hover:hover)]:hover:bg-secondary/75 [@media(hover:hover)]:hover:shadow-sm dark:border-white/10 active:bg-secondary/90",
         ghost:
-          "bg-transparent text-foreground [@media(hover:hover)]:hover:bg-accent [@media(hover:hover)]:hover:text-accent-foreground active:bg-secondary/60 dark:active:bg-secondary/60",
-        link: "text-primary underline-offset-4 [@media(hover:hover)]:hover:underline",
+          "bg-transparent text-foreground [@media(hover:hover)]:hover:bg-secondary [@media(hover:hover)]:hover:text-foreground active:bg-secondary/60 dark:active:bg-secondary/60",
+        link: "text-primary underline-offset-4 [@media(hover:hover)]:hover:text-primary/80 [@media(hover:hover)]:hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",
@@ -36,18 +35,8 @@ const buttonVariants = cva(
   },
 );
 
-const rippleColorByVariant: Record<string, string> = {
-  default: "bg-black/25 dark:bg-white/25",
-  destructive: "bg-black/20 dark:bg-white/20",
-  outline: "bg-accent/30 dark:bg-white/15",
-  secondary: "bg-primary/10 dark:bg-white/15",
-  ghost: "bg-accent/75 dark:bg-accent/65",
-  link: "",
-};
-
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   liquidColor?: string;
 }
@@ -59,33 +48,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       variant = "default",
       size = "default",
       asChild = false,
-      liquidColor,
+      liquidColor: _liquidColor,
       children,
-      onMouseEnter,
-      onMouseLeave,
-      onPointerLeave,
-      onPointerCancel,
-      onBlur,
       disabled,
       ...props
     },
     ref,
   ) => {
-    const internalRef = React.useRef<HTMLButtonElement | null>(null);
-    const [ripple, setRipple] = React.useState<{ x: number; y: number; size: number } | null>(null);
-    const [isHovered, setIsHovered] = React.useState(false);
-
-    const handleRef = React.useCallback(
-      (node: HTMLButtonElement | null) => {
-        internalRef.current = node;
-        if (typeof ref === "function") {
-          ref(node);
-        } else if (ref && "current" in ref) {
-          (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
-        }
-      },
-      [ref],
-    );
+    void _liquidColor;
 
     if (asChild) {
       return (
@@ -95,132 +65,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
 
-    const currentVariant = variant || "default";
-    const resolvedRippleColor =
-      liquidColor || rippleColorByVariant[currentVariant] || "bg-white/15";
-
-    const handleMouseEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
-      if (disabled || currentVariant === "link") {
-        onMouseEnter?.(e);
-        return;
-      }
-      // On mobile / touch devices (without hover capability), avoid hover ripple
-      if (
-        typeof window !== "undefined" &&
-        window.matchMedia &&
-        !window.matchMedia("(hover: hover) and (pointer: fine)").matches
-      ) {
-        onMouseEnter?.(e);
-        return;
-      }
-      const button = internalRef.current;
-      if (button) {
-        const rect = button.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // Calculate maximum distance to all 4 corners to guarantee complete surface coverage
-        const corners = [
-          Math.hypot(x, y),
-          Math.hypot(rect.width - x, y),
-          Math.hypot(x, rect.height - y),
-          Math.hypot(rect.width - x, rect.height - y),
-        ];
-        const maxDistance = Math.max(...corners);
-        const rippleSize = maxDistance * 2.3;
-
-        setRipple({ x, y, size: rippleSize });
-        setIsHovered(true);
-      }
-      onMouseEnter?.(e);
-    };
-
-    const handleMouseLeave = (e: React.MouseEvent<HTMLButtonElement>) => {
-      setIsHovered(false);
-      onMouseLeave?.(e);
-    };
-
-    const handlePointerLeave = (e: React.PointerEvent<HTMLButtonElement>) => {
-      setIsHovered(false);
-      onPointerLeave?.(e);
-    };
-
-    const handlePointerCancel = (e: React.PointerEvent<HTMLButtonElement>) => {
-      setIsHovered(false);
-      onPointerCancel?.(e);
-    };
-
-    const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>) => {
-      setIsHovered(false);
-      setRipple(null);
-      props.onTouchStart?.(e);
-    };
-
-    const handleTouchEnd = (e: React.TouchEvent<HTMLButtonElement>) => {
-      setIsHovered(false);
-      setRipple(null);
-      props.onTouchEnd?.(e);
-    };
-
-    const handleBlur = (e: React.FocusEvent<HTMLButtonElement>) => {
-      setIsHovered(false);
-      setRipple(null);
-      props.onBlur?.(e);
-    };
-
     return (
       <button
-        ref={handleRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onPointerLeave={handlePointerLeave}
-        onPointerCancel={handlePointerCancel}
-        onBlur={handleBlur}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        ref={ref}
         disabled={disabled}
         className={cn(buttonVariants({ variant, size, className }))}
         {...props}
       >
-        {/* Direction-aware liquid ripple layer */}
-        {resolvedRippleColor && (
-          <AnimatePresence>
-            {isHovered && ripple && (
-              <motion.span
-                key="button-liquid-ripple"
-                className={cn("pointer-events-none absolute rounded-full", resolvedRippleColor)}
-                style={{
-                  left: ripple.x,
-                  top: ripple.y,
-                  width: ripple.size,
-                  height: ripple.size,
-                  x: "-50%",
-                  y: "-50%",
-                }}
-                initial={{ scale: 0, opacity: 0.85 }}
-                animate={{
-                  scale: 1,
-                  opacity: 1,
-                  transition: {
-                    duration: 0.5,
-                    ease: [0.22, 1, 0.36, 1], // fluid organic curve
-                  },
-                }}
-                exit={{
-                  opacity: 0,
-                  scale: 1.05,
-                  transition: {
-                    duration: 0.3,
-                    ease: "easeOut",
-                  },
-                }}
-              />
-            )}
-          </AnimatePresence>
-        )}
-
-        {/* Content layer on top with crisp readability and preserved colors */}
-        <span className="relative z-10 inline-flex items-center justify-center gap-2 pointer-events-none">
+        <span className="inline-flex items-center justify-center gap-2 pointer-events-none">
           {children}
         </span>
       </button>

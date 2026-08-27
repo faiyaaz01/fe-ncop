@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
@@ -6,18 +6,13 @@ import {
   deleteProduct,
   uploadProductDocument,
   deleteProductDocument,
-  fetchDosageForms,
   getProductDocumentViewUrl,
   getProductDocumentDownloadUrl,
 } from "@/lib/product-api";
-import type {
-  Product,
-  ProductDocument,
-  ProductDocumentType,
-  DosageForm,
-} from "@/lib/product-types";
+import type { Product, ProductDocument, ProductDocumentType } from "@/lib/product-types";
 import { toast } from "sonner";
-import { PageHeader, StatusChip, SectionLoader, Panel } from "@/components/kit";
+import { PageHeader, StatusChip, Panel } from "@/components/kit";
+import { ProductDetailSkeleton } from "@/components/page-skeletons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -42,8 +37,6 @@ import {
   Loader2,
 } from "lucide-react";
 
-// We import the ProductFormDialog from the main products page to reuse the edit modal
-import { ProductFormDialog } from "./_shell.products";
 import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
 
 export const Route = createFileRoute("/_shell/products_/$productId")({
@@ -62,12 +55,12 @@ const DOCUMENT_TYPE_LABELS: Record<ProductDocumentType, string> = {
 function ProductDetail() {
   const { productId } = Route.useParams();
   const navigate = useNavigate();
+  const matchRoute = useMatchRoute();
   const queryClient = useQueryClient();
 
   const [uploadDocType, setUploadDocType] = useState<ProductDocumentType>("ARTWORK");
   const [isUploading, setIsUploading] = useState(false);
 
-  const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<ProductDocument | null>(null);
 
@@ -79,12 +72,6 @@ function ProductDetail() {
   } = useQuery({
     queryKey: ["products", productId],
     queryFn: () => fetchProductById(productId),
-    refetchInterval: 3000,
-  });
-
-  const { data: dosageForms = [] } = useQuery<DosageForm[]>({
-    queryKey: ["dosage-forms"],
-    queryFn: () => fetchDosageForms(false),
     refetchInterval: 3000,
   });
 
@@ -103,7 +90,17 @@ function ProductDetail() {
     },
   });
 
-  if (isLoading) return <SectionLoader />;
+  // This route owns the `/edit` child route. Render the child in place rather
+  // than the product details whenever the edit URL is active.
+  const isEditing = !!matchRoute({
+    to: "/products/$productId/edit",
+    params: { productId },
+    fuzzy: false,
+  });
+
+  if (isEditing) return <Outlet />;
+
+  if (isLoading) return <ProductDetailSkeleton />;
   if (isError || !product) {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
@@ -158,8 +155,17 @@ function ProductDetail() {
         description={`${product.category || "General"} · ${product.therapeuticClass || "Pharmaceutical"}`}
         actions={
           <div className="flex items-center gap-3">
-            <StatusChip status={product.status as any} />
-            <Button variant="outline" className="gap-2" onClick={() => setEditModalOpen(true)}>
+            <StatusChip status={product.status} />
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() =>
+                navigate({
+                  to: "/products/$productId/edit",
+                  params: { productId: product.id },
+                })
+              }
+            >
               <Pencil className="size-4" /> Edit
             </Button>
             <Button
@@ -440,17 +446,6 @@ function ProductDetail() {
           </Panel>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      <ProductFormDialog
-        open={editModalOpen}
-        onOpenChange={setEditModalOpen}
-        editingProduct={product}
-        dosageForms={dosageForms}
-        onSaved={() => {
-          queryClient.invalidateQueries({ queryKey: ["products", productId] });
-        }}
-      />
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmOpen && (

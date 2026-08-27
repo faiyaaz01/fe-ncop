@@ -444,7 +444,7 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
     );
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col gap-6">
       <PageHeader
         eyebrow="Pipeline"
         title={editingInquiry ? `Edit ${editingInquiry.rfqNo}` : "Add Customer Inquiry"}
@@ -466,448 +466,460 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
           </div>
         }
       />
-      <Panel className="space-y-8 p-6 sm:p-8">
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold">General information</h2>
-            <p className="text-sm text-muted-foreground">
-              RFQ number and inquiry date are generated when you submit.
-            </p>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Field label="Customer *">
-              <LookupInput
-                value={customerId}
-                onChange={(value) => {
-                  setCustomerId(value);
-                  setContactPersonId("");
-                }}
-                placeholder="Search and select customer"
-                options={clients.map((client) => ({ value: client.id, label: client.companyName }))}
-              />
-            </Field>
-            <Field label="Contact person *">
-              <LookupInput
-                value={contactPersonId}
-                onChange={setContactPersonId}
-                disabled={!selectedCustomer}
-                placeholder="Search and select contact"
-                options={(selectedCustomer?.pointOfContacts || []).map((contact, index) => ({
-                  value: contact.id || contact.email || contact.personName,
-                  label: `${contact.personName}${contact.email ? ` · ${contact.email}` : ""}`,
-                  key: contact.id || contact.email || String(index),
-                }))}
-              />
-            </Field>
-            <Field label="Inquiry source *">
-              <Select
-                value={inquirySource}
-                onValueChange={(value) => setInquirySource(value as InquirySource)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {sources.map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Priority *">
-              <Select
-                value={priority}
-                onValueChange={(value) => setPriority(value as InquiryPriority)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {priorities.map((value) => (
-                    <SelectItem key={value} value={value}>
-                      {value[0] + value.slice(1).toLowerCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Target quote date">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-between text-left font-normal",
-                      !targetQuoteDate && "text-muted-foreground",
-                    )}
-                  >
-                    {targetQuoteDate ? (
-                      format(parseISO(targetQuoteDate), "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={targetQuoteDate ? parseISO(targetQuoteDate) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const offset = date.getTimezoneOffset();
-                        const adjustedDate = new Date(date.getTime() - offset * 60 * 1000);
-                        setTargetQuoteDate(adjustedDate.toISOString().slice(0, 10));
-                      } else {
-                        setTargetQuoteDate("");
-                      }
+      <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
+          <div className="space-y-8">
+            <section className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold">General information</h2>
+                <p className="text-sm text-muted-foreground">
+                  RFQ number and inquiry date are generated when you submit.
+                </p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <Field label="Customer *">
+                  <LookupInput
+                    value={customerId}
+                    onChange={(value) => {
+                      setCustomerId(value);
+                      setContactPersonId("");
                     }}
-                    initialFocus
+                    placeholder="Search and select customer"
+                    options={clients.map((client) => ({
+                      value: client.id,
+                      label: client.companyName,
+                    }))}
                   />
-                </PopoverContent>
-              </Popover>
-            </Field>
-          </div>
-        </section>
-
-        <section className="space-y-4 border-t border-border pt-7">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold">Product requirements</h2>
-              <p className="text-sm text-muted-foreground">
-                Product specifications are copied from the Product Master.
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setLines((current) => [...current, emptyLine()])}
-            >
-              <Plus className="size-4" /> Add product
-            </Button>
-          </div>
-          {lines.map((line, index) => {
-            const product = productFor(line);
-            return (
-              <div
-                key={line.key}
-                className="space-y-4 rounded-xl border border-border bg-muted/10 p-4"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">Product {index + 1}</h3>
-                  {lines.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive"
-                      onClick={() =>
-                        setLines((current) => current.filter((item) => item.key !== line.key))
-                      }
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
-                  )}
-                </div>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  <Field label="Product *">
-                    <div className="flex gap-2">
-                      <LookupInput
-                        value={line.productId}
-                        onChange={(value) => updateLine(line.key, { productId: value })}
-                        placeholder="Search and select product"
-                        options={products.map((item) => ({
-                          value: item.id,
-                          label: `${item.brandName}${item.composition ? ` · ${item.composition}` : ""}`,
-                        }))}
-                      />
+                </Field>
+                <Field label="Contact person *">
+                  <LookupInput
+                    value={contactPersonId}
+                    onChange={setContactPersonId}
+                    disabled={!selectedCustomer}
+                    placeholder="Search and select contact"
+                    options={(selectedCustomer?.pointOfContacts || []).map((contact, index) => ({
+                      value: contact.id || contact.email || contact.personName,
+                      label: `${contact.personName}${contact.email ? ` · ${contact.email}` : ""}`,
+                      key: contact.id || contact.email || String(index),
+                    }))}
+                  />
+                </Field>
+                <Field label="Inquiry source *">
+                  <Select
+                    value={inquirySource}
+                    onValueChange={(value) => setInquirySource(value as InquirySource)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sources.map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Priority *">
+                  <Select
+                    value={priority}
+                    onValueChange={(value) => setPriority(value as InquiryPriority)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {priorities.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {value[0] + value.slice(1).toLowerCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="Target quote date">
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <Button
-                        type="button"
                         variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setLineAddingProduct(line.key);
-                          setProductDialogOpen(true);
-                        }}
+                        className={cn(
+                          "w-full justify-between text-left font-normal",
+                          !targetQuoteDate && "text-muted-foreground",
+                        )}
                       >
-                        New
+                        {targetQuoteDate ? (
+                          format(parseISO(targetQuoteDate), "PPP")
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                        <CalendarIcon className="h-4 w-4 opacity-50" />
                       </Button>
-                    </div>
-                  </Field>
-                  <Field label="Generic name">
-                    <Input
-                      value={
-                        product?.ingredients?.map((ingredient) => ingredient.api).join(" + ") || ""
-                      }
-                      readOnly
-                    />
-                  </Field>
-                  <Field label="Dosage form / variant">
-                    <Input
-                      value={
-                        product
-                          ? `${product.dosageForm}${product.dosageVariant ? ` / ${product.dosageVariant}` : ""}`
-                          : ""
-                      }
-                      readOnly
-                    />
-                  </Field>
-                  <Field label="Strength">
-                    <Input
-                      value={
-                        product?.ingredients
-                          ?.map((ingredient) => `${ingredient.strength}${ingredient.unit}`)
-                          .join(" + ") || ""
-                      }
-                      readOnly
-                    />
-                  </Field>
-                  <Field label="Pharmacopeia">
-                    <Input
-                      value={
-                        product?.ingredients
-                          ?.map((ingredient) => ingredient.pharmacopeia)
-                          .filter(Boolean)
-                          .join(" / ") || ""
-                      }
-                      readOnly
-                    />
-                  </Field>
-                  <Field label="Source *">
-                    <Select
-                      value={line.sourcing}
-                      onValueChange={(value) =>
-                        updateLine(line.key, {
-                          sourcing: value as ProductSourcing,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose in-house or outsourced" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="IN_HOUSE">In-house</SelectItem>
-                        <SelectItem value="OUTSOURCED">Outsourced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Packaging notes">
-                    <Select
-                      value={line.packagingNotes || ""}
-                      onValueChange={(value) => updateLine(line.key, { packagingNotes: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select packing type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {packagingNotes.map((item) => (
-                          <SelectItem key={item} value={item}>
-                            {item}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={targetQuoteDate ? parseISO(targetQuoteDate) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            const offset = date.getTimezoneOffset();
+                            const adjustedDate = new Date(date.getTime() - offset * 60 * 1000);
+                            setTargetQuoteDate(adjustedDate.toISOString().slice(0, 10));
+                          } else {
+                            setTargetQuoteDate("");
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </Field>
+              </div>
+            </section>
+
+            <section className="space-y-4 border-t border-border pt-7">
+              <div className="flex items-center justify-between">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Packing requirement</Label>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Enter the pack configuration in the first row and the order quantity at the pack
-                    level being ordered in the second row.
+                  <h2 className="text-lg font-semibold">Product requirements</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Product specifications are copied from the Product Master.
                   </p>
-                  {line.packagingNotes === "Jar" ? (
-                    <div className="mt-3 grid gap-3 rounded-lg border bg-background p-3 sm:grid-cols-3">
-                      <Field label="Tablets per jar *">
-                        <Input
-                          type="number"
-                          min="1"
-                          value={line.tabletPackRequired ?? ""}
-                          onChange={(event) =>
-                            updateLine(line.key, {
-                              tabletPackRequired: event.target.value
-                                ? Number(event.target.value)
-                                : undefined,
-                            })
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLines((current) => [...current, emptyLine()])}
+                >
+                  <Plus className="size-4" /> Add product
+                </Button>
+              </div>
+              {lines.map((line, index) => {
+                const product = productFor(line);
+                return (
+                  <div
+                    key={line.key}
+                    className="space-y-4 rounded-xl border border-border bg-muted/10 p-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Product {index + 1}</h3>
+                      {lines.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          onClick={() =>
+                            setLines((current) => current.filter((item) => item.key !== line.key))
                           }
-                        />
-                      </Field>
-                      <Field label="Quantity required (jars) *">
-                        <Input
-                          type="number"
-                          min="1"
-                          value={
-                            line.orderQuantityUnit === "JAR" ? (line.quantityRequired ?? "") : ""
-                          }
-                          onChange={(event) =>
-                            updateLine(line.key, {
-                              quantityRequired: Number(event.target.value),
-                              orderQuantityUnit: "JAR",
-                            })
-                          }
-                        />
-                      </Field>
-                      <CalculationResult calculation={tabletCalculation(line)} />
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
                     </div>
-                  ) : (
-                    <div className="mt-3 overflow-x-auto rounded-lg border bg-background">
-                      <div className="min-w-[720px] divide-y text-sm">
-                        <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))] bg-muted/40 font-medium">
-                          <div className="p-2" />
-                          {packFields.map(([, label]) => (
-                            <div key={label} className="border-l p-2">
-                              {label}
-                            </div>
-                          ))}
-                          <div className="border-l p-2">Tablet</div>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <Field label="Product *">
+                        <div className="flex gap-2">
+                          <LookupInput
+                            value={line.productId}
+                            onChange={(value) => updateLine(line.key, { productId: value })}
+                            placeholder="Search and select product"
+                            options={products.map((item) => ({
+                              value: item.id,
+                              label: `${item.brandName}${item.composition ? ` · ${item.composition}` : ""}`,
+                            }))}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setLineAddingProduct(line.key);
+                              setProductDialogOpen(true);
+                            }}
+                          >
+                            New
+                          </Button>
                         </div>
-                        <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))]">
-                          <div className="bg-muted/20 p-2 font-medium">Pack required</div>
-                          {packFields.map(([field]) => (
-                            <div key={field} className="border-l p-1.5">
-                              <Input
-                                type="number"
-                                min="0"
-                                className="h-8"
-                                value={line[field] ?? ""}
-                                onChange={(event) =>
-                                  updateLine(line.key, {
-                                    [field]: event.target.value
-                                      ? Number(event.target.value)
-                                      : undefined,
-                                  })
-                                }
-                              />
+                      </Field>
+                      <Field label="Generic name">
+                        <Input
+                          value={
+                            product?.ingredients?.map((ingredient) => ingredient.api).join(" + ") ||
+                            ""
+                          }
+                          readOnly
+                        />
+                      </Field>
+                      <Field label="Dosage form / variant">
+                        <Input
+                          value={
+                            product
+                              ? `${product.dosageForm}${product.dosageVariant ? ` / ${product.dosageVariant}` : ""}`
+                              : ""
+                          }
+                          readOnly
+                        />
+                      </Field>
+                      <Field label="Strength">
+                        <Input
+                          value={
+                            product?.ingredients
+                              ?.map((ingredient) => `${ingredient.strength}${ingredient.unit}`)
+                              .join(" + ") || ""
+                          }
+                          readOnly
+                        />
+                      </Field>
+                      <Field label="Pharmacopeia">
+                        <Input
+                          value={
+                            product?.ingredients
+                              ?.map((ingredient) => ingredient.pharmacopeia)
+                              .filter(Boolean)
+                              .join(" / ") || ""
+                          }
+                          readOnly
+                        />
+                      </Field>
+                      <Field label="Source *">
+                        <Select
+                          value={line.sourcing}
+                          onValueChange={(value) =>
+                            updateLine(line.key, {
+                              sourcing: value as ProductSourcing,
+                            })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose in-house or outsourced" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="IN_HOUSE">In-house</SelectItem>
+                            <SelectItem value="OUTSOURCED">Outsourced</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Packaging notes">
+                        <Select
+                          value={line.packagingNotes || ""}
+                          onValueChange={(value) => updateLine(line.key, { packagingNotes: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select packing type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {packagingNotes.map((item) => (
+                              <SelectItem key={item} value={item}>
+                                {item}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Packing requirement</Label>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Enter the pack configuration in the first row and the order quantity at the
+                        pack level being ordered in the second row.
+                      </p>
+                      {line.packagingNotes === "Jar" ? (
+                        <div className="mt-3 grid gap-3 rounded-lg border bg-background p-3 sm:grid-cols-3">
+                          <Field label="Tablets per jar *">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={line.tabletPackRequired ?? ""}
+                              onChange={(event) =>
+                                updateLine(line.key, {
+                                  tabletPackRequired: event.target.value
+                                    ? Number(event.target.value)
+                                    : undefined,
+                                })
+                              }
+                            />
+                          </Field>
+                          <Field label="Quantity required (jars) *">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={
+                                line.orderQuantityUnit === "JAR"
+                                  ? (line.quantityRequired ?? "")
+                                  : ""
+                              }
+                              onChange={(event) =>
+                                updateLine(line.key, {
+                                  quantityRequired: Number(event.target.value),
+                                  orderQuantityUnit: "JAR",
+                                })
+                              }
+                            />
+                          </Field>
+                          <CalculationResult calculation={tabletCalculation(line)} />
+                        </div>
+                      ) : (
+                        <div className="mt-3 overflow-x-auto rounded-lg border bg-background">
+                          <div className="min-w-[720px] divide-y text-sm">
+                            <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))] bg-muted/40 font-medium">
+                              <div className="p-2" />
+                              {packFields.map(([, label]) => (
+                                <div key={label} className="border-l p-2">
+                                  {label}
+                                </div>
+                              ))}
+                              <div className="border-l p-2">Tablet</div>
                             </div>
-                          ))}
-                          <div className="border-l p-2 text-xs text-muted-foreground">
-                            {tabletCalculation(line).formula}
+                            <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))]">
+                              <div className="bg-muted/20 p-2 font-medium">Pack required</div>
+                              {packFields.map(([field]) => (
+                                <div key={field} className="border-l p-1.5">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    className="h-8"
+                                    value={line[field] ?? ""}
+                                    onChange={(event) =>
+                                      updateLine(line.key, {
+                                        [field]: event.target.value
+                                          ? Number(event.target.value)
+                                          : undefined,
+                                      })
+                                    }
+                                  />
+                                </div>
+                              ))}
+                              <div className="border-l p-2 text-xs text-muted-foreground">
+                                {tabletCalculation(line).formula}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))]">
+                              <div className="bg-muted/20 p-2 font-medium">Quantity required *</div>
+                              {quantityUnits.map(([unit, label]) => (
+                                <div key={unit} className="border-l p-1.5">
+                                  <Input
+                                    aria-label={`Quantity required in ${label}`}
+                                    type="number"
+                                    min="1"
+                                    className="h-8"
+                                    value={
+                                      line.orderQuantityUnit === unit
+                                        ? (line.quantityRequired ?? "")
+                                        : ""
+                                    }
+                                    placeholder={
+                                      line.orderQuantityUnit && line.orderQuantityUnit !== unit
+                                        ? "—"
+                                        : "Qty"
+                                    }
+                                    onFocus={() =>
+                                      updateLine(line.key, { orderQuantityUnit: unit })
+                                    }
+                                    onChange={(event) =>
+                                      updateLine(line.key, {
+                                        orderQuantityUnit: unit,
+                                        quantityRequired: Number(event.target.value),
+                                      })
+                                    }
+                                  />
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                        <div className="grid grid-cols-[130px_repeat(5,minmax(86px,1fr))]">
-                          <div className="bg-muted/20 p-2 font-medium">Quantity required *</div>
-                          {quantityUnits.map(([unit, label]) => (
-                            <div key={unit} className="border-l p-1.5">
-                              <Input
-                                aria-label={`Quantity required in ${label}`}
-                                type="number"
-                                min="1"
-                                className="h-8"
-                                value={
-                                  line.orderQuantityUnit === unit
-                                    ? (line.quantityRequired ?? "")
-                                    : ""
-                                }
-                                placeholder={
-                                  line.orderQuantityUnit && line.orderQuantityUnit !== unit
-                                    ? "—"
-                                    : "Qty"
-                                }
-                                onFocus={() => updateLine(line.key, { orderQuantityUnit: unit })}
-                                onChange={(event) =>
-                                  updateLine(line.key, {
-                                    orderQuantityUnit: unit,
-                                    quantityRequired: Number(event.target.value),
-                                  })
-                                }
-                              />
-                            </div>
-                          ))}
-                        </div>
+                      )}
+                      {line.packagingNotes !== "Jar" && (
+                        <CalculationResult calculation={tabletCalculation(line)} />
+                      )}
+                      <div className="mt-3 max-w-xs">
+                        <Field label="Target price (if available)">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={line.targetPrice ?? ""}
+                            onChange={(event) =>
+                              updateLine(line.key, {
+                                targetPrice: event.target.value
+                                  ? Number(event.target.value)
+                                  : undefined,
+                              })
+                            }
+                          />
+                        </Field>
                       </div>
                     </div>
-                  )}
-                  {line.packagingNotes !== "Jar" && (
-                    <CalculationResult calculation={tabletCalculation(line)} />
-                  )}
-                  <div className="mt-3 max-w-xs">
-                    <Field label="Target price (if available)">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={line.targetPrice ?? ""}
-                        onChange={(event) =>
-                          updateLine(line.key, {
-                            targetPrice: event.target.value
-                              ? Number(event.target.value)
-                              : undefined,
-                          })
-                        }
+                  </div>
+                );
+              })}
+            </section>
+            <section className="border-t border-border pt-7">
+              {isAdminUser && (
+                <div className="mb-5 max-w-md">
+                  <Field label="Sales representative (optional)">
+                    <LookupInput
+                      value={salesAssigneeId}
+                      onChange={setSalesAssigneeId}
+                      placeholder="Search and select sales representative"
+                      options={salesUsers.map((user) => ({
+                        value: user.id,
+                        label:
+                          user.fullName ||
+                          `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                          user.email,
+                      }))}
+                    />
+                  </Field>
+                </div>
+              )}
+              {(hasQa || hasQc) && (
+                <div className="mb-5 grid gap-4 md:grid-cols-2">
+                  {hasQa && (
+                    <Field label="QA reviewer *">
+                      <LookupInput
+                        value={qaAssigneeId}
+                        onChange={setQaAssigneeId}
+                        placeholder="Search and select QA reviewer"
+                        options={qaUsers.map((user) => ({
+                          value: user.id,
+                          label:
+                            user.fullName ||
+                            `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                            user.email,
+                        }))}
                       />
                     </Field>
-                  </div>
+                  )}
+                  {hasQc && (
+                    <Field label="QC reviewer *">
+                      <LookupInput
+                        value={qcAssigneeId}
+                        onChange={setQcAssigneeId}
+                        placeholder="Search and select QC reviewer"
+                        options={qcUsers.map((user) => ({
+                          value: user.id,
+                          label:
+                            user.fullName ||
+                            `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                            user.email,
+                        }))}
+                      />
+                    </Field>
+                  )}
                 </div>
-              </div>
-            );
-          })}
-        </section>
-        <section className="border-t border-border pt-7">
-          {isAdminUser && (
-            <div className="mb-5 max-w-md">
-              <Field label="Sales representative (optional)">
-                <LookupInput
-                  value={salesAssigneeId}
-                  onChange={setSalesAssigneeId}
-                  placeholder="Search and select sales representative"
-                  options={salesUsers.map((user) => ({
-                    value: user.id,
-                    label:
-                      user.fullName ||
-                      `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-                      user.email,
-                  }))}
+              )}
+              <Field label="Internal notes">
+                <Textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Additional commercial, technical or regulatory notes"
                 />
               </Field>
-            </div>
-          )}
-          {(hasQa || hasQc) && (
-            <div className="mb-5 grid gap-4 md:grid-cols-2">
-              {hasQa && (
-                <Field label="QA reviewer *">
-                  <LookupInput
-                    value={qaAssigneeId}
-                    onChange={setQaAssigneeId}
-                    placeholder="Search and select QA reviewer"
-                    options={qaUsers.map((user) => ({
-                      value: user.id,
-                      label:
-                        user.fullName ||
-                        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-                        user.email,
-                    }))}
-                  />
-                </Field>
-              )}
-              {hasQc && (
-                <Field label="QC reviewer *">
-                  <LookupInput
-                    value={qcAssigneeId}
-                    onChange={setQcAssigneeId}
-                    placeholder="Search and select QC reviewer"
-                    options={qcUsers.map((user) => ({
-                      value: user.id,
-                      label:
-                        user.fullName ||
-                        `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-                        user.email,
-                    }))}
-                  />
-                </Field>
-              )}
-            </div>
-          )}
-          <Field label="Internal notes">
-            <Textarea
-              rows={3}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Additional commercial, technical or regulatory notes"
-            />
-          </Field>
-        </section>
-        <div className="flex justify-end border-t border-border pt-6">
+            </section>
+          </div>
+        </div>
+        <div className="relative z-10 flex shrink-0 justify-end border-t border-border/60 bg-card px-6 py-4 sm:px-8">
           <Button
             disabled={submitting || !allLinesComplete}
             onClick={() => setPreviewingDraft(true)}
