@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { motion } from "motion/react";
 import {
@@ -30,12 +30,14 @@ import {
   Medal,
   Shield,
   Star,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   ClientCardGridLoader,
   ClientTableLoader,
+  Counter,
   EmptyState,
   PageHeader,
   Panel,
@@ -75,6 +77,7 @@ import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 
 import {
   fetchClients,
+  fetchAllClients,
   createClient,
   updateClient,
   resendRegistrationEmail,
@@ -93,6 +96,7 @@ import type {
 } from "@/lib/client-types";
 import {
   CUSTOMER_TYPES,
+  CLIENT_LEVELS,
   CUSTOMER_TYPE_LABELS,
   CLIENT_LEVEL_LABELS,
   ADDRESS_TYPE_LABELS,
@@ -119,6 +123,7 @@ export const Route = createFileRoute("/_shell/clients")({
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const filterSegments = ["All", ...CUSTOMER_TYPES] as const;
+const filterLevels = ["All", ...CLIENT_LEVELS] as const;
 
 const TIER_CONFIG: Record<ClientLevel, { icon: typeof Crown; color: string }> = {
   PLATINUM: { icon: Crown, color: "bg-violet-500/12 text-violet-600 border-violet-500/25" },
@@ -355,6 +360,8 @@ function ClientMaster() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [segment, setSegment] = useState<(typeof filterSegments)[number]>("All");
+  const [clientLevel, setClientLevel] = useState<(typeof filterLevels)[number]>("All");
+  const [country, setCountry] = useState("All");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -371,6 +378,10 @@ function ClientMaster() {
     queryKey: ["clients", page, pageSize, query],
     queryFn: () => fetchClients({ page, size: pageSize, search: query.trim() || undefined }),
     refetchInterval: 3000,
+  });
+  const { data: allClients = [], isLoading: allClientsLoading } = useQuery({
+    queryKey: ["clients", "all"],
+    queryFn: fetchAllClients,
   });
 
   const clients = pageData?.content ?? [];
@@ -414,18 +425,52 @@ function ClientMaster() {
   const filtered = clients.filter(
     (c) =>
       (segment === "All" || c.customerType === segment) &&
+      (clientLevel === "All" || c.clientLevel === clientLevel) &&
+      (country === "All" || c.addresses?.some((address) => address.country === country)) &&
       `${c.companyName} ${c.customerCode} ${c.tradeName ?? ""}`
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
 
-  const hasActiveFilters = query.trim().length > 0 || segment !== "All";
+  const hasActiveFilters =
+    query.trim().length > 0 || segment !== "All" || clientLevel !== "All" || country !== "All";
+
+  const countries = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          allClients.flatMap((client) =>
+            (client.addresses ?? [])
+              .map((address) => address.country?.trim())
+              .filter((value): value is string => Boolean(value)),
+          ),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [allClients],
+  );
 
   function handleResetFilters() {
     setQuery("");
     setSegment("All");
+    setClientLevel("All");
+    setCountry("All");
     setPage(0);
   }
+
+  const clientMetrics = useMemo(
+    () => ({
+      total: allClients.length,
+      export: allClients.filter((client) =>
+        ["EXPORT", "MERCHANT_EXPORTER"].includes(client.customerType),
+      ).length,
+      domestic: allClients.filter((client) => client.customerType === "DOMESTIC").length,
+      contacts: allClients.reduce(
+        (total, client) => total + (client.pointOfContacts?.length ?? 0),
+        0,
+      ),
+    }),
+    [allClients],
+  );
 
   const firstPoc = (c: Client) => c.pointOfContacts?.[0];
   const firstAddr = (c: Client) => c.addresses?.[0];
@@ -488,10 +533,43 @@ function ClientMaster() {
         }
       />
 
-      {/* â”€â”€ Filters â”€â”€ */}
-      {/* ─── Filters ────────────────────────────────────────────────────────── */}
-      <div className="surface flex flex-col justify-between gap-3 p-5 lg:flex-row lg:items-center">
-        <div className="relative w-full lg:max-w-sm">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Client summary">
+        <ClientMetric
+          icon={Users}
+          label="Total clients"
+          value={clientMetrics.total}
+          detail="Registered client accounts"
+          loading={allClientsLoading}
+          tone="primary"
+        />
+        <ClientMetric
+          icon={Globe2}
+          label="Export partners"
+          value={clientMetrics.export}
+          detail="Export and merchant export"
+          loading={allClientsLoading}
+          tone="success"
+        />
+        <ClientMetric
+          icon={Building2}
+          label="Domestic clients"
+          value={clientMetrics.domestic}
+          detail="Domestic market partners"
+          loading={allClientsLoading}
+          tone="warning"
+        />
+        <ClientMetric
+          icon={Users}
+          label="Points of contact"
+          value={clientMetrics.contacts}
+          detail="Across all client accounts"
+          loading={allClientsLoading}
+          tone="violet"
+        />
+      </section>
+
+      <div className="surface grid gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-center">
+        <div className="relative min-w-0">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -503,27 +581,62 @@ function ClientMaster() {
             className="pl-9"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {filterSegments.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSegment(s)}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                segment === s
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:bg-secondary",
-              )}
-            >
-              {s === "All" ? "All" : CUSTOMER_TYPE_LABELS[s as CustomerType]}
-            </button>
-          ))}
+        <div
+          className={cn(
+            "grid min-w-0 grid-cols-1 gap-3",
+            hasActiveFilters
+              ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+              : "sm:grid-cols-3",
+          )}
+        >
+          <Select value={segment} onValueChange={(value) => setSegment(value as typeof segment)}>
+            <SelectTrigger className="w-full min-w-0">
+              <SelectValue placeholder="All client types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All client types</SelectItem>
+              {CUSTOMER_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {CUSTOMER_TYPE_LABELS[type]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={clientLevel}
+            onValueChange={(value) => setClientLevel(value as typeof clientLevel)}
+          >
+            <SelectTrigger className="w-full min-w-0">
+              <SelectValue placeholder="All client levels" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All client levels</SelectItem>
+              {CLIENT_LEVELS.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {CLIENT_LEVEL_LABELS[level]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={country} onValueChange={setCountry}>
+            <SelectTrigger className="w-full min-w-0">
+              <SelectValue placeholder="All countries" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All">All countries</SelectItem>
+              {countries.map((item) => (
+                <SelectItem key={item} value={item}>
+                  {item}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleResetFilters}
-              className="text-xs text-muted-foreground hover:text-foreground h-7 px-2.5 gap-1.5"
+              className="h-10 shrink-0 self-center whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="size-3" />
               Reset
@@ -824,6 +937,55 @@ function ClientMaster() {
           )}
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+function ClientMetric({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  loading,
+  tone,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: number;
+  detail: string;
+  loading: boolean;
+  tone: "primary" | "success" | "warning" | "violet";
+}) {
+  const toneClasses = {
+    primary: "bg-primary/10 text-primary",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  };
+
+  return (
+    <div className="surface flex min-h-28 items-center gap-4 p-5">
+      <span
+        className={cn("grid size-11 shrink-0 place-items-center rounded-xl", toneClasses[tone])}
+      >
+        <Icon className="size-5" />
+      </span>
+      <div className="min-w-0">
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-14" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        ) : (
+          <>
+            <p className="text-2xl font-bold tabular-nums">
+              <Counter key={value} value={value} />
+            </p>
+            <p className="text-sm font-medium">{label}</p>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   Package,
   Pencil,
   Plus,
+  RotateCcw,
   Search,
   TriangleAlert,
   type LucideIcon,
@@ -13,7 +14,14 @@ import { useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CardGridLoader, PageHeader, Panel, TableRowLoader, StatusChip } from "@/components/kit";
+import {
+  CardGridLoader,
+  Counter,
+  PageHeader,
+  Panel,
+  TableRowLoader,
+  StatusChip,
+} from "@/components/kit";
 import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 import type { CustomerInquiry } from "@/lib/inquiry-types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -101,6 +109,18 @@ export function InquiryList({
       );
     });
   }, [inquiries, priorityFilter, search, sourceFilter, statusFilter]);
+  const hasActiveFilters =
+    Boolean(search.trim()) ||
+    priorityFilter !== "ALL" ||
+    sourceFilter !== "ALL" ||
+    statusFilter !== "ALL";
+
+  function resetFilters() {
+    setSearch("");
+    setPriorityFilter("ALL");
+    setSourceFilter("ALL");
+    setStatusFilter("ALL");
+  }
 
   return (
     <div className="space-y-6">
@@ -157,8 +177,8 @@ export function InquiryList({
           tone="violet"
         />
       </section>
-      <div className="surface flex flex-col gap-3 p-4 sm:p-5 xl:flex-row xl:items-center xl:justify-between">
-        <div className="relative w-full xl:max-w-xl">
+      <div className="surface grid gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-center">
+        <div className="relative min-w-0">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
@@ -167,7 +187,13 @@ export function InquiryList({
             className="pl-9"
           />
         </div>
-        <div className="grid w-full gap-3 sm:grid-cols-3 xl:w-auto xl:min-w-[650px]">
+        <div
+          className={`grid min-w-0 grid-cols-1 gap-3 ${
+            hasActiveFilters
+              ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
+              : "sm:grid-cols-3"
+          }`}
+        >
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
             <SelectTrigger>
               <SelectValue placeholder="All priorities" />
@@ -207,6 +233,17 @@ export function InquiryList({
               ))}
             </SelectContent>
           </Select>
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="h-10 shrink-0 self-center whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="size-3" />
+              Reset
+            </Button>
+          )}
         </div>
       </div>
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
@@ -449,7 +486,9 @@ function RfqMetric({
           </div>
         ) : (
           <>
-            <p className="text-2xl font-bold tabular-nums">{value.toLocaleString()}</p>
+            <p className="text-2xl font-bold tabular-nums">
+              <Counter key={value} value={value} />
+            </p>
             <p className="text-sm font-medium">{label}</p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p>
           </>

@@ -24,6 +24,7 @@ import {
   X,
   ExternalLink,
   RefreshCw,
+  RotateCcw,
   FolderOpen,
   Loader2,
   ArrowLeft,
@@ -447,8 +448,9 @@ function ProductMaster() {
                     setStatusFilter("all");
                     setPage(0);
                   }}
-                  className="text-xs text-muted-foreground hover:text-foreground"
+                  className="h-10 shrink-0 whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
                 >
+                  <RotateCcw className="size-3" />
                   Reset
                 </Button>
               )}
