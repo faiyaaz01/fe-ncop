@@ -410,8 +410,7 @@ function LoginPage() {
               <Button
                 type="submit"
                 disabled={!isFormValid || isSubmitting}
-                liquidColor="bg-slate-900/15"
-                className="group relative h-11 w-full overflow-hidden bg-white text-slate-900 shadow-md transition-shadow duration-300 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-white/70"
+                className="group relative h-11 w-full overflow-hidden bg-white text-slate-900 shadow-md transition-all duration-200 hover:bg-slate-200 [@media(hover:hover)]:hover:bg-slate-200 hover:text-slate-950 hover:shadow-lg active:bg-slate-300 [@media(hover:hover)]:active:bg-slate-300 disabled:cursor-not-allowed disabled:bg-white/70"
               >
                 <span>{isSubmitting ? "Signing in..." : "Login"}</span>
                 {!isSubmitting && (
