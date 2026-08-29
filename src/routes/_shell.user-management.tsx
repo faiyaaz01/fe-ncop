@@ -454,25 +454,38 @@ function UserManagementPage() {
 
       {/* ── Main Tab Navigation ── */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="space-y-4">
-        <div className="surface overflow-x-auto rounded-xl border border-border/60 p-2">
-          <TabsList className="grid h-auto min-w-[520px] w-full grid-cols-3 rounded-lg bg-muted/70 p-1">
-            <TabsTrigger value="users" className="min-w-0 gap-2 px-3 py-2.5 text-sm">
+        <div className="surface overflow-hidden rounded-xl border border-border/60 p-1.5 sm:p-2">
+          <TabsList className="!grid h-auto min-w-0 w-full grid-cols-3 rounded-lg bg-muted/70 p-1">
+            <TabsTrigger
+              value="users"
+              aria-label="Users"
+              className="min-w-0 gap-1.5 px-1.5 py-2.5 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+            >
               <Users className="size-4 shrink-0" />
-              <span>Users</span>
+              <span className="hidden min-[360px]:inline">Users</span>
               <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground data-[state=active]:text-foreground">
                 {stats.totalUsers}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="roles" className="min-w-0 gap-2 px-3 py-2.5 text-sm">
+            <TabsTrigger
+              value="roles"
+              aria-label="Roles"
+              className="min-w-0 gap-1.5 px-1.5 py-2.5 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+            >
               <Shield className="size-4 shrink-0" />
-              <span>Roles</span>
+              <span className="hidden min-[360px]:inline">Roles</span>
               <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground data-[state=active]:text-foreground">
                 {stats.totalRoles}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="rights" className="min-w-0 gap-2 px-3 py-2.5 text-sm">
+            <TabsTrigger
+              value="rights"
+              aria-label="Module rights"
+              className="min-w-0 gap-1.5 px-1.5 py-2.5 text-xs sm:gap-2 sm:px-3 sm:text-sm"
+            >
               <KeyRound className="size-4 shrink-0" />
-              <span>Module Rights</span>
+              <span className="hidden min-[420px]:inline sm:hidden">Rights</span>
+              <span className="hidden sm:inline">Module Rights</span>
               <span className="rounded-md bg-background/70 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground data-[state=active]:text-foreground">
                 {stats.totalRights}
               </span>
@@ -2034,30 +2047,54 @@ function RoleFormDialog({
               <div className="space-y-6">
                 <div>
                   <h2 className="text-base font-semibold">Role details</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Use a clear, reusable name for this organizational role.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Use a clear, reusable name for this organizational role.
+                  </p>
                 </div>
                 <Separator />
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="role-name">Role Name *</Label>
-                    <Input id="role-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. SALES_MANAGER, QA_LEAD" required />
+                    <Input
+                      id="role-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. SALES_MANAGER, QA_LEAD"
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role-description">Description</Label>
-                    <Input id="role-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Oversees commercial export operations" />
+                    <Input
+                      id="role-description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g. Oversees commercial export operations"
+                    />
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-4 rounded-xl border border-border/60 bg-muted/30 p-4">
                   <div>
-                    <Label htmlFor="role-active" className="font-semibold">Active Status</Label>
-                    <p className="mt-1 text-sm text-muted-foreground">Deactivating the role blocks login for users assigned only to it.</p>
+                    <Label htmlFor="role-active" className="font-semibold">
+                      Active Status
+                    </Label>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Deactivating the role blocks login for users assigned only to it.
+                    </p>
                   </div>
                   <Switch id="role-active" checked={active} onCheckedChange={setActive} />
                 </div>
               </div>
             </div>
             <div className="flex flex-col-reverse gap-2.5 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-8">
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
               <Button type="submit" disabled={isSubmitting} className="w-full gap-1.5 sm:w-auto">
                 {isSubmitting && <Loader2 className="size-4 animate-spin" />}
                 {isEdit ? "Update Role" : "Create Role"}
@@ -2218,28 +2255,56 @@ function ModuleRightFormDialog({
               <div className="space-y-6">
                 <div>
                   <h2 className="text-base font-semibold">Permission details</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Give this permission a stable system key and a clear label for administrators.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Give this permission a stable system key and a clear label for administrators.
+                  </p>
                 </div>
                 <Separator />
                 <div className="space-y-2">
                   <Label htmlFor="right-name">System Identifier (Key) *</Label>
-                  <Input id="right-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. INQUIRY_VIEW, ORDER_APPROVE" disabled={isEdit} required />
-                  <p className="text-xs text-muted-foreground">Unique code used for navigation and permission checks.</p>
+                  <Input
+                    id="right-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. INQUIRY_VIEW, ORDER_APPROVE"
+                    disabled={isEdit}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Unique code used for navigation and permission checks.
+                  </p>
                 </div>
                 <div className="grid gap-5 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="right-label">Display Label</Label>
-                    <Input id="right-label" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. View Customer Inquiries" />
+                    <Input
+                      id="right-label"
+                      value={label}
+                      onChange={(e) => setLabel(e.target.value)}
+                      placeholder="e.g. View Customer Inquiries"
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="right-description">Description</Label>
-                    <Input id="right-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Grants access to customer inquiries" />
+                    <Input
+                      id="right-description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="e.g. Grants access to customer inquiries"
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex flex-col-reverse gap-2.5 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-8">
-              <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => onOpenChange(false)}
+              >
+                Cancel
+              </Button>
               <Button type="submit" disabled={isSubmitting} className="w-full gap-1.5 sm:w-auto">
                 {isSubmitting && <Loader2 className="size-4 animate-spin" />}
                 {isEdit ? "Update Right" : "Register Right"}

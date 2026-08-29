@@ -156,7 +156,7 @@ export function InquiryList({
           </div>
         }
       />
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="RFQ summary">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4" aria-label="RFQ summary">
         <RfqMetric
           icon={ClipboardList}
           label="RFQs"
@@ -205,9 +205,7 @@ export function InquiryList({
         </div>
         <div
           className={`grid min-w-0 grid-cols-1 gap-3 ${
-            hasActiveFilters
-              ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
-              : "sm:grid-cols-3"
+            hasActiveFilters ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]" : "sm:grid-cols-3"
           }`}
         >
           <Select
@@ -458,7 +456,10 @@ export function InquiryList({
                     <td className="max-w-[280px] px-4 py-3.5 align-middle">
                       <div className="space-y-1.5">
                         {inquiry.lines.map((line) => (
-                          <p key={`${inquiry.id}-${line.productId}`} className="line-clamp-1 text-xs">
+                          <p
+                            key={`${inquiry.id}-${line.productId}`}
+                            className="line-clamp-1 text-xs"
+                          >
                             <span className="font-medium">{line.productName}</span>
                             <span className="text-muted-foreground">
                               {" "}
@@ -553,8 +554,10 @@ function RfqMetric({
     violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
   };
   return (
-    <div className="surface flex min-h-28 items-center gap-4 p-5">
-      <span className={`grid size-11 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}>
+    <div className="surface flex items-center gap-3.5 rounded-xl border border-border/70 p-4">
+      <span
+        className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${toneClasses[tone]}`}
+      >
         <Icon className="size-5" />
       </span>
       <div className="min-w-0">
@@ -565,11 +568,13 @@ function RfqMetric({
           </div>
         ) : (
           <>
-            <p className="text-2xl font-bold tabular-nums">
+            <p className="text-2xl font-bold tracking-tight tabular-nums">
               <Counter key={value} value={value} />
             </p>
-            <p className="text-sm font-medium">{label}</p>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p>
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <p className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
+              {detail}
+            </p>
           </>
         )}
       </div>

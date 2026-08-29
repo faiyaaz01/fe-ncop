@@ -8,15 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { type AppUser, userSessionService } from "@/lib/user-session";
 import { resetUserPassword, updateUser } from "@/lib/user-api";
 import { formatDateTime, getLocalTimezoneName } from "@/lib/date-utils";
@@ -39,6 +30,10 @@ function ProfilePage() {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   useEffect(() => userSessionService.subscribe((currentUser) => setUser(currentUser)), []);
+
+  if (isEditorOpen) {
+    return <EditProfilePage user={user} onClose={() => setIsEditorOpen(false)} />;
+  }
 
   const fullName =
     user?.firstName || user?.lastName
@@ -195,35 +190,23 @@ function ProfilePage() {
           </div>
         </Panel>
       </div>
-
-      <EditProfileDialog open={isEditorOpen} onOpenChange={setIsEditorOpen} user={user} />
     </div>
   );
 }
 
-function EditProfileDialog({
-  open,
-  onOpenChange,
-  user,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  user: AppUser | null;
-}) {
+function EditProfilePage({ user, onClose }: { user: AppUser | null; onClose: () => void }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
     setFirstName(user?.firstName ?? "");
     setLastName(user?.lastName ?? "");
     setNewPassword("");
     setConfirmPassword("");
-  }, [open, user?.id, user?.firstName, user?.lastName]);
+  }, [user?.id, user?.firstName, user?.lastName]);
 
   const userId = user?.id;
 
@@ -237,8 +220,17 @@ function EditProfileDialog({
       toast.error("Enter at least a first name or last name.");
       return;
     }
+    const passwordProvided = Boolean(newPassword || confirmPassword);
+    if (passwordProvided && newPassword.length < 6) {
+      toast.error("Your new password must contain at least 6 characters.");
+      return;
+    }
+    if (passwordProvided && newPassword !== confirmPassword) {
+      toast.error("The new passwords do not match.");
+      return;
+    }
 
-    setIsSavingProfile(true);
+    setIsSaving(true);
     try {
       const updated = await updateUser(userId, {
         firstName: firstName.trim(),
@@ -248,132 +240,120 @@ function EditProfileDialog({
         firstName: updated.firstName ?? firstName.trim(),
         lastName: updated.lastName ?? lastName.trim(),
       });
-      toast.success("Profile details updated.");
+      if (passwordProvided) {
+        await resetUserPassword(userId, newPassword);
+      }
+      toast.success(
+        passwordProvided ? "Profile and password updated." : "Profile details updated.",
+      );
+      onClose();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to update your profile.");
     } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
-  const resetPassword = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!userId) {
-      toast.error("Your profile could not be identified. Please sign in again.");
-      return;
-    }
-    if (newPassword.length < 6) {
-      toast.error("Your new password must contain at least 6 characters.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("The new passwords do not match.");
-      return;
-    }
-
-    setIsSavingPassword(true);
-    try {
-      await resetUserPassword(userId, newPassword);
-      setNewPassword("");
-      setConfirmPassword("");
-      toast.success("Password updated successfully.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to update your password.");
-    } finally {
-      setIsSavingPassword(false);
+      setIsSaving(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
-          <DialogDescription>
-            Update your display name or choose a new password for your account.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form className="space-y-4" onSubmit={saveProfile}>
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Pencil className="size-4 text-primary" /> Profile details
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="profile-first-name">First name</Label>
-              <Input
-                id="profile-first-name"
-                value={firstName}
-                onChange={(event) => setFirstName(event.target.value)}
-                autoComplete="given-name"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile-last-name">Last name</Label>
-              <Input
-                id="profile-last-name"
-                value={lastName}
-                onChange={(event) => setLastName(event.target.value)}
-                autoComplete="family-name"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Your email address and account access are managed by an administrator.
-          </p>
-          <div className="flex justify-end">
-            <Button type="submit" disabled={isSavingProfile}>
-              {isSavingProfile ? "Saving…" : "Save name"}
-            </Button>
-          </div>
-        </form>
-
-        <Separator />
-
-        <form className="space-y-4" onSubmit={resetPassword}>
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <LockKeyhole className="size-4 text-primary" /> Reset password
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="profile-new-password">New password</Label>
-              <Input
-                id="profile-new-password"
-                type="password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-                minLength={6}
-                autoComplete="new-password"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="profile-confirm-password">Confirm new password</Label>
-              <Input
-                id="profile-confirm-password"
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                minLength={6}
-                autoComplete="new-password"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Use at least 6 characters. You will use this password the next time you sign in.
-          </p>
-          <div className="flex justify-end">
-            <Button type="submit" disabled={isSavingPassword}>
-              {isSavingPassword ? "Updating…" : "Update password"}
-            </Button>
-          </div>
-        </form>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="ACCOUNT"
+        title="Edit Profile"
+        description="Update your display name and account password."
+        actions={
+          <Button variant="outline" onClick={onClose}>
+            Back to Profile
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        }
+      />
+
+      <form
+        className="surface overflow-hidden rounded-2xl border border-border/70"
+        onSubmit={saveProfile}
+      >
+        <div className="space-y-8 p-4 sm:p-6 lg:p-8">
+          <section className="space-y-4">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Pencil className="size-4 text-primary" /> Profile details
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Keep your name accurate across the Nourish Pharmaceutical workspace.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="profile-first-name">First name</Label>
+                <Input
+                  id="profile-first-name"
+                  value={firstName}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  autoComplete="given-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-last-name">Last name</Label>
+                <Input
+                  id="profile-last-name"
+                  value={lastName}
+                  onChange={(event) => setLastName(event.target.value)}
+                  autoComplete="family-name"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Your email address and account access are managed by an administrator.
+            </p>
+          </section>
+
+          <section className="space-y-4 border-t border-border/60 pt-8">
+            <div>
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <LockKeyhole className="size-4 text-primary" /> Reset password
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Leave these fields empty to keep your current password.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="profile-new-password">New password</Label>
+                <Input
+                  id="profile-new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profile-confirm-password">Confirm new password</Label>
+                <Input
+                  id="profile-confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  minLength={6}
+                  autoComplete="new-password"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Use at least 6 characters. You will use the new password the next time you sign in.
+            </p>
+          </section>
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 border-t border-border/60 bg-card p-4 sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSaving}>
+            {isSaving ? "Saving…" : "Save changes"}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

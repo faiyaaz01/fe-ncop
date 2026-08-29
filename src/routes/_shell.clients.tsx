@@ -533,7 +533,10 @@ function ClientMaster() {
         }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Client summary">
+      <section
+        className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4"
+        aria-label="Client summary"
+      >
         <ClientMetric
           icon={Users}
           label="Total clients"
@@ -584,9 +587,7 @@ function ClientMaster() {
         <div
           className={cn(
             "grid min-w-0 grid-cols-1 gap-3",
-            hasActiveFilters
-              ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]"
-              : "sm:grid-cols-3",
+            hasActiveFilters ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]" : "sm:grid-cols-3",
           )}
         >
           <Select value={segment} onValueChange={(value) => setSegment(value as typeof segment)}>
@@ -964,9 +965,12 @@ function ClientMetric({
   };
 
   return (
-    <div className="surface flex min-h-28 items-center gap-4 p-5">
+    <div className="surface flex items-center gap-3.5 rounded-xl border border-border/70 p-4">
       <span
-        className={cn("grid size-11 shrink-0 place-items-center rounded-xl", toneClasses[tone])}
+        className={cn(
+          "flex size-11 shrink-0 items-center justify-center rounded-xl",
+          toneClasses[tone],
+        )}
       >
         <Icon className="size-5" />
       </span>
@@ -978,11 +982,13 @@ function ClientMetric({
           </div>
         ) : (
           <>
-            <p className="text-2xl font-bold tabular-nums">
+            <p className="text-2xl font-bold tracking-tight tabular-nums">
               <Counter key={value} value={value} />
             </p>
-            <p className="text-sm font-medium">{label}</p>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</p>
+            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+            <p className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
+              {detail}
+            </p>
           </>
         )}
       </div>
