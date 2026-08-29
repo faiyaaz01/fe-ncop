@@ -41,11 +41,11 @@ export const Route = createFileRoute("/index/login")({
 });
 
 const slides = [
+  { src: nourishBuilding, caption: "Nourish Pharmaceutical · Manufacturing campus" },
   { src: lab, caption: "Analytical R&D · Basel" },
   { src: manufacturing, caption: "Blister line · Clean room class C" },
   { src: capsules, caption: "Solid dosage portfolio" },
   { src: warehouse, caption: "GDP-certified distribution hub" },
-  { src: nourishBuilding, caption: "Nourish Pharmaceutical · Manufacturing campus" },
   { src: nourishHeaderNewSlide, caption: "Quality-first manufacturing operations" },
   { src: nourishHeader, caption: "Care that reaches every community" },
   { src: nourishNewSlide, caption: "Precision pharmaceutical production" },
@@ -239,11 +239,11 @@ function LoginPage() {
       </div>
 
       <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-5 py-6 sm:px-8">
-        <div className="rounded-xl bg-white/35 px-3 py-2.5 shadow-lg ring-1 ring-white/10 backdrop-blur-sm">
+        <div className="rounded-lg px-1.5 py-1.5">
           <img
             src="/nourish-pharmaceutical-logo.png"
             alt="Nourish Pharmaceutical Pvt. Ltd."
-            className="h-12 w-auto drop-shadow-md sm:h-14"
+            className="h-12 w-auto drop-shadow-[0_2px_12px_rgba(2,6,23,0.6)] sm:h-14"
           />
         </div>
         <div className="flex items-center gap-3 [&_button]:text-white [&_button:hover]:bg-white/10">
