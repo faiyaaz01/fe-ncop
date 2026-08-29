@@ -13,6 +13,12 @@ import lab from "@/assets/slide-lab.jpg";
 import manufacturing from "@/assets/slide-manufacturing.jpg";
 import capsules from "@/assets/slide-capsules.jpg";
 import warehouse from "@/assets/slide-warehouse.jpg";
+import nourishBuilding from "@/assets/nourish-building.webp";
+import nourishHeaderNewSlide from "@/assets/nourish-header-newslide1.webp";
+import nourishHeader from "@/assets/nourish-header.webp";
+import nourishNewSlide from "@/assets/nourish-new-slide02.webp";
+import gmpCertified from "@/assets/gmp-certified.webp";
+import whoCertified from "@/assets/who-certified.webp";
 
 export const Route = createFileRoute("/index/login")({
   head: () => ({
@@ -39,6 +45,10 @@ const slides = [
   { src: manufacturing, caption: "Blister line · Clean room class C" },
   { src: capsules, caption: "Solid dosage portfolio" },
   { src: warehouse, caption: "GDP-certified distribution hub" },
+  { src: nourishBuilding, caption: "Nourish Pharmaceutical · Manufacturing campus" },
+  { src: nourishHeaderNewSlide, caption: "Quality-first manufacturing operations" },
+  { src: nourishHeader, caption: "Care that reaches every community" },
+  { src: nourishNewSlide, caption: "Precision pharmaceutical production" },
 ];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -236,7 +246,14 @@ function LoginPage() {
             className="h-12 w-auto drop-shadow-md sm:h-14"
           />
         </div>
-        <div className="flex items-center gap-2 [&_button]:text-white [&_button:hover]:bg-white/10">
+        <div className="flex items-center gap-3 [&_button]:text-white [&_button:hover]:bg-white/10">
+          <div
+            className="hidden items-center gap-1.5 rounded-xl bg-white/92 px-2 py-1.5 shadow-lg ring-1 ring-white/25 backdrop-blur lg:flex"
+            aria-label="GMP and WHO GMP quality credentials"
+          >
+            <img src={gmpCertified} alt="GMP certified" className="size-9 rounded-md object-contain" />
+            <img src={whoCertified} alt="WHO GMP certified" className="size-9 rounded-md object-contain" />
+          </div>
           <span className="hidden text-xs text-white/70 sm:inline">
             All rights reserved © Nourish Pharmaceutical Pvt. Ltd. 2024
           </span>
@@ -260,6 +277,21 @@ function LoginPage() {
             Manage clients, product dossiers, RFQs and export orders in one validated workspace —
             with full traceability from first inquiry to final shipment.
           </p>
+
+          <div className="mt-6 flex items-center gap-3 text-sm text-white/80">
+            <div className="flex shrink-0 items-center gap-2" aria-label="GMP and WHO GMP certified">
+              <span className="grid size-12 place-items-center overflow-hidden rounded-lg bg-white p-1 shadow-lg ring-1 ring-white/35">
+                <img src={gmpCertified} alt="GMP certified" className="size-full object-contain" />
+              </span>
+              <span className="grid size-12 place-items-center overflow-hidden rounded-lg bg-white p-1 shadow-lg ring-1 ring-white/35">
+                <img src={whoCertified} alt="WHO GMP certified" className="size-full object-contain" />
+              </span>
+            </div>
+            <span>
+              Quality-led manufacturing
+              <span className="block text-xs text-white/55">GMP and WHO GMP certified</span>
+            </span>
+          </div>
 
           <dl className="mt-9 grid max-w-lg grid-cols-3 gap-4">
             {[
