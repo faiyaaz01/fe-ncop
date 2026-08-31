@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { motion } from "motion/react";
 import {
@@ -71,6 +71,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { normalizeCountryName } from "@/lib/country";
 import { DocumentViewerDialog } from "@/components/document-viewer-dialog";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
@@ -80,6 +81,7 @@ import {
   fetchAllClients,
   createClient,
   updateClient,
+  deleteClient,
   resendRegistrationEmail,
   uploadDocument,
   deleteDocument,
@@ -184,6 +186,11 @@ export interface ClientFormValues {
   }[];
 }
 
+export interface PendingClientDocument {
+  documentType: DocumentType;
+  file: File;
+}
+
 const defaultFormValues: ClientFormValues = {
   customerType: "DOMESTIC",
   companyName: "",
@@ -208,20 +215,28 @@ function buildAddressArray(values: ClientFormValues): Address[] {
 
   const reg = values.registeredAddress;
   if (reg.line1) {
-    addresses.push({ type: "REGISTERED", ...reg });
+    addresses.push({ type: "REGISTERED", ...reg, country: normalizeCountryName(reg.country) });
   }
 
   if (values.billingSameAsRegistered && reg.line1) {
-    addresses.push({ type: "BILLING", ...reg });
+    addresses.push({ type: "BILLING", ...reg, country: normalizeCountryName(reg.country) });
   } else if (values.billingAddress.line1) {
-    addresses.push({ type: "BILLING", ...values.billingAddress });
+    addresses.push({
+      type: "BILLING",
+      ...values.billingAddress,
+      country: normalizeCountryName(values.billingAddress.country),
+    });
   }
 
   const billingSource = values.billingSameAsRegistered ? reg : values.billingAddress;
   if (values.shippingSameAsBilling && billingSource.line1) {
-    addresses.push({ type: "SHIPPING", ...billingSource });
+    addresses.push({ type: "SHIPPING", ...billingSource, country: normalizeCountryName(billingSource.country) });
   } else if (values.shippingAddress.line1) {
-    addresses.push({ type: "SHIPPING", ...values.shippingAddress });
+    addresses.push({
+      type: "SHIPPING",
+      ...values.shippingAddress,
+      country: normalizeCountryName(values.shippingAddress.country),
+    });
   }
 
   return addresses;
@@ -280,7 +295,7 @@ function clientToFormValues(client: Client): ClientFormValues {
     line2: a?.line2 ?? "",
     city: a?.city ?? "",
     state: a?.state ?? "",
-    country: a?.country ?? "",
+    country: normalizeCountryName(a?.country),
     pinCode: a?.pinCode ?? "",
   });
 
@@ -368,6 +383,7 @@ function ClientMaster() {
   const [pageSize, setPageSize] = useState(10);
   const [formOpen, setFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Client | null>(null);
 
   const {
     data: pageData,
@@ -391,13 +407,37 @@ function ClientMaster() {
   const active = clients.find((c) => c.id === activeId) ?? null;
 
   const createMutation = useMutation({
-    mutationFn: createClient,
-    onSuccess: (newClient) => {
+    mutationFn: async ({
+      dto,
+      pendingDocuments,
+    }: {
+      dto: ClientRequestDto;
+      pendingDocuments: PendingClientDocument[];
+    }) => {
+      const newClient = await createClient(dto);
+      let updatedClient = newClient;
+      let failedUploads = 0;
+      for (const { documentType, file } of pendingDocuments) {
+        try {
+          updatedClient = await uploadDocument(newClient.id, file, documentType);
+        } catch {
+          failedUploads += 1;
+        }
+      }
+      return { newClient: updatedClient, failedUploads };
+    },
+    onSuccess: ({ newClient, failedUploads }) => {
       queryClient.setQueryData<Client[]>(["clients"], (old = []) => [newClient, ...old]);
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setFormOpen(false);
       setActiveId(newClient.id);
-      toast.success("Client created successfully");
+      if (failedUploads > 0) {
+        toast.warning(
+          `Client created, but ${failedUploads} document${failedUploads === 1 ? "" : "s"} could not be uploaded.`,
+        );
+      } else {
+        toast.success("Client created successfully");
+      }
     },
     onError: (err: Error) => toast.error(`Failed to create client: ${err.message}`),
   });
@@ -416,6 +456,19 @@ function ClientMaster() {
     onError: (err: Error) => toast.error(`Failed to update client: ${err.message}`),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteClient(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "clients"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard", "client-count"] });
+      setActiveId(null);
+      setDeleteConfirm(null);
+      toast.success("Client deleted successfully");
+    },
+    onError: (err: Error) => toast.error(`Failed to delete client: ${err.message}`),
+  });
+
   const emailMutation = useMutation({
     mutationFn: resendRegistrationEmail,
     onSuccess: () => toast.success("Registration email sent"),
@@ -426,7 +479,8 @@ function ClientMaster() {
     (c) =>
       (segment === "All" || c.customerType === segment) &&
       (clientLevel === "All" || c.clientLevel === clientLevel) &&
-      (country === "All" || c.addresses?.some((address) => address.country === country)) &&
+      (country === "All" ||
+        c.addresses?.some((address) => normalizeCountryName(address.country) === country)) &&
       `${c.companyName} ${c.customerCode} ${c.tradeName ?? ""}`
         .toLowerCase()
         .includes(query.toLowerCase()),
@@ -441,7 +495,7 @@ function ClientMaster() {
         new Set(
           allClients.flatMap((client) =>
             (client.addresses ?? [])
-              .map((address) => address.country?.trim())
+              .map((address) => normalizeCountryName(address.country))
               .filter((value): value is string => Boolean(value)),
           ),
         ),
@@ -494,12 +548,12 @@ function ClientMaster() {
           setEditingClient(null);
         }}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
-        onSubmit={(values: ClientFormValues) => {
+        onSubmit={(values: ClientFormValues, pendingDocuments) => {
           const dto = formToDto(values);
           if (editingClient) {
             updateMutation.mutate({ id: editingClient.id, dto });
           } else {
-            createMutation.mutate(dto);
+            createMutation.mutate({ dto, pendingDocuments });
           }
         }}
       />
@@ -757,10 +811,11 @@ function ClientMaster() {
                             <p className="text-sm font-semibold">{c.documents?.length ?? 0}</p>
                           </div>
                         </div>
-                        <div className="mt-4 grid grid-cols-2 gap-2">
+                        <div className="mt-4 flex min-w-0 flex-col gap-2">
                           <Button
                             variant="outline"
                             size="sm"
+                            className="w-full shrink-0 justify-center"
                             onClick={() =>
                               navigate({ to: "/clients/$clientId", params: { clientId: c.id } })
                             }
@@ -770,6 +825,7 @@ function ClientMaster() {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="w-full shrink-0 justify-center"
                             onClick={() =>
                               navigate({
                                 to: "/clients/$clientId/edit",
@@ -778,6 +834,14 @@ function ClientMaster() {
                             }
                           >
                             <Pencil className="size-4" /> Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full shrink-0 justify-center text-destructive"
+                            onClick={() => setDeleteConfirm(c)}
+                          >
+                            <Trash2 className="size-4" /> Delete client
                           </Button>
                         </div>
                       </Panel>
@@ -880,6 +944,7 @@ function ClientMaster() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-muted-foreground hover:text-foreground"
                               onClick={() =>
                                 navigate({
                                   to: "/clients/$clientId",
@@ -892,6 +957,7 @@ function ClientMaster() {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="size-8 text-muted-foreground hover:text-foreground"
                               onClick={() =>
                                 navigate({
                                   to: "/clients/$clientId/edit",
@@ -900,6 +966,15 @@ function ClientMaster() {
                               }
                             >
                               <Pencil className="size-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteConfirm(client)}
+                              title="Delete client"
+                            >
+                              <Trash2 className="size-4" />
                             </Button>
                           </div>
                         </td>
@@ -934,10 +1009,38 @@ function ClientMaster() {
               client={active}
               onEdit={openEdit}
               onResendEmail={(id) => emailMutation.mutate(id)}
+              onDelete={setDeleteConfirm}
             />
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="size-5" /> Delete Client
+            </DialogTitle>
+            <DialogDescription>
+              Permanently delete <strong className="text-foreground">{deleteConfirm?.companyName}</strong>
+              ? Its attached documents will also be removed. Clients with existing RFQs cannot be
+              deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-3 pt-2 sm:gap-3">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)}
+            >
+              {deleteMutation.isPending ? "Deleting…" : "Delete Client"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1002,10 +1105,12 @@ function ClientDetailDrawer({
   client,
   onEdit,
   onResendEmail,
+  onDelete,
 }: {
   client: Client;
   onEdit: (c: Client) => void;
   onResendEmail: (id: string) => void;
+  onDelete: (client: Client) => void;
 }) {
   const poc = client.pointOfContacts ?? [];
   const addresses = client.addresses ?? [];
@@ -1045,6 +1150,15 @@ function ClientDetailDrawer({
               title="Edit client"
             >
               <Pencil className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => onDelete(client)}
+              title="Delete client"
+            >
+              <Trash2 className="size-4" />
             </Button>
           </div>
         </div>
@@ -1274,7 +1388,17 @@ function AddressBlock({
           </div>
           <div className="space-y-2">
             <Label>Country</Label>
-            <Input {...form.register(`${prefix}.country`)} placeholder="Country" />
+            <Input
+              {...form.register(`${prefix}.country`, {
+                onBlur: (event) => {
+                  const normalized = normalizeCountryName(event.target.value);
+                  if (normalized !== event.target.value) {
+                    form.setValue(`${prefix}.country`, normalized, { shouldDirty: true });
+                  }
+                },
+              })}
+              placeholder="Country"
+            />
           </div>
         </div>
       )}
@@ -1296,9 +1420,10 @@ export function ClientFormView({
   editingClient: Client | null;
   onClose: () => void;
   isSubmitting: boolean;
-  onSubmit: (values: ClientFormValues) => void;
+  onSubmit: (values: ClientFormValues, pendingDocuments: PendingClientDocument[]) => void;
 }) {
   const isEdit = !!editingClient;
+  const [pendingDocuments, setPendingDocuments] = useState<PendingClientDocument[]>([]);
 
   const form = useForm<ClientFormValues>({
     defaultValues: editingClient ? clientToFormValues(editingClient) : defaultFormValues,
@@ -1329,7 +1454,7 @@ export function ClientFormView({
       <Panel className="flex flex-col overflow-hidden p-0 lg:min-h-0 lg:flex-1">
         <form
           id="client-form"
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit((values) => onSubmit(values, pendingDocuments))}
           className="flex flex-col overflow-hidden lg:min-h-0 lg:flex-1"
         >
           <div className="p-6 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
@@ -1627,6 +1752,27 @@ export function ClientFormView({
                     </div>
                   ))}
                 </div>
+              </section>
+
+              <Separator className="my-6" />
+
+              <section className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold">Client Dossier &amp; Documents</h2>
+                  <p className="text-sm text-muted-foreground">
+                    {isEdit
+                      ? "Upload, replace, and review the documents attached to this client."
+                      : "Add documents now. They will be uploaded as soon as the client is created."}
+                  </p>
+                </div>
+                {isEdit && editingClient ? (
+                  <AdminDocumentsPanel client={editingClient} />
+                ) : (
+                  <PendingDocumentsPanel
+                    documents={pendingDocuments}
+                    onChange={setPendingDocuments}
+                  />
+                )}
               </section>
 
               <Separator className="my-6" />
@@ -2027,6 +2173,102 @@ function formatBytes(bytes?: number): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 }
 
+function PendingDocumentsPanel({
+  documents,
+  onChange,
+}: {
+  documents: PendingClientDocument[];
+  onChange: (documents: PendingClientDocument[]) => void;
+}) {
+  const [documentType, setDocumentType] = useState<DocumentType>(DOCUMENT_TYPES[0]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function addDocument(file: File) {
+    const existingIndex = documents.findIndex((document) => document.documentType === documentType);
+    const nextDocument = { documentType, file };
+    onChange(
+      existingIndex >= 0
+        ? documents.map((document, index) => (index === existingIndex ? nextDocument : document))
+        : [...documents, nextDocument],
+    );
+    inputRef.current && (inputRef.current.value = "");
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 rounded-xl border border-dashed border-border bg-muted/20 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <div className="space-y-2">
+          <Label htmlFor="new-client-document-type">Document type</Label>
+          <Select value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
+            <SelectTrigger id="new-client-document-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DOCUMENT_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {DOCUMENT_TYPE_LABELS[type]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) addDocument(file);
+          }}
+        />
+        <Button type="button" variant="outline" className="gap-2" onClick={() => inputRef.current?.click()}>
+          <Upload className="size-4" /> Add document
+        </Button>
+      </div>
+
+      {documents.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+          No documents selected yet.
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {documents.map((document) => (
+            <div
+              key={document.documentType}
+              className="surface flex items-center justify-between gap-3 rounded-xl border p-3"
+            >
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+                  <FileText className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">
+                    {DOCUMENT_TYPE_LABELS[document.documentType]}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {document.file.name} • {formatBytes(document.file.size)}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => onChange(documents.filter((item) => item.documentType !== document.documentType))}
+                aria-label={`Remove ${DOCUMENT_TYPE_LABELS[document.documentType]}`}
+              >
+                <Trash2 className="size-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminDocumentsPanel({ client }: { client: Client }) {
   const queryClient = useQueryClient();
   const [uploadingDoc, setUploadingDoc] = useState<DocumentType | null>(null);
@@ -2046,6 +2288,7 @@ function AdminDocumentsPanel({ client }: { client: Client }) {
       queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
         old.map((c) => (c.id === updatedClient.id ? updatedClient : c)),
       );
+      queryClient.setQueryData<Client>(["clients", updatedClient.id], updatedClient);
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast.success("Document removed");
     },
@@ -2059,6 +2302,7 @@ function AdminDocumentsPanel({ client }: { client: Client }) {
       queryClient.setQueryData<Client[]>(["clients"], (old = []) =>
         old.map((c) => (c.id === updatedClient.id ? updatedClient : c)),
       );
+      queryClient.setQueryData<Client>(["clients", updatedClient.id], updatedClient);
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       toast.success(`${DOCUMENT_TYPE_LABELS[docType]} uploaded successfully`);
     } catch (err: unknown) {

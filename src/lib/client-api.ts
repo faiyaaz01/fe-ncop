@@ -1,6 +1,7 @@
 import { apiUrl } from "./api-config";
 import { userSessionService } from "./user-session";
 import type { Client, ClientRequestDto, DocumentType, PageResponse } from "./client-types";
+import { normalizeCountryName } from "./country";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,16 @@ function authHeaders(): HeadersInit {
 
 function authToken(): string | null {
   return userSessionService.getCurrentUser()?.token ?? null;
+}
+
+function normalizeClientCountries(client: Client): Client {
+  return {
+    ...client,
+    addresses: client.addresses?.map((address) => ({
+      ...address,
+      country: normalizeCountryName(address.country),
+    })),
+  };
 }
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -45,7 +56,8 @@ export async function fetchClients(
     method: "GET",
     headers: authHeaders(),
   });
-  return handleResponse<PageResponse<Client>>(res);
+  const page = await handleResponse<PageResponse<Client>>(res);
+  return { ...page, content: page.content.map(normalizeClientCountries) };
 }
 
 /** GET /api/clients/all — fetch all clients (unpaginated for select dropdowns) */
@@ -54,7 +66,8 @@ export async function fetchAllClients(): Promise<Client[]> {
     method: "GET",
     headers: authHeaders(),
   });
-  return handleResponse<Client[]>(res);
+  const clients = await handleResponse<Client[]>(res);
+  return clients.map(normalizeClientCountries);
 }
 
 /** GET /api/clients/count — fetch total client count */
@@ -81,7 +94,7 @@ export async function fetchClient(id: string): Promise<Client> {
     method: "GET",
     headers: authHeaders(),
   });
-  return handleResponse<Client>(res);
+  return normalizeClientCountries(await handleResponse<Client>(res));
 }
 
 /** POST /api/clients — create a new client */
@@ -91,7 +104,7 @@ export async function createClient(dto: ClientRequestDto): Promise<Client> {
     headers: authHeaders(),
     body: JSON.stringify(dto),
   });
-  return handleResponse<Client>(res);
+  return normalizeClientCountries(await handleResponse<Client>(res));
 }
 
 /** PUT /api/clients/:id — update an existing client */
@@ -101,7 +114,23 @@ export async function updateClient(id: string, dto: ClientRequestDto): Promise<C
     headers: authHeaders(),
     body: JSON.stringify(dto),
   });
-  return handleResponse<Client>(res);
+  return normalizeClientCountries(await handleResponse<Client>(res));
+}
+
+/** DELETE /api/clients/:id — permanently remove a client without RFQs */
+export async function deleteClient(id: string): Promise<void> {
+  const res = await fetch(apiUrl(`/api/v1/clients/${id}`), {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) {
+    if (res.status === 401) await userSessionService.handleUnauthorizedResponse();
+    if (res.status === 409) {
+      throw new Error("This client has RFQs and cannot be deleted.");
+    }
+    const body = await res.text().catch(() => "");
+    throw new Error(body || `API error ${res.status}`);
+  }
 }
 
 /** POST /api/clients/:id/send-email — resend registration email to all POCs */
@@ -136,7 +165,7 @@ export async function uploadDocument(
     headers,
     body: formData,
   });
-  return handleResponse<Client>(res);
+  return normalizeClientCountries(await handleResponse<Client>(res));
 }
 
 /** Get relative URL for viewing/streaming document */
@@ -156,5 +185,5 @@ export async function deleteDocument(clientId: string, docId: string): Promise<C
     method: "DELETE",
     headers,
   });
-  return handleResponse<Client>(res);
+  return normalizeClientCountries(await handleResponse<Client>(res));
 }

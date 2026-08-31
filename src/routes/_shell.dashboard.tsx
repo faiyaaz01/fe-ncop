@@ -19,6 +19,7 @@ import { fetchAllClients, fetchClientCount } from "@/lib/client-api";
 import { fetchProductMetrics } from "@/lib/product-api";
 import { fetchInquiries, fetchMyInquiries } from "@/lib/inquiry-api";
 import { canAccessRoute, userSessionService } from "@/lib/user-session";
+import { normalizeCountryName } from "@/lib/country";
 
 export const Route = createFileRoute("/_shell/dashboard")({
   head: () => ({
@@ -97,7 +98,7 @@ function Dashboard() {
   const countryDistribution = useMemo(() => {
     const counts = new Map<string, number>();
     for (const client of clients.data || []) {
-      const country = client.addresses?.[0]?.country?.trim() || "Not specified";
+      const country = normalizeCountryName(client.addresses?.[0]?.country) || "Not specified";
       counts.set(country, (counts.get(country) || 0) + 1);
     }
     return [...counts.entries()]
