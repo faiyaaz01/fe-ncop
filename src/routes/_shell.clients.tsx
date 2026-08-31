@@ -1314,7 +1314,7 @@ export function ClientFormView({
   } = useFieldArray({ control: form.control, name: "pointOfContacts" });
 
   return (
-    <div className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col gap-6">
+    <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100dvh-9rem)]">
       <PageHeader
         eyebrow="CLIENTS"
         title={isEdit ? "Edit Client" : "Add New Client"}
@@ -1326,13 +1326,13 @@ export function ClientFormView({
         }
       />
 
-      <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
+      <Panel className="flex flex-col overflow-hidden p-0 lg:min-h-0 lg:flex-1">
         <form
           id="client-form"
           onSubmit={form.handleSubmit(onSubmit)}
-          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+          className="flex flex-col overflow-hidden lg:min-h-0 lg:flex-1"
         >
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 sm:p-8">
+          <div className="p-6 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
             <div className="space-y-8">
               {/* Company Information */}
               <section className="space-y-4">
