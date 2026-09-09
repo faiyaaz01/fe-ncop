@@ -56,6 +56,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 import { cn } from "@/lib/utils";
 import { formatShortDateTime } from "@/lib/date-utils";
+import { UniversalFilterBar } from "@/components/kit";
 
 import {
   fetchUsers,
@@ -723,64 +724,43 @@ function UsersTab({
 
   return (
     <div className="space-y-4">
-      {/* ── Search & Filter Controls ── */}
-      <div className="surface grid gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-center">
-        <div className="relative min-w-0">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search users by name, email, or role..."
-            value={search}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            className="h-10 pl-9 text-xs sm:text-sm"
-          />
-        </div>
+      {/* ── Universal Search & Filter Controls ── */}
+      <UniversalFilterBar
+        search={search}
+        onSearchChange={handleSearchChange}
+        searchPlaceholder="Search users by name, email, or role..."
+        hasActiveFilters={hasActiveFilters}
+        onReset={handleResetFilters}
+        filterColumns={2}
+      >
+        <Select value={statusFilter} onValueChange={handleStatusChange}>
+          <SelectTrigger className="h-10 w-full min-w-0 text-xs">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Statuses</SelectItem>
+            <SelectItem value="ACTIVE">Active</SelectItem>
+            <SelectItem value="ROLE_INACTIVE">Role Inactive ⚠️</SelectItem>
+            <SelectItem value="PENDING">Pending</SelectItem>
+            <SelectItem value="INACTIVE">Inactive</SelectItem>
+            <SelectItem value="SUSPENDED">Suspended</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <div
-          className={cn(
-            "grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2",
-            hasActiveFilters && "sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]",
-          )}
-        >
-          <Select value={statusFilter} onValueChange={handleStatusChange}>
-            <SelectTrigger className="h-10 w-full min-w-0 text-xs">
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Statuses</SelectItem>
-              <SelectItem value="ACTIVE">Active</SelectItem>
-              <SelectItem value="ROLE_INACTIVE">Role Inactive ⚠️</SelectItem>
-              <SelectItem value="PENDING">Pending</SelectItem>
-              <SelectItem value="INACTIVE">Inactive</SelectItem>
-              <SelectItem value="SUSPENDED">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={roleFilter} onValueChange={handleRoleChange}>
-            <SelectTrigger className="h-10 w-full min-w-0 text-xs">
-              <SelectValue placeholder="All Roles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All Roles</SelectItem>
-              {roles.map((r) => (
-                <SelectItem key={r.roleId} value={r.name}>
-                  {r.name} {!r.active && "(Inactive)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-10 shrink-0 self-center whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="size-3" />
-              Reset
-            </Button>
-          )}
-        </div>
-      </div>
+        <Select value={roleFilter} onValueChange={handleRoleChange}>
+          <SelectTrigger className="h-10 w-full min-w-0 text-xs">
+            <SelectValue placeholder="All Roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All Roles</SelectItem>
+            {roles.map((r) => (
+              <SelectItem key={r.roleId} value={r.name}>
+                {r.name} {!r.active && "(Inactive)"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </UniversalFilterBar>
 
       {/* ── Users Table ── */}
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
@@ -1864,7 +1844,7 @@ export function UserFormDialog({
   if (pageMode) {
     if (!open) return null;
     return (
-      <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100dvh-9rem)]">
+      <div className="flex flex-col gap-6">
         <PageHeader
           eyebrow="USERS"
           title={isEdit ? "Edit User Account" : "Create New User Account"}
@@ -1880,13 +1860,13 @@ export function UserFormDialog({
           }
         />
 
-        <Panel className="flex flex-col overflow-hidden p-0 lg:min-h-0 lg:flex-1">
+        <Panel className="overflow-hidden p-0">
           <form
             id="user-form"
             onSubmit={handleSubmit}
-            className="flex flex-col overflow-hidden lg:min-h-0 lg:flex-1"
+            className="flex flex-col"
           >
-            <div className="p-6 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+            <div className="p-6 sm:p-8">
               <div className="space-y-6">{formFields}</div>
             </div>
 

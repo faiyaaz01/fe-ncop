@@ -116,14 +116,10 @@ function FormWorkspaceSkeleton({
   actionWidth?: string;
 }) {
   return (
-    <div
-      className="flex h-[calc(100dvh-9rem)] min-h-0 flex-col gap-6"
-      aria-busy="true"
-      aria-label={label}
-    >
+    <div className="flex flex-col gap-6" aria-busy="true" aria-label={label}>
       <HeaderSkeleton actions={1} />
-      <Panel className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
-        <div className="min-h-0 flex-1 space-y-8 overflow-hidden p-6 sm:p-8">
+      <Panel className="overflow-hidden p-0">
+        <div className="space-y-8 p-6 sm:p-8">
           {sections.map((fields, index) => (
             <div key={index} className="space-y-4 border-b border-border/60 pb-8 last:border-0">
               <Skeleton className="h-6 w-48" />

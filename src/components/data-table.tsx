@@ -47,7 +47,7 @@ export function DataTable<T extends { id: string }>({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let out = q ? rows.filter((r) => searchKeys(r).toLowerCase().includes(q)) : [...rows];
+    const out = q ? rows.filter((r) => searchKeys(r).toLowerCase().includes(q)) : [...rows];
     if (sort) {
       const col = columns.find((c) => c.key === sort.key);
       if (col?.sortValue) {
@@ -89,7 +89,7 @@ export function DataTable<T extends { id: string }>({
       {visible.length === 0 ? (
         <div className="p-6">{empty}</div>
       ) : (
-        <div className="max-h-[560px] overflow-auto">
+        <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="bg-secondary/80 backdrop-blur-md">

@@ -40,6 +40,8 @@ import {
   StatusChip,
   SectionLoader,
   TableRowLoader,
+  EntityFormPage,
+  UniversalFilterBar,
 } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -356,106 +358,89 @@ function ProductMaster() {
             </div>
           </div>
 
-          {/* ── Filters & Search ── */}
-          <div className="surface mb-6 flex flex-col gap-3 rounded-xl border border-border/70 p-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
-                }}
-                placeholder="Search by brand name, SKU code, API ingredient, or composition..."
-                className="pl-9"
-              />
-            </div>
+          {/* ── Universal Filters & Search (Standardized from RFQ Module) ── */}
+          <UniversalFilterBar
+            search={search}
+            onSearchChange={(val) => {
+              setSearch(val);
+              setPage(0);
+            }}
+            searchPlaceholder="Search by brand name, SKU code, API ingredient, or composition..."
+            hasActiveFilters={Boolean(
+              search || categoryFilter !== "all" || dosageFilter !== "all" || statusFilter !== "all"
+            )}
+            onReset={() => {
+              setSearch("");
+              setCategoryFilter("all");
+              setDosageFilter("all");
+              setStatusFilter("all");
+              setPage(0);
+            }}
+            filterColumns={3}
+            className="mb-6"
+          >
+            {/* Category Filter */}
+            <Select
+              value={categoryFilter}
+              onValueChange={(val) => {
+                setCategoryFilter(val);
+                setPage(0);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {DEFAULT_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Category Filter */}
-              <Select
-                value={categoryFilter}
-                onValueChange={(val) => {
-                  setCategoryFilter(val);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="w-[170px]">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {DEFAULT_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat}>
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Dosage Form Filter */}
+            <Select
+              value={dosageFilter}
+              onValueChange={(val) => {
+                setDosageFilter(val);
+                setPage(0);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Dosage Forms" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Dosage Forms</SelectItem>
+                {dosageForms.map((df) => (
+                  <SelectItem key={df.id || df.name} value={df.name}>
+                    {df.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-              {/* Dosage Form Filter */}
-              <Select
-                value={dosageFilter}
-                onValueChange={(val) => {
-                  setDosageFilter(val);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="w-[170px]">
-                  <SelectValue placeholder="Dosage Form" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Dosage Forms</SelectItem>
-                  {dosageForms.map((df) => (
-                    <SelectItem key={df.id || df.name} value={df.name}>
-                      {df.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Status Filter */}
-              <Select
-                value={statusFilter}
-                onValueChange={(val) => {
-                  setStatusFilter(val);
-                  setPage(0);
-                }}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="ACTIVE">Active</SelectItem>
-                  <SelectItem value="UNDER_DEVELOPMENT">In Development</SelectItem>
-                  <SelectItem value="DISCONTINUED">Discontinued</SelectItem>
-                  <SelectItem value="DRAFT">Draft</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {(search ||
-                categoryFilter !== "all" ||
-                dosageFilter !== "all" ||
-                statusFilter !== "all") && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSearch("");
-                    setCategoryFilter("all");
-                    setDosageFilter("all");
-                    setStatusFilter("all");
-                    setPage(0);
-                  }}
-                  className="h-10 shrink-0 whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
-                >
-                  <RotateCcw className="size-3" />
-                  Reset
-                </Button>
-              )}
-            </div>
-          </div>
+            {/* Status Filter */}
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                setStatusFilter(val);
+                setPage(0);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="UNDER_DEVELOPMENT">In Development</SelectItem>
+                <SelectItem value="DISCONTINUED">Discontinued</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+          </UniversalFilterBar>
         </div>
       </div>
 
@@ -1329,45 +1314,20 @@ export function ProductFormDialog({
   if (pageMode) {
     if (!open) return null;
     return (
-      <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100dvh-9rem)]">
-        <PageHeader
-          eyebrow="PRODUCTS"
-          title={editingProduct ? "Edit Product" : "Add New Product"}
-          description="Fill in the details below. Product code will be auto-generated."
-          actions={
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              <ChevronLeft className="mr-2 size-4" /> Back to products
-            </Button>
-          }
-        />
-
-        <Panel className="flex flex-col overflow-hidden p-0 lg:min-h-0 lg:flex-1">
-          <form
-            id="product-form"
-            onSubmit={handleSubmit}
-            className="flex flex-col overflow-hidden lg:min-h-0 lg:flex-1"
-          >
-            <div className="p-6 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
-              <div className="space-y-8">{formFields}</div>
-            </div>
-
-            <div className="relative z-10 flex shrink-0 flex-col gap-3 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:w-auto"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto gap-1.5">
-                {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-                {isSubmitting ? "Saving…" : editingProduct ? "Save Changes" : "Create Product"}
-              </Button>
-            </div>
-          </form>
-        </Panel>
-      </div>
+      <EntityFormPage
+        eyebrow="PRODUCTS"
+        title={editingProduct ? "Edit Product" : "Add New Product"}
+        description="Fill in the details below. Product code will be auto-generated."
+        backLabel="Back to products"
+        onBack={() => onOpenChange(false)}
+        formId="product-form"
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        submitLabel={editingProduct ? "Save Changes" : "Create Product"}
+        submittingLabel="Saving…"
+      >
+        {formFields}
+      </EntityFormPage>
     );
   }
 
@@ -1510,10 +1470,10 @@ function DosageConfigDialog({
       <DialogContent
         inline={pageMode}
         className={cn(
-          "flex flex-col overflow-hidden p-0",
+          "flex flex-col p-0",
           pageMode
-            ? "space-y-6"
-            : "max-sm:fixed max-sm:inset-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:h-[88vh] sm:w-[92vw] sm:max-w-3xl sm:rounded-2xl shadow-2xl",
+            ? "space-y-6 overflow-visible"
+            : "overflow-hidden max-sm:fixed max-sm:inset-0 max-sm:h-full max-sm:w-full max-sm:max-w-none max-sm:rounded-none max-sm:border-0 sm:h-[88vh] sm:w-[92vw] sm:max-w-3xl sm:rounded-2xl shadow-2xl",
         )}
       >
         {pageMode ? (
@@ -1542,13 +1502,20 @@ function DosageConfigDialog({
 
         <div
           className={cn(
-            "min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6",
-            pageMode && "rounded-2xl border border-border/60 bg-card sm:px-8 sm:py-8",
+            "min-h-0 flex-1 px-5 py-5 sm:px-6",
+            pageMode
+              ? "overflow-visible rounded-2xl border border-border/60 bg-card sm:px-8 sm:py-8"
+              : "overflow-y-auto",
           )}
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
             {/* Left Column: List of Forms in DB */}
-            <div className="md:col-span-5 rounded-xl border border-border/70 surface p-3 flex flex-col h-[260px] md:h-[480px]">
+            <div
+              className={cn(
+                "md:col-span-5 rounded-xl border border-border/70 surface p-3 flex flex-col",
+                !pageMode && "h-[260px] md:h-[480px]",
+              )}
+            >
               <div className="flex items-center justify-between pb-2 border-b border-border/60">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Dosage Forms ({dosageForms.length})
@@ -1566,7 +1533,7 @@ function DosageConfigDialog({
                 </Button>
               </div>
 
-              <div className="flex-1 overflow-y-auto space-y-1 pt-2 pr-1">
+              <div className={cn("space-y-1 pt-2 pr-1", !pageMode && "flex-1 overflow-y-auto")}>
                 {dosageForms.map((df) => (
                   <button
                     key={df.id}
@@ -1597,7 +1564,12 @@ function DosageConfigDialog({
             </div>
 
             {/* Right Column: Edit selected form & variants */}
-            <div className="md:col-span-7 rounded-xl border border-border/70 surface p-4 flex flex-col justify-between space-y-4 md:h-[480px]">
+            <div
+              className={cn(
+                "md:col-span-7 rounded-xl border border-border/70 surface p-4 flex flex-col justify-between space-y-4",
+                !pageMode && "md:h-[480px]",
+              )}
+            >
               <div className="space-y-3.5">
                 <div className="flex items-center justify-between">
                   <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1671,7 +1643,12 @@ function DosageConfigDialog({
                     </Button>
                   </div>
 
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1.5 rounded-lg bg-secondary/30 border border-border/50">
+                  <div
+                    className={cn(
+                      "flex flex-wrap gap-1.5 p-1.5 rounded-lg bg-secondary/30 border border-border/50",
+                      !pageMode && "max-h-36 overflow-y-auto",
+                    )}
+                  >
                     {variantsList.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground p-1">
                         No Level 2 variants added yet.

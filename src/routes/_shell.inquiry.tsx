@@ -342,6 +342,10 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
         ? await updateInquiry(editingInquiry.id, request)
         : await createInquiry(request);
       await queryClient.invalidateQueries({ queryKey: ["inquiries"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["qa-rfqs"] }),
+        queryClient.invalidateQueries({ queryKey: ["qa-kpis"] }),
+      ]);
       setPreviewingDraft(false);
       toast.success(
         editingInquiry ? `${inquiry.rfqNo} updated` : `${inquiry.rfqNo} submitted for review`,
@@ -444,7 +448,7 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
     );
 
   return (
-    <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100dvh-9rem)]">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="Pipeline"
         title={editingInquiry ? `Edit ${editingInquiry.rfqNo}` : "Add Customer Inquiry"}
@@ -466,8 +470,8 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
           </div>
         }
       />
-      <Panel className="flex flex-col overflow-hidden p-0 lg:min-h-0 lg:flex-1">
-        <div className="p-6 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+      <Panel className="overflow-hidden p-0">
+        <div className="p-6 sm:p-8">
           <div className="space-y-8">
             <section className="space-y-4">
               <div>

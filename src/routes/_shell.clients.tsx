@@ -44,6 +44,7 @@ import {
   Reveal,
   StatusChip,
   TableRowLoader,
+  UniversalFilterBar,
 } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -625,80 +626,60 @@ function ClientMaster() {
         />
       </section>
 
-      <div className="surface grid gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-center">
-        <div className="relative min-w-0">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setPage(0);
-            }}
-            placeholder="Search by company, code or trade name…"
-            className="pl-9"
-          />
-        </div>
-        <div
-          className={cn(
-            "grid min-w-0 grid-cols-1 gap-3",
-            hasActiveFilters ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]" : "sm:grid-cols-3",
-          )}
+      <UniversalFilterBar
+        search={query}
+        onSearchChange={(val) => {
+          setQuery(val);
+          setPage(0);
+        }}
+        searchPlaceholder="Search by company, code or trade name…"
+        hasActiveFilters={hasActiveFilters}
+        onReset={handleResetFilters}
+        filterColumns={3}
+      >
+        <Select value={segment} onValueChange={(value) => setSegment(value as typeof segment)}>
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue placeholder="All client types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All client types</SelectItem>
+            {CUSTOMER_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {CUSTOMER_TYPE_LABELS[type]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={clientLevel}
+          onValueChange={(value) => setClientLevel(value as typeof clientLevel)}
         >
-          <Select value={segment} onValueChange={(value) => setSegment(value as typeof segment)}>
-            <SelectTrigger className="w-full min-w-0">
-              <SelectValue placeholder="All client types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All client types</SelectItem>
-              {CUSTOMER_TYPES.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {CUSTOMER_TYPE_LABELS[type]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={clientLevel}
-            onValueChange={(value) => setClientLevel(value as typeof clientLevel)}
-          >
-            <SelectTrigger className="w-full min-w-0">
-              <SelectValue placeholder="All client levels" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All client levels</SelectItem>
-              {CLIENT_LEVELS.map((level) => (
-                <SelectItem key={level} value={level}>
-                  {CLIENT_LEVEL_LABELS[level]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={country} onValueChange={setCountry}>
-            <SelectTrigger className="w-full min-w-0">
-              <SelectValue placeholder="All countries" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All countries</SelectItem>
-              {countries.map((item) => (
-                <SelectItem key={item} value={item}>
-                  {item}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleResetFilters}
-              className="h-10 shrink-0 self-center whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="size-3" />
-              Reset
-            </Button>
-          )}
-        </div>
-      </div>
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue placeholder="All client levels" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All client levels</SelectItem>
+            {CLIENT_LEVELS.map((level) => (
+              <SelectItem key={level} value={level}>
+                {CLIENT_LEVEL_LABELS[level]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={country} onValueChange={setCountry}>
+          <SelectTrigger className="w-full min-w-0">
+            <SelectValue placeholder="All countries" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="All">All countries</SelectItem>
+            {countries.map((item) => (
+              <SelectItem key={item} value={item}>
+                {item}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </UniversalFilterBar>
 
       {/* ── Error ── */}
       {isError && (
@@ -1439,7 +1420,7 @@ export function ClientFormView({
   } = useFieldArray({ control: form.control, name: "pointOfContacts" });
 
   return (
-    <div className="flex min-h-0 flex-col gap-6 lg:h-[calc(100dvh-9rem)]">
+    <div className="flex flex-col gap-6">
       <PageHeader
         eyebrow="CLIENTS"
         title={isEdit ? "Edit Client" : "Add New Client"}
@@ -1451,13 +1432,13 @@ export function ClientFormView({
         }
       />
 
-      <Panel className="flex flex-col overflow-hidden p-0 lg:min-h-0 lg:flex-1">
+      <Panel className="overflow-hidden p-0">
         <form
           id="client-form"
           onSubmit={form.handleSubmit((values) => onSubmit(values, pendingDocuments))}
-          className="flex flex-col overflow-hidden lg:min-h-0 lg:flex-1"
+          className="flex flex-col"
         >
-          <div className="p-6 sm:p-8 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain">
+          <div className="p-6 sm:p-8">
             <div className="space-y-8">
               {/* Company Information */}
               <section className="space-y-4">

@@ -17,6 +17,7 @@ import { Route as ShellInquiryRouteImport } from './routes/_shell.inquiry'
 import { Route as ShellOrdersRouteImport } from './routes/_shell.orders'
 import { Route as ShellProductsRouteImport } from './routes/_shell.products'
 import { Route as ShellProfileRouteImport } from './routes/_shell.profile'
+import { Route as ShellQaRouteImport } from './routes/_shell.qa'
 import { Route as ShellReportsRouteImport } from './routes/_shell.reports'
 import { Route as ShellSettingsRouteImport } from './routes/_shell.settings'
 import { Route as ShellUserManagementRouteImport } from './routes/_shell.user-management'
@@ -28,6 +29,8 @@ import { Route as ShellProductsProductIdRouteImport } from './routes/_shell.prod
 import { Route as ShellClientsClientIdEditRouteImport } from './routes/_shell.clients_.$clientId.edit'
 import { Route as ShellInquiryInquiryIdEditRouteImport } from './routes/_shell.inquiry_.$inquiryId.edit'
 import { Route as ShellProductsProductIdEditRouteImport } from './routes/_shell.products_.$productId.edit'
+import { Route as ShellQaMfrMfrIdRouteImport } from './routes/_shell.qa_.mfr_.$mfrId'
+import { Route as ShellQaRfqRfqIdRouteImport } from './routes/_shell.qa_.rfq_.$rfqId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -66,6 +69,11 @@ const ShellProductsRoute = ShellProductsRouteImport.update({
 const ShellProfileRoute = ShellProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellQaRoute = ShellQaRouteImport.update({
+  id: '/qa',
+  path: '/qa',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellReportsRoute = ShellReportsRouteImport.update({
@@ -126,6 +134,16 @@ const ShellProductsProductIdEditRoute =
     path: '/edit',
     getParentRoute: () => ShellProductsProductIdRoute,
   } as any)
+const ShellQaMfrMfrIdRoute = ShellQaMfrMfrIdRouteImport.update({
+  id: '/qa_/mfr_/$mfrId',
+  path: '/qa/mfr/$mfrId',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellQaRfqRfqIdRoute = ShellQaRfqRfqIdRouteImport.update({
+  id: '/qa_/rfq_/$rfqId',
+  path: '/qa/rfq/$rfqId',
+  getParentRoute: () => ShellRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -135,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/orders': typeof ShellOrdersRoute
   '/products': typeof ShellProductsRoute
   '/profile': typeof ShellProfileRoute
+  '/qa': typeof ShellQaRoute
   '/reports': typeof ShellReportsRoute
   '/settings': typeof ShellSettingsRoute
   '/user-management': typeof ShellUserManagementRoute
@@ -146,6 +165,8 @@ export interface FileRoutesByFullPath {
   '/clients/$clientId/edit': typeof ShellClientsClientIdEditRoute
   '/inquiry/$inquiryId/edit': typeof ShellInquiryInquiryIdEditRoute
   '/products/$productId/edit': typeof ShellProductsProductIdEditRoute
+  '/qa/mfr/$mfrId': typeof ShellQaMfrMfrIdRoute
+  '/qa/rfq/$rfqId': typeof ShellQaRfqRfqIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -155,6 +176,7 @@ export interface FileRoutesByTo {
   '/orders': typeof ShellOrdersRoute
   '/products': typeof ShellProductsRoute
   '/profile': typeof ShellProfileRoute
+  '/qa': typeof ShellQaRoute
   '/reports': typeof ShellReportsRoute
   '/settings': typeof ShellSettingsRoute
   '/user-management': typeof ShellUserManagementRoute
@@ -166,6 +188,8 @@ export interface FileRoutesByTo {
   '/clients/$clientId/edit': typeof ShellClientsClientIdEditRoute
   '/inquiry/$inquiryId/edit': typeof ShellInquiryInquiryIdEditRoute
   '/products/$productId/edit': typeof ShellProductsProductIdEditRoute
+  '/qa/mfr/$mfrId': typeof ShellQaMfrMfrIdRoute
+  '/qa/rfq/$rfqId': typeof ShellQaRfqRfqIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -177,6 +201,7 @@ export interface FileRoutesById {
   '/_shell/orders': typeof ShellOrdersRoute
   '/_shell/products': typeof ShellProductsRoute
   '/_shell/profile': typeof ShellProfileRoute
+  '/_shell/qa': typeof ShellQaRoute
   '/_shell/reports': typeof ShellReportsRoute
   '/_shell/settings': typeof ShellSettingsRoute
   '/_shell/user-management': typeof ShellUserManagementRoute
@@ -188,6 +213,8 @@ export interface FileRoutesById {
   '/_shell/clients_/$clientId/edit': typeof ShellClientsClientIdEditRoute
   '/_shell/inquiry_/$inquiryId/edit': typeof ShellInquiryInquiryIdEditRoute
   '/_shell/products_/$productId/edit': typeof ShellProductsProductIdEditRoute
+  '/_shell/qa_/mfr_/$mfrId': typeof ShellQaMfrMfrIdRoute
+  '/_shell/qa_/rfq_/$rfqId': typeof ShellQaRfqRfqIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -199,6 +226,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/profile'
+    | '/qa'
     | '/reports'
     | '/settings'
     | '/user-management'
@@ -210,6 +238,8 @@ export interface FileRouteTypes {
     | '/clients/$clientId/edit'
     | '/inquiry/$inquiryId/edit'
     | '/products/$productId/edit'
+    | '/qa/mfr/$mfrId'
+    | '/qa/rfq/$rfqId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -219,6 +249,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/products'
     | '/profile'
+    | '/qa'
     | '/reports'
     | '/settings'
     | '/user-management'
@@ -230,6 +261,8 @@ export interface FileRouteTypes {
     | '/clients/$clientId/edit'
     | '/inquiry/$inquiryId/edit'
     | '/products/$productId/edit'
+    | '/qa/mfr/$mfrId'
+    | '/qa/rfq/$rfqId'
   id:
     | '__root__'
     | '/'
@@ -240,6 +273,7 @@ export interface FileRouteTypes {
     | '/_shell/orders'
     | '/_shell/products'
     | '/_shell/profile'
+    | '/_shell/qa'
     | '/_shell/reports'
     | '/_shell/settings'
     | '/_shell/user-management'
@@ -251,6 +285,8 @@ export interface FileRouteTypes {
     | '/_shell/clients_/$clientId/edit'
     | '/_shell/inquiry_/$inquiryId/edit'
     | '/_shell/products_/$productId/edit'
+    | '/_shell/qa_/mfr_/$mfrId'
+    | '/_shell/qa_/rfq_/$rfqId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -316,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof ShellProfileRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/qa': {
+      id: '/_shell/qa'
+      path: '/qa'
+      fullPath: '/qa'
+      preLoaderRoute: typeof ShellQaRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/reports': {
@@ -395,6 +438,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellProductsProductIdEditRouteImport
       parentRoute: typeof ShellProductsProductIdRoute
     }
+    '/_shell/qa_/mfr_/$mfrId': {
+      id: '/_shell/qa_/mfr_/$mfrId'
+      path: '/qa/mfr/$mfrId'
+      fullPath: '/qa/mfr/$mfrId'
+      preLoaderRoute: typeof ShellQaMfrMfrIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/qa_/rfq_/$rfqId': {
+      id: '/_shell/qa_/rfq_/$rfqId'
+      path: '/qa/rfq/$rfqId'
+      fullPath: '/qa/rfq/$rfqId'
+      preLoaderRoute: typeof ShellQaRfqRfqIdRouteImport
+      parentRoute: typeof ShellRoute
+    }
   }
 }
 
@@ -443,12 +500,15 @@ interface ShellRouteChildren {
   ShellOrdersRoute: typeof ShellOrdersRoute
   ShellProductsRoute: typeof ShellProductsRoute
   ShellProfileRoute: typeof ShellProfileRoute
+  ShellQaRoute: typeof ShellQaRoute
   ShellReportsRoute: typeof ShellReportsRoute
   ShellSettingsRoute: typeof ShellSettingsRoute
   ShellUserManagementRoute: typeof ShellUserManagementRoute
   ShellClientsClientIdRoute: typeof ShellClientsClientIdRouteWithChildren
   ShellInquiryInquiryIdRoute: typeof ShellInquiryInquiryIdRouteWithChildren
   ShellProductsProductIdRoute: typeof ShellProductsProductIdRouteWithChildren
+  ShellQaMfrMfrIdRoute: typeof ShellQaMfrMfrIdRoute
+  ShellQaRfqRfqIdRoute: typeof ShellQaRfqRfqIdRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
@@ -458,12 +518,15 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellOrdersRoute: ShellOrdersRoute,
   ShellProductsRoute: ShellProductsRoute,
   ShellProfileRoute: ShellProfileRoute,
+  ShellQaRoute: ShellQaRoute,
   ShellReportsRoute: ShellReportsRoute,
   ShellSettingsRoute: ShellSettingsRoute,
   ShellUserManagementRoute: ShellUserManagementRoute,
   ShellClientsClientIdRoute: ShellClientsClientIdRouteWithChildren,
   ShellInquiryInquiryIdRoute: ShellInquiryInquiryIdRouteWithChildren,
   ShellProductsProductIdRoute: ShellProductsProductIdRouteWithChildren,
+  ShellQaMfrMfrIdRoute: ShellQaMfrMfrIdRoute,
+  ShellQaRfqRfqIdRoute: ShellQaRfqRfqIdRoute,
 }
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)

@@ -12,6 +12,10 @@ import {
 import { cn } from "@/lib/utils";
 import { smoothEase, fadeInUp, staggerContainer } from "@/lib/animations";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { ChevronLeft, Loader2, Search, RotateCcw } from "lucide-react";
 
 // ── Shared Skeleton Loading States ───────────────────────────────────────────
 
@@ -301,18 +305,23 @@ export function Panel({
   className,
   children,
   hover = false,
+  onClick,
+  ...props
 }: {
   className?: string;
   children: ReactNode;
   hover?: boolean;
-}) {
+  onClick?: (e: MouseEvent<HTMLDivElement>) => void;
+} & Omit<React.HTMLAttributes<HTMLDivElement>, "children" | "onClick">) {
   return (
     <motion.div
       layout="position"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: smoothEase }}
+      onClick={onClick}
       className={cn("surface flex flex-col justify-between p-5", hover && "lift", className)}
+      {...props}
     >
       {children}
     </motion.div>
@@ -504,3 +513,236 @@ export function Timeline({ items }: { items: { date: string; title: string; deta
     </ol>
   );
 }
+
+// ── Universal Entity Form Architecture ────────────────────────────────────────
+
+export interface EntityFormPageProps {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  backLabel?: string;
+  onBack: () => void;
+  formId?: string;
+  onSubmit: (e: React.FormEvent) => void;
+  isSubmitting?: boolean;
+  submitLabel?: string;
+  submittingLabel?: string;
+  cancelLabel?: string;
+  onCancel?: () => void;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}
+
+/**
+ * Universal full-page form layout matching the standard established in Products & QA.
+ * Provides a responsive shell with:
+ * - Top PageHeader with back navigation
+ * - Panel container that expands with its content
+ * - Standardized spacing and layout
+ * - Bottom action bar with Cancel, Submit, and loading spinner
+ */
+export function EntityFormPage({
+  eyebrow,
+  title,
+  description,
+  backLabel = "Back",
+  onBack,
+  formId = "entity-form",
+  onSubmit,
+  isSubmitting = false,
+  submitLabel = "Save Changes",
+  submittingLabel = "Saving…",
+  cancelLabel = "Cancel",
+  onCancel,
+  actions,
+  children,
+  className,
+}: EntityFormPageProps) {
+  return (
+    <div className={cn("flex flex-col gap-6", className)}>
+      <PageHeader
+        eyebrow={eyebrow}
+        title={title}
+        description={description}
+        actions={
+          <Button variant="outline" onClick={onBack}>
+            <ChevronLeft className="mr-2 size-4" /> {backLabel}
+          </Button>
+        }
+      />
+
+      <Panel className="overflow-hidden p-0">
+        <form id={formId} onSubmit={onSubmit} className="flex flex-col">
+          <div className="p-6 sm:p-8">
+            <div className="space-y-8">{children}</div>
+          </div>
+
+          <div className="relative z-10 flex shrink-0 flex-col gap-3 border-t border-border/60 bg-card px-6 py-4 sm:flex-row sm:justify-end sm:px-8">
+            {actions}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={onCancel || onBack}
+            >
+              {cancelLabel}
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full sm:w-auto gap-1.5"
+            >
+              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+              {isSubmitting ? submittingLabel : submitLabel}
+            </Button>
+          </div>
+        </form>
+      </Panel>
+    </div>
+  );
+}
+
+export interface FormSectionProps {
+  title?: string;
+  description?: string;
+  children: ReactNode;
+  className?: string;
+}
+
+/**
+ * Standardized form section fieldset with clean typography.
+ */
+export function FormSection({ title, description, children, className }: FormSectionProps) {
+  return (
+    <fieldset className={cn("space-y-4", className)}>
+      {(title || description) && (
+        <div>
+          {title && <h2 className="text-lg font-semibold text-foreground">{title}</h2>}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
+      )}
+      {children}
+    </fieldset>
+  );
+}
+
+export interface FormCodeBannerProps {
+  label?: string;
+  code: string;
+  hint?: string;
+  className?: string;
+}
+
+/**
+ * Standardized auto-generated entity code banner for forms.
+ */
+export function FormCodeBanner({
+  label = "Code",
+  code,
+  hint = "Auto-assigned on save",
+  className,
+}: FormCodeBannerProps) {
+  return (
+    <div
+      className={cn(
+        "surface flex items-center justify-between p-3 rounded-lg border border-border/60 bg-muted/20",
+        className,
+      )}
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-sm font-semibold font-mono text-primary">{code}</span>
+      </div>
+      {hint && (
+        <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[10px] font-medium">
+          {hint}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export interface UniversalFilterBarProps {
+  search: string;
+  onSearchChange: (value: string) => void;
+  searchPlaceholder?: string;
+  hasActiveFilters?: boolean;
+  onReset?: () => void;
+  resetLabel?: string;
+  children?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+  /** Number of filter columns on sm screens (default 3, matches the RFQ filter bar) */
+  filterColumns?: number;
+}
+
+/**
+ * Universal Search & Filter Bar standardized from the RFQ / Inquiry module.
+ * Responsive two-pane grid: Search input on left (1.05fr), equal-width filter dropdowns on right (0.95fr) with reset button.
+ */
+export function UniversalFilterBar({
+  search,
+  onSearchChange,
+  searchPlaceholder = "Search...",
+  hasActiveFilters = false,
+  onReset,
+  resetLabel = "Reset",
+  children,
+  actions,
+  className,
+  filterColumns = 3,
+}: UniversalFilterBarProps) {
+  return (
+    <div
+      className={cn(
+        "surface grid gap-3 p-4 sm:p-5 rounded-xl border border-border/70 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-center",
+        className,
+      )}
+    >
+      <div className="relative min-w-0">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={searchPlaceholder}
+          className="pl-9"
+        />
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div
+          className={cn(
+            "grid min-w-0 flex-1 grid-cols-1 gap-3",
+            filterColumns === 1 && (hasActiveFilters ? "sm:grid-cols-[1fr_auto]" : "sm:grid-cols-1"),
+            filterColumns === 2 && (hasActiveFilters ? "sm:grid-cols-[repeat(2,minmax(0,1fr))_auto]" : "sm:grid-cols-2"),
+            filterColumns === 3 && (hasActiveFilters ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]" : "sm:grid-cols-3"),
+            filterColumns === 4 && (hasActiveFilters ? "sm:grid-cols-[repeat(4,minmax(0,1fr))_auto]" : "sm:grid-cols-4"),
+            filterColumns > 4 && "sm:grid-cols-[repeat(auto-fit,minmax(140px,1fr))]",
+          )}
+        >
+          {children}
+          {hasActiveFilters && onReset && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onReset}
+              className="h-10 shrink-0 self-center whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <RotateCcw className="size-3 mr-1" />
+              {resetLabel}
+            </Button>
+          )}
+        </div>
+        {actions && <div className="shrink-0">{actions}</div>}
+      </div>
+    </div>
+  );
+}
+
+// Alias for universal naming
+export const EntityFilterBar = UniversalFilterBar;
+
+// Universal View Mode Toggle
+export { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
+

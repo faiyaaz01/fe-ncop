@@ -21,6 +21,7 @@ import {
   Panel,
   TableRowLoader,
   StatusChip,
+  UniversalFilterBar,
 } from "@/components/kit";
 import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 import type { CustomerInquiry } from "@/lib/inquiry-types";
@@ -190,94 +191,75 @@ export function InquiryList({
           tone="violet"
         />
       </section>
-      <div className="surface grid gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-center">
-        <div className="relative min-w-0">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(0);
-            }}
-            placeholder="Search RFQ number, customer, contact, or product"
-            className="pl-9"
-          />
-        </div>
-        <div
-          className={`grid min-w-0 grid-cols-1 gap-3 ${
-            hasActiveFilters ? "sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]" : "sm:grid-cols-3"
-          }`}
+      <UniversalFilterBar
+        search={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setPage(0);
+        }}
+        searchPlaceholder="Search RFQ number, customer, contact, or product"
+        hasActiveFilters={hasActiveFilters}
+        onReset={resetFilters}
+        filterColumns={3}
+      >
+        <Select
+          value={priorityFilter}
+          onValueChange={(value) => {
+            setPriorityFilter(value);
+            setPage(0);
+          }}
         >
-          <Select
-            value={priorityFilter}
-            onValueChange={(value) => {
-              setPriorityFilter(value);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All priorities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All priorities</SelectItem>
-              {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((priority) => (
-                <SelectItem key={priority} value={priority}>
-                  {priority[0] + priority.slice(1).toLowerCase()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={sourceFilter}
-            onValueChange={(value) => {
-              setSourceFilter(value);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All sources" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All sources</SelectItem>
-              {sources.map((source) => (
-                <SelectItem key={source} value={source}>
-                  {source.replaceAll("_", " ")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={statusFilter}
-            onValueChange={(value) => {
-              setStatusFilter(value);
-              setPage(0);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="All statuses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All statuses</SelectItem>
-              {statuses.map((status) => (
-                <SelectItem key={status} value={status}>
-                  {status.replaceAll("_", " ")}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={resetFilters}
-              className="h-10 shrink-0 self-center whitespace-nowrap px-3 text-xs text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="size-3" />
-              Reset
-            </Button>
-          )}
-        </div>
-      </div>
+          <SelectTrigger>
+            <SelectValue placeholder="All priorities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All priorities</SelectItem>
+            {["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((priority) => (
+              <SelectItem key={priority} value={priority}>
+                {priority[0] + priority.slice(1).toLowerCase()}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={sourceFilter}
+          onValueChange={(value) => {
+            setSourceFilter(value);
+            setPage(0);
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="All sources" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All sources</SelectItem>
+            {sources.map((source) => (
+              <SelectItem key={source} value={source}>
+                {source.replaceAll("_", " ")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setStatusFilter(value);
+            setPage(0);
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All statuses</SelectItem>
+            {statuses.map((status) => (
+              <SelectItem key={status} value={status}>
+                {status.replaceAll("_", " ")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </UniversalFilterBar>
       <div className="surface rounded-xl border border-border/60 overflow-hidden">
         {/* Mobile / Card View */}
         <div
