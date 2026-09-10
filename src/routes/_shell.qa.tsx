@@ -450,8 +450,8 @@ function QaDashboardPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2 md:col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="productName">Product Name *</Label>
               <Input
                 id="productName"
@@ -483,7 +483,7 @@ function QaDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dosageForm">Dosage Form (Level 1)</Label>
               <Select
@@ -550,7 +550,7 @@ function QaDashboardPage() {
           title="Target Batch & Commercial Packaging Scope"
           description="Specify commercial order quantity and packaging specifications. Total tablet batch size will calculate automatically."
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="orderQty">Order Quantity (Commercial Packs) *</Label>
               <Input
@@ -609,7 +609,7 @@ function QaDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="space-y-2">
               <Label htmlFor="batchUnit">Batch Unit</Label>
               <Input
@@ -648,7 +648,7 @@ function QaDashboardPage() {
           title="Client Details & Timeline"
           description="Map to existing client accounts, specify target QA evaluation delivery date, and technical remarks."
         >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Client / Customer Name Dropdown Combobox */}
             <div className="space-y-2">
               <Label htmlFor="customerName">Client / Customer Name</Label>
@@ -830,7 +830,7 @@ function QaDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="dueDate">Target Technical Due Date</Label>
               <Input
