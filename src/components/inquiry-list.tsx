@@ -8,7 +8,6 @@ import {
   RotateCcw,
   Search,
   TriangleAlert,
-  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
@@ -16,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   CardGridLoader,
-  Counter,
+  MetricCard,
+  MetricGrid,
   PageHeader,
   Panel,
   TableRowLoader,
@@ -25,7 +25,6 @@ import {
 } from "@/components/kit";
 import { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
 import type { CustomerInquiry } from "@/lib/inquiry-types";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Input } from "@/components/ui/input";
 import {
@@ -157,8 +156,8 @@ export function InquiryList({
           </div>
         }
       />
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4" aria-label="RFQ summary">
-        <RfqMetric
+      <MetricGrid columns={4} label="RFQ summary">
+        <MetricCard
           icon={ClipboardList}
           label="RFQs"
           value={inquiries.length}
@@ -166,7 +165,7 @@ export function InquiryList({
           loading={loading}
           tone="primary"
         />
-        <RfqMetric
+        <MetricCard
           icon={Clock3}
           label="Awaiting review"
           value={metrics.awaitingReview}
@@ -174,7 +173,7 @@ export function InquiryList({
           loading={loading}
           tone="success"
         />
-        <RfqMetric
+        <MetricCard
           icon={TriangleAlert}
           label="High priority"
           value={metrics.highPriority}
@@ -182,7 +181,7 @@ export function InquiryList({
           loading={loading}
           tone="warning"
         />
-        <RfqMetric
+        <MetricCard
           icon={Package}
           label="Product requests"
           value={metrics.productLines}
@@ -190,7 +189,7 @@ export function InquiryList({
           loading={loading}
           tone="violet"
         />
-      </section>
+      </MetricGrid>
       <UniversalFilterBar
         search={search}
         onSearchChange={(val) => {
@@ -514,52 +513,3 @@ export function InquiryList({
   );
 }
 
-function RfqMetric({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  loading,
-  tone,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  detail: string;
-  loading: boolean;
-  tone: "primary" | "success" | "warning" | "violet";
-}) {
-  const toneClasses = {
-    primary: "bg-primary/10 text-primary",
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-  };
-  return (
-    <div className="surface flex items-center gap-3.5 rounded-xl border border-border/70 p-4">
-      <span
-        className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${toneClasses[tone]}`}
-      >
-        <Icon className="size-5" />
-      </span>
-      <div className="min-w-0">
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-14" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-        ) : (
-          <>
-            <p className="text-2xl font-bold tracking-tight tabular-nums">
-              <Counter key={value} value={value} />
-            </p>
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
-              {detail}
-            </p>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}

@@ -30,15 +30,15 @@ import {
   Medal,
   Shield,
   Star,
-  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
   ClientCardGridLoader,
   ClientTableLoader,
-  Counter,
   EmptyState,
+  MetricCard,
+  MetricGrid,
   PageHeader,
   Panel,
   Reveal,
@@ -69,7 +69,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { normalizeCountryName } from "@/lib/country";
@@ -588,11 +587,8 @@ function ClientMaster() {
         }
       />
 
-      <section
-        className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4"
-        aria-label="Client summary"
-      >
-        <ClientMetric
+      <MetricGrid columns={4} label="Client summary">
+        <MetricCard
           icon={Users}
           label="Total clients"
           value={clientMetrics.total}
@@ -600,7 +596,7 @@ function ClientMaster() {
           loading={allClientsLoading}
           tone="primary"
         />
-        <ClientMetric
+        <MetricCard
           icon={Globe2}
           label="Export partners"
           value={clientMetrics.export}
@@ -608,7 +604,7 @@ function ClientMaster() {
           loading={allClientsLoading}
           tone="success"
         />
-        <ClientMetric
+        <MetricCard
           icon={Building2}
           label="Domestic clients"
           value={clientMetrics.domestic}
@@ -616,7 +612,7 @@ function ClientMaster() {
           loading={allClientsLoading}
           tone="warning"
         />
-        <ClientMetric
+        <MetricCard
           icon={Users}
           label="Points of contact"
           value={clientMetrics.contacts}
@@ -624,7 +620,7 @@ function ClientMaster() {
           loading={allClientsLoading}
           tone="violet"
         />
-      </section>
+      </MetricGrid>
 
       <UniversalFilterBar
         search={query}
@@ -1022,60 +1018,6 @@ function ClientMaster() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function ClientMetric({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  loading,
-  tone,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  detail: string;
-  loading: boolean;
-  tone: "primary" | "success" | "warning" | "violet";
-}) {
-  const toneClasses = {
-    primary: "bg-primary/10 text-primary",
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-  };
-
-  return (
-    <div className="surface flex items-center gap-3.5 rounded-xl border border-border/70 p-4">
-      <span
-        className={cn(
-          "flex size-11 shrink-0 items-center justify-center rounded-xl",
-          toneClasses[tone],
-        )}
-      >
-        <Icon className="size-5" />
-      </span>
-      <div className="min-w-0">
-        {loading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-14" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-        ) : (
-          <>
-            <p className="text-2xl font-bold tracking-tight tabular-nums">
-              <Counter key={value} value={value} />
-            </p>
-            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-            <p className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
-              {detail}
-            </p>
-          </>
-        )}
-      </div>
     </div>
   );
 }

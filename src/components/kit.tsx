@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, Loader2, Search, RotateCcw } from "lucide-react";
+import { ChevronLeft, Loader2, Search, RotateCcw, type LucideIcon } from "lucide-react";
 
 // ── Shared Skeleton Loading States ───────────────────────────────────────────
 
@@ -419,6 +419,191 @@ export function Counter({
     <span ref={ref}>
       {prefix}0{suffix}
     </span>
+  );
+}
+
+export type MetricTone =
+  | "primary"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "violet"
+  | "orange"
+  | "neutral";
+
+const metricToneClasses: Record<
+  MetricTone,
+  { icon: string; line: string; glow: string }
+> = {
+  primary: {
+    icon: "bg-primary/10 text-primary ring-primary/15",
+    line: "from-primary/80 via-primary/25",
+    glow: "bg-primary/8",
+  },
+  success: {
+    icon: "bg-emerald-500/10 text-emerald-600 ring-emerald-500/15 dark:text-emerald-400",
+    line: "from-emerald-500/80 via-emerald-500/25",
+    glow: "bg-emerald-500/8",
+  },
+  warning: {
+    icon: "bg-amber-500/10 text-amber-600 ring-amber-500/15 dark:text-amber-400",
+    line: "from-amber-500/80 via-amber-500/25",
+    glow: "bg-amber-500/8",
+  },
+  danger: {
+    icon: "bg-rose-500/10 text-rose-600 ring-rose-500/15 dark:text-rose-400",
+    line: "from-rose-500/80 via-rose-500/25",
+    glow: "bg-rose-500/8",
+  },
+  info: {
+    icon: "bg-sky-500/10 text-sky-600 ring-sky-500/15 dark:text-sky-400",
+    line: "from-sky-500/80 via-sky-500/25",
+    glow: "bg-sky-500/8",
+  },
+  violet: {
+    icon: "bg-violet-500/10 text-violet-600 ring-violet-500/15 dark:text-violet-400",
+    line: "from-violet-500/80 via-violet-500/25",
+    glow: "bg-violet-500/8",
+  },
+  orange: {
+    icon: "bg-orange-500/10 text-orange-600 ring-orange-500/15 dark:text-orange-400",
+    line: "from-orange-500/80 via-orange-500/25",
+    glow: "bg-orange-500/8",
+  },
+  neutral: {
+    icon: "bg-slate-500/10 text-slate-600 ring-slate-500/15 dark:text-slate-400",
+    line: "from-slate-500/65 via-slate-500/20",
+    glow: "bg-slate-500/7",
+  },
+};
+
+/** Consistent KPI/summary widget used throughout every application module. */
+export function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+  tone = "primary",
+  loading = false,
+  decimals = 0,
+  prefix = "",
+  suffix = "",
+  compact = false,
+  className,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: number | string;
+  detail?: ReactNode;
+  tone?: MetricTone;
+  loading?: boolean;
+  decimals?: number;
+  prefix?: string;
+  suffix?: string;
+  compact?: boolean;
+  className?: string;
+}) {
+  const palette = metricToneClasses[tone];
+  return (
+    <div
+      className={cn(
+        "surface group relative isolate flex min-h-[108px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-border/70 bg-card p-3.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md sm:p-4",
+        compact && "min-h-[100px] p-3 sm:p-3.5",
+        className,
+      )}
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-x-0 top-0 h-px bg-gradient-to-r to-transparent",
+          palette.line,
+        )}
+      />
+      <span
+        aria-hidden
+        className={cn(
+          "absolute -right-7 -top-7 size-20 rounded-full blur-2xl transition-transform duration-300 group-hover:scale-125",
+          palette.glow,
+        )}
+      />
+
+      <div className="relative flex items-start justify-between gap-2.5">
+        <p
+          className="min-w-0 flex-1 truncate pt-0.5 text-[11px] font-semibold uppercase tracking-[0.09em] text-muted-foreground sm:text-xs"
+          title={label}
+        >
+          {label}
+        </p>
+        <span
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-lg ring-1 transition-transform duration-300 group-hover:scale-105",
+            compact && "size-8",
+            palette.icon,
+          )}
+        >
+          <Icon className={compact ? "size-3.5" : "size-4"} />
+        </span>
+      </div>
+
+      <div className="relative mt-2.5 min-w-0">
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-16" />
+            {detail && <Skeleton className="h-3 w-3/4" />}
+          </div>
+        ) : (
+          <>
+            <p className="truncate text-[1.4rem] font-bold leading-none tracking-tight text-foreground tabular-nums sm:text-2xl">
+              {typeof value === "number" ? (
+                <Counter
+                  key={`${value}-${prefix}-${suffix}`}
+                  value={value}
+                  decimals={decimals}
+                  prefix={prefix}
+                  suffix={suffix}
+                />
+              ) : (
+                `${prefix}${value}${suffix}`
+              )}
+            </p>
+            {detail && (
+              <div className="mt-1 truncate text-[11px] leading-4 text-muted-foreground sm:text-xs">
+                {detail}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const metricGridColumns = {
+  3: "sm:grid-cols-3",
+  4: "sm:grid-cols-2 lg:grid-cols-4",
+  5: "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5",
+  6: "sm:grid-cols-3 xl:grid-cols-6",
+};
+
+export function MetricGrid({
+  children,
+  columns = 4,
+  className,
+  label,
+}: {
+  children: ReactNode;
+  columns?: 3 | 4 | 5 | 6;
+  className?: string;
+  label?: string;
+}) {
+  return (
+    <section
+      className={cn("grid grid-cols-2 gap-3", metricGridColumns[columns], className)}
+      aria-label={label}
+    >
+      {children}
+    </section>
   );
 }
 

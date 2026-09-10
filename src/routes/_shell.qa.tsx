@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import { userSessionService } from "@/lib/user-session";
 import {
   Counter,
+  MetricCard,
+  MetricGrid,
   PageHeader,
   Panel,
   TableRowLoader,
@@ -871,100 +873,59 @@ function QaDashboardPage() {
       />
 
       {/* ── Metrics Cards (Responsive on Mobile, Tablet & Desktop) ── */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {/* Formula Pending */}
-        <div className="surface p-3 sm:p-4 rounded-xl border border-border/70 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <Clock className="size-4 sm:size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl sm:text-2xl font-bold tracking-tight">
-              <Counter key={kpis?.pendingFormulaCount ?? 0} value={kpis?.pendingFormulaCount ?? 0} />
-            </p>
-            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate" title="Formula Pending">
-              Formula Pending
-            </p>
-          </div>
-        </div>
-
-        {/* Specification Pending */}
-        <div className="surface p-3 sm:p-4 rounded-xl border border-border/70 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400">
-            <Sliders className="size-4 sm:size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl sm:text-2xl font-bold tracking-tight">
-              <Counter key={kpis?.specPendingCount ?? 0} value={kpis?.specPendingCount ?? 0} />
-            </p>
-            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate" title="Specification Pending">
-              Specification Pending
-            </p>
-          </div>
-        </div>
-
-        {/* Completed Today */}
-        <div className="surface p-3 sm:p-4 rounded-xl border border-border/70 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <CheckCircle2 className="size-4 sm:size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl sm:text-2xl font-bold tracking-tight">
-              <Counter key={kpis?.completedTodayCount ?? 0} value={kpis?.completedTodayCount ?? 0} />
-            </p>
-            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate" title="Completed Today">
-              Completed Today
-            </p>
-          </div>
-        </div>
-
-        {/* My Pending Tasks */}
-        <div className="surface p-3 sm:p-4 rounded-xl border border-border/70 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-primary/10 text-primary">
-            <AlertCircle className="size-4 sm:size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl sm:text-2xl font-bold tracking-tight">
-              <Counter
-                key={kpis?.myPendingTasksCount ?? ((kpis?.pendingFormulaCount ?? 0) + (kpis?.specPendingCount ?? 0))}
-                value={kpis?.myPendingTasksCount ?? ((kpis?.pendingFormulaCount ?? 0) + (kpis?.specPendingCount ?? 0))}
-              />
-            </p>
-            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate" title="My Pending Tasks">
-              My Pending Tasks
-            </p>
-          </div>
-        </div>
-
-        {/* Overdue Tasks */}
-        <div className="surface p-3 sm:p-4 rounded-xl border border-border/70 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-            <AlertTriangle className="size-4 sm:size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl sm:text-2xl font-bold tracking-tight">
-              <Counter key={kpis?.overdueTasksCount ?? 0} value={kpis?.overdueTasksCount ?? 0} />
-            </p>
-            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate" title="Overdue Tasks">
-              Overdue Tasks
-            </p>
-          </div>
-        </div>
-
-        {/* Technical Queries */}
-        <div className="surface p-3 sm:p-4 rounded-xl border border-border/70 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-          <div className="flex size-9 sm:size-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-            <HelpCircle className="size-4 sm:size-5" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl sm:text-2xl font-bold tracking-tight">
-              <Counter key={kpis?.openQueriesCount ?? 0} value={kpis?.openQueriesCount ?? 0} />
-            </p>
-            <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate" title="Technical Queries">
-              Technical Queries
-            </p>
-          </div>
-        </div>
-      </div>
+      <MetricGrid columns={6} label="QA task summary">
+        <MetricCard
+          compact
+          icon={Clock}
+          label="Formula pending"
+          value={kpis?.pendingFormulaCount ?? 0}
+          detail="Awaiting formulation"
+          tone="warning"
+        />
+        <MetricCard
+          compact
+          icon={Sliders}
+          label="Specification pending"
+          value={kpis?.specPendingCount ?? 0}
+          detail="Specification work"
+          tone="info"
+        />
+        <MetricCard
+          compact
+          icon={CheckCircle2}
+          label="Completed today"
+          value={kpis?.completedTodayCount ?? 0}
+          detail="Finished today"
+          tone="success"
+        />
+        <MetricCard
+          compact
+          icon={AlertCircle}
+          label="My pending tasks"
+          value={
+            kpis?.myPendingTasksCount ??
+            (kpis?.pendingFormulaCount ?? 0) + (kpis?.specPendingCount ?? 0)
+          }
+          detail="Assigned workload"
+          tone="primary"
+        />
+        <MetricCard
+          compact
+          icon={AlertTriangle}
+          label="Overdue tasks"
+          value={kpis?.overdueTasksCount ?? 0}
+          detail="Past the due date"
+          tone="danger"
+        />
+        <MetricCard
+          compact
+          icon={HelpCircle}
+          label="Technical queries"
+          value={kpis?.openQueriesCount ?? 0}
+          detail="Open clarifications"
+          tone="violet"
+        />
+      </MetricGrid>
 
       {/* ── Universal Search & Filters (Standardized from RFQ Module) ── */}
       <UniversalFilterBar

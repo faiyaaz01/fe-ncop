@@ -13,7 +13,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Counter, Reveal, Panel } from "@/components/kit";
+import {
+  MetricCard,
+  MetricGrid,
+  Reveal,
+  Panel,
+  type MetricTone,
+} from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { fetchAllClients, fetchClientCount } from "@/lib/client-api";
 import { fetchProductMetrics } from "@/lib/product-api";
@@ -140,6 +146,7 @@ function Dashboard() {
       loading: clientCount.isLoading,
       detail: "Live client master count",
       icon: Users,
+      tone: "primary" as const,
       to: "/clients" as const,
     },
     canViewProducts && {
@@ -148,6 +155,7 @@ function Dashboard() {
       loading: productMetrics.isLoading,
       detail: `${productMetrics.data?.active ?? 0} active products`,
       icon: Boxes,
+      tone: "violet" as const,
       to: "/products" as const,
     },
     canViewInquiries && {
@@ -156,6 +164,7 @@ function Dashboard() {
       loading: inquiries.isLoading,
       detail: `${inquiryCounts.awaitingAction} awaiting action`,
       icon: ClipboardList,
+      tone: "info" as const,
       to: "/inquiry" as const,
     },
     canViewProducts && {
@@ -164,6 +173,7 @@ function Dashboard() {
       loading: productMetrics.isLoading,
       detail: `${productMetrics.data?.underDevelopment ?? 0} in development`,
       icon: PackageCheck,
+      tone: "success" as const,
       to: "/products" as const,
     },
     canViewInquiries && {
@@ -172,6 +182,7 @@ function Dashboard() {
       loading: inquiries.isLoading,
       detail: useMyInquiries ? "Assigned or raised by you" : "Across all accessible RFQs",
       icon: ListChecks,
+      tone: "warning" as const,
       to: "/inquiry" as const,
     },
   ].filter(Boolean) as DashboardCard[];
@@ -218,35 +229,24 @@ function Dashboard() {
       </Reveal>
 
       {cards.length > 0 ? (
-        <section className="flex flex-wrap gap-3">
+        <MetricGrid columns={5} label="Workspace summary">
           {cards.map((card, index) => (
-            <Reveal key={card.label} delay={index * 0.04} className="min-w-[260px] flex-1">
-              <Link
-                to={card.to}
-                className="group flex min-h-[132px] h-full flex-col justify-between rounded-[20px] border border-border/70 bg-card p-5 shadow-soft transition-all duration-300 ease-out hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg active:scale-[0.985]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground transition-colors group-hover:text-foreground">
-                    {card.label}
-                  </p>
-                  <span className="grid size-12 shrink-0 place-items-center rounded-full bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary group-hover:text-primary-foreground">
-                    <card.icon className="size-5" />
-                  </span>
-                </div>
-                <div>
-                  <p className="text-3xl font-bold tracking-tight tabular-nums">
-                    {card.loading ? (
-                      <span className="relative inline-block h-8 w-16 overflow-hidden rounded bg-muted before:absolute before:inset-y-0 before:-left-1/2 before:w-1/2 before:bg-gradient-to-r before:from-transparent before:via-background/80 before:to-transparent before:animate-[skeleton-shimmer_1.6s_ease-in-out_infinite]" />
-                    ) : (
-                      <Counter key={card.value ?? 0} value={card.value ?? 0} />
-                    )}
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">{card.detail}</p>
-                </div>
+            <Reveal key={card.label} delay={index * 0.04} className="h-full">
+              <Link to={card.to} className="block h-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <MetricCard
+                  compact
+                  icon={card.icon}
+                  label={card.label}
+                  value={card.value ?? 0}
+                  detail={card.detail}
+                  loading={card.loading}
+                  tone={card.tone}
+                  className="h-full cursor-pointer"
+                />
               </Link>
             </Reveal>
           ))}
-        </section>
+        </MetricGrid>
       ) : (
         <div className="rounded-[20px] border border-dashed border-border bg-card p-8 text-center">
           <FileCheck2 className="mx-auto size-8 text-muted-foreground" />
@@ -468,6 +468,7 @@ type DashboardCard = {
   loading: boolean;
   detail: string;
   icon: typeof Users;
+  tone: MetricTone;
   to: "/clients" | "/products" | "/inquiry";
 };
 

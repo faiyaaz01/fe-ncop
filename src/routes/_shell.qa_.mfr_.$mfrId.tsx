@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PageHeader, Panel, Counter } from "@/components/kit";
+import { MetricCard, MetricGrid, PageHeader, Panel } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -606,83 +606,44 @@ function QaMfrWorkbenchPage() {
         </div>
 
         {/* Live Formulation Metrics Ribbon with Counting Animations */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
-          {/* Active API Weight */}
-          <div className="surface p-4 rounded-xl border border-border/70 flex items-center justify-between gap-3 shadow-xs">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <FlaskConical className="size-3.5 text-primary shrink-0" />
-                <span>Active API Weight</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                Active assay with overages
-              </p>
-            </div>
-            <div className="text-right font-mono shrink-0">
-              <span className="text-2xl font-bold text-foreground">
-                <Counter key={totals.apiWeightMg} value={totals.apiWeightMg} decimals={2} />
-              </span>
-              <span className="text-xs font-medium text-muted-foreground ml-1">mg</span>
-            </div>
-          </div>
-
-          {/* Uncoated Average Weight */}
-          <div className="surface p-4 rounded-xl border border-border/70 flex items-center justify-between gap-3 shadow-xs">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Scale className="size-3.5 text-amber-500 shrink-0" />
-                <span>Uncoated Avg Weight</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                API ({totals.apiWeightMg}) + Excipients ({totals.excipientsWeightMg})
-              </p>
-            </div>
-            <div className="text-right font-mono shrink-0">
-              <span className="text-2xl font-bold text-foreground">
-                <Counter key={totals.uncoatedAvgWeightMg} value={totals.uncoatedAvgWeightMg} decimals={2} />
-              </span>
-              <span className="text-xs font-medium text-muted-foreground ml-1">mg</span>
-            </div>
-          </div>
-
-          {/* Coated Average Weight */}
-          <div className="surface p-4 rounded-xl border border-border/70 flex items-center justify-between gap-3 shadow-xs">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Sparkles className="size-3.5 text-sky-500 shrink-0" />
-                <span>Coated Avg Weight</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                Uncoated ({totals.uncoatedAvgWeightMg}) + Coating ({totals.coatingWeightMg})
-              </p>
-            </div>
-            <div className="text-right font-mono shrink-0">
-              <span className="text-2xl font-bold text-foreground">
-                <Counter key={totals.coatedAvgWeightMg} value={totals.coatedAvgWeightMg} decimals={2} />
-              </span>
-              <span className="text-xs font-medium text-muted-foreground ml-1">mg</span>
-            </div>
-          </div>
-
-          {/* Total Commercial Batch Mass */}
-          <div className="surface p-4 rounded-xl border border-border/70 flex items-center justify-between gap-3 shadow-xs">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                <Package className="size-3.5 text-emerald-500 shrink-0" />
-                <span>Total Batch Mass</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                For {batchSize.toLocaleString()} {batchUnit}
-              </p>
-            </div>
-            <div className="text-right font-mono shrink-0">
-              <span className="text-2xl font-bold text-foreground">
-                <Counter key={totals.totalBatchKg} value={totals.totalBatchKg} decimals={2} />
-              </span>
-              <span className="text-xs font-medium text-muted-foreground ml-1">kg</span>
-            </div>
-          </div>
-        </div>
+        <MetricGrid columns={4} label="Live formulation summary" className="pt-2">
+          <MetricCard
+            icon={FlaskConical}
+            label="Active API weight"
+            value={totals.apiWeightMg}
+            decimals={2}
+            suffix=" mg"
+            detail="Active assay with overages"
+            tone="primary"
+          />
+          <MetricCard
+            icon={Scale}
+            label="Uncoated avg weight"
+            value={totals.uncoatedAvgWeightMg}
+            decimals={2}
+            suffix=" mg"
+            detail={`API ${totals.apiWeightMg} + excipients ${totals.excipientsWeightMg}`}
+            tone="warning"
+          />
+          <MetricCard
+            icon={Sparkles}
+            label="Coated avg weight"
+            value={totals.coatedAvgWeightMg}
+            decimals={2}
+            suffix=" mg"
+            detail={`Uncoated ${totals.uncoatedAvgWeightMg} + coating ${totals.coatingWeightMg}`}
+            tone="info"
+          />
+          <MetricCard
+            icon={Package}
+            label="Total batch mass"
+            value={totals.totalBatchKg}
+            decimals={2}
+            suffix=" kg"
+            detail={`For ${batchSize.toLocaleString()} ${batchUnit}`}
+            tone="success"
+          />
+        </MetricGrid>
       </Panel>
 
       {/* ── Horizontal Stage Navigation Menu (Document Layout) ── */}

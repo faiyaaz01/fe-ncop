@@ -26,7 +26,14 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { CardGridLoader, PageHeader, Panel, TableRowLoader } from "@/components/kit";
+import {
+  CardGridLoader,
+  MetricCard,
+  MetricGrid,
+  PageHeader,
+  Panel,
+  TableRowLoader,
+} from "@/components/kit";
 import { UserFormSkeleton } from "@/components/page-skeletons";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Button } from "@/components/ui/button";
@@ -280,177 +287,27 @@ function UserManagementPage() {
 
       {/* ── User Metric Summary Cards (Informational Overview) ── */}
       <div className="space-y-3">
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
-          {/* Total Users */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
-                Total Users
-              </p>
-              <div className="grid size-8 place-items-center rounded-lg bg-primary/10 text-primary">
-                <Users className="size-4" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold mt-2">
-              <AnimatedNumber value={stats.totalUsers} />
-            </p>
-          </div>
-
-          {/* Active Users */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
-                Active Users
-              </p>
-              <div className="grid size-8 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <UserCheck className="size-4" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold mt-2 text-emerald-600 dark:text-emerald-400">
-              <AnimatedNumber value={stats.activeUsers} />
-            </p>
-          </div>
-
-          {/* Inactive Users */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
-                Inactive Users
-              </p>
-              <div className="grid size-8 place-items-center rounded-lg bg-slate-500/10 text-slate-600 dark:text-slate-400">
-                <UserX className="size-4" />
-              </div>
-            </div>
-            <p className="text-2xl font-bold mt-2 text-slate-600 dark:text-slate-400">
-              <AnimatedNumber value={stats.inactiveUsers} />
-            </p>
-          </div>
-
-          {/* Blocked / Suspended */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
-                Blocked / Suspended
-              </p>
-              <div className="grid size-8 place-items-center rounded-lg bg-destructive/10 text-destructive">
-                <Ban className="size-4" />
-              </div>
-            </div>
-            <p
-              className={cn(
-                "text-2xl font-bold mt-2",
-                stats.suspendedUsers > 0 ? "text-destructive" : "text-muted-foreground",
-              )}
-            >
-              <AnimatedNumber value={stats.suspendedUsers} />
-            </p>
-          </div>
-
-          {/* Pending Approval */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
-                Pending Approval
-              </p>
-              <div className="grid size-8 place-items-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Clock className="size-4" />
-              </div>
-            </div>
-            <p
-              className={cn(
-                "text-2xl font-bold mt-2",
-                stats.pendingUsers > 0
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-muted-foreground",
-              )}
-            >
-              <AnimatedNumber value={stats.pendingUsers} />
-            </p>
-          </div>
-
-          {/* Role Inactive Warning */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex flex-col justify-between">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider">
-                Role Inactive
-              </p>
-              <div className="grid size-8 place-items-center rounded-lg bg-orange-500/10 text-orange-600 dark:text-orange-400">
-                <ShieldAlert className="size-4" />
-              </div>
-            </div>
-            <p
-              className={cn(
-                "text-2xl font-bold mt-2",
-                stats.roleInactiveUsers > 0
-                  ? "text-orange-600 dark:text-orange-400"
-                  : "text-muted-foreground",
-              )}
-            >
-              <AnimatedNumber value={stats.roleInactiveUsers} />
-            </p>
-          </div>
-        </div>
+        <MetricGrid columns={6} label="User summary">
+          <MetricCard compact icon={Users} label="Total users" value={stats.totalUsers} detail="All accounts" />
+          <MetricCard compact icon={UserCheck} label="Active users" value={stats.activeUsers} detail="Can sign in" tone="success" />
+          <MetricCard compact icon={UserX} label="Inactive users" value={stats.inactiveUsers} detail="Inactive accounts" tone="neutral" />
+          <MetricCard compact icon={Ban} label="Blocked / suspended" value={stats.suspendedUsers} detail="Access blocked" tone="danger" />
+          <MetricCard compact icon={Clock} label="Pending approval" value={stats.pendingUsers} detail="Awaiting activation" tone="warning" />
+          <MetricCard compact icon={ShieldAlert} label="Role inactive" value={stats.roleInactiveUsers} detail="Affected accounts" tone="orange" />
+        </MetricGrid>
 
         {/* ── Role & System Rights Secondary Stats ── */}
-        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-          {/* Total Configured Roles */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary shrink-0">
-                <Shield className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Configured Roles</p>
-                <p className="text-xl font-bold mt-0.5">
-                  <AnimatedNumber value={stats.totalRoles} />
-                </p>
-              </div>
-            </div>
-            <Badge variant="outline" className="text-xs">
-              <AnimatedNumber value={stats.activeRoles} /> Active ·{" "}
-              <AnimatedNumber value={stats.inactiveRoles} /> Inactive
-            </Badge>
-          </div>
-
-          {/* Active Roles */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                <ShieldCheck className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Active Operating Roles</p>
-                <p className="text-xl font-bold mt-0.5 text-emerald-600 dark:text-emerald-400">
-                  <AnimatedNumber value={stats.activeRoles} />
-                </p>
-              </div>
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">Allows user login</span>
-          </div>
-
-          {/* Inactive Roles */}
-          <div className="surface p-3.5 rounded-xl border border-border/60 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-                <ShieldOff className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Deactivated Roles</p>
-                <p
-                  className={cn(
-                    "text-xl font-bold mt-0.5",
-                    stats.inactiveRoles > 0
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  <AnimatedNumber value={stats.inactiveRoles} />
-                </p>
-              </div>
-            </div>
-            <span className="text-xs text-muted-foreground font-medium">Blocks user login</span>
-          </div>
-        </div>
+        <MetricGrid columns={3} label="Role summary">
+          <MetricCard
+            icon={Shield}
+            label="Configured roles"
+            value={stats.totalRoles}
+            detail={`${stats.activeRoles} active · ${stats.inactiveRoles} inactive`}
+            tone="primary"
+          />
+          <MetricCard icon={ShieldCheck} label="Active operating roles" value={stats.activeRoles} detail="Allow assigned users to sign in" tone="success" />
+          <MetricCard icon={ShieldOff} label="Deactivated roles" value={stats.inactiveRoles} detail="Block assigned user access" tone="warning" />
+        </MetricGrid>
       </div>
 
       {/* ── Main Tab Navigation ── */}
@@ -620,43 +477,6 @@ function UserManagementPage() {
       />
     </div>
   );
-}
-
-function AnimatedNumber({ value }: { value: number }) {
-  const [displayValue, setDisplayValue] = useState(0);
-  const previousValue = useRef(0);
-
-  useEffect(() => {
-    const startValue = previousValue.current;
-    const duration = 500;
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduceMotion || startValue === value) {
-      setDisplayValue(value);
-      previousValue.current = value;
-      return;
-    }
-
-    const startTime = performance.now();
-    let frameId = 0;
-
-    const updateValue = (now: number) => {
-      const progress = Math.min((now - startTime) / duration, 1);
-      const easedProgress = 1 - Math.pow(1 - progress, 3);
-      setDisplayValue(Math.round(startValue + (value - startValue) * easedProgress));
-
-      if (progress < 1) {
-        frameId = requestAnimationFrame(updateValue);
-      } else {
-        previousValue.current = value;
-      }
-    };
-
-    frameId = requestAnimationFrame(updateValue);
-    return () => cancelAnimationFrame(frameId);
-  }, [value]);
-
-  return <>{displayValue}</>;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

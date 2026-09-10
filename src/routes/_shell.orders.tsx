@@ -1,8 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Download, FileText, Package, Ship, Truck } from "lucide-react";
+import {
+  CircleDollarSign,
+  Download,
+  FileText,
+  ListChecks,
+  Package,
+  PackageCheck,
+  Ship,
+  Truck,
+} from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState, PageHeader, Panel, StatusChip, Timeline } from "@/components/kit";
+import {
+  EmptyState,
+  MetricCard,
+  MetricGrid,
+  PageHeader,
+  Panel,
+  StatusChip,
+  Timeline,
+} from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { mockClients as clients, orders, products } from "@/lib/mock-data";
@@ -36,6 +53,7 @@ function FinalOrder() {
   const lines = products.slice(0, order.items);
   const stageIndex = stages.indexOf(order.status);
   const subtotal = order.value;
+  const portfolioValue = orders.reduce((total, item) => total + item.value, 0);
 
   return (
     <div className="space-y-6">
@@ -58,6 +76,38 @@ function FinalOrder() {
           </>
         }
       />
+
+      <MetricGrid columns={4} label="Order summary">
+        <MetricCard
+          icon={ListChecks}
+          label="Total orders"
+          value={orders.length}
+          detail="Confirmed commercial orders"
+          tone="primary"
+        />
+        <MetricCard
+          icon={Package}
+          label="In production"
+          value={orders.filter((item) => item.status === "In Production").length}
+          detail="Currently being manufactured"
+          tone="warning"
+        />
+        <MetricCard
+          icon={PackageCheck}
+          label="Shipped or delivered"
+          value={orders.filter((item) => ["Shipped", "Delivered"].includes(item.status)).length}
+          detail="Released to logistics"
+          tone="success"
+        />
+        <MetricCard
+          icon={CircleDollarSign}
+          label="Portfolio value"
+          value={portfolioValue}
+          prefix="$"
+          detail="Combined order value"
+          tone="violet"
+        />
+      </MetricGrid>
 
       <div className="flex flex-wrap gap-2">
         {orders.map((o) => (

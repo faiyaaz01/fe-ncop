@@ -15,9 +15,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Download, FileSpreadsheet } from "lucide-react";
+import {
+  CircleDollarSign,
+  ClipboardList,
+  Download,
+  FileSpreadsheet,
+  Globe2,
+  PackageCheck,
+} from "lucide-react";
 import { toast } from "sonner";
-import { PageHeader, Panel, Reveal } from "@/components/kit";
+import { MetricCard, MetricGrid, PageHeader, Panel, Reveal } from "@/components/kit";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -64,6 +71,11 @@ const tip = {
 };
 
 function Reports() {
+  const totalRevenueMillions =
+    monthlySales.reduce((total, month) => total + month.revenue, 0) / 1_000;
+  const totalSalesMillions = monthlySales.reduce((total, month) => total + month.sales, 0) / 1_000;
+  const totalInquiries = inquiryStatusData.reduce((total, status) => total + status.count, 0);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -91,6 +103,42 @@ function Reports() {
           </>
         }
       />
+
+      <MetricGrid columns={4} label="Report summary">
+        <MetricCard
+          icon={CircleDollarSign}
+          label="Revenue YTD"
+          value={totalRevenueMillions}
+          decimals={2}
+          prefix="$"
+          suffix="M"
+          detail="Recognised commercial revenue"
+          tone="primary"
+        />
+        <MetricCard
+          icon={PackageCheck}
+          label="Sales volume"
+          value={totalSalesMillions}
+          decimals={2}
+          suffix="M"
+          detail="Units shipped this year"
+          tone="success"
+        />
+        <MetricCard
+          icon={Globe2}
+          label="Active markets"
+          value={countryDistribution.length}
+          detail="Countries with shipped volume"
+          tone="info"
+        />
+        <MetricCard
+          icon={ClipboardList}
+          label="RFQ pipeline"
+          value={totalInquiries}
+          detail="Inquiries across all statuses"
+          tone="violet"
+        />
+      </MetricGrid>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Reveal>

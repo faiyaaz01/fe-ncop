@@ -34,7 +34,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   CardGridLoader,
-  Counter,
+  MetricCard,
+  MetricGrid,
   PageHeader,
   Panel,
   StatusChip,
@@ -194,13 +195,13 @@ function ProductMaster() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
 
   // Queries
-  const { data: dosageForms = [] } = useQuery<DosageForm[]>({
+  const { data: dosageForms = [], isLoading: dosageFormsLoading } = useQuery<DosageForm[]>({
     queryKey: ["dosage-forms"],
     queryFn: () => fetchDosageForms(false),
     refetchInterval: 3000,
   });
 
-  const { data: metrics } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery({
     queryKey: ["product-metrics"],
     queryFn: fetchProductMetrics,
     refetchInterval: 3000,
@@ -302,61 +303,40 @@ function ProductMaster() {
           />
 
           {/* ── Metrics Cards ── */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <Boxes className="size-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold tracking-tight">
-                  <Counter
-                    key={metrics?.total ?? totalElements}
-                    value={metrics?.total ?? totalElements}
-                  />
-                </p>
-                <p className="text-xs text-muted-foreground font-medium">Total Products</p>
-              </div>
-            </div>
-
-            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle2 className="size-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold tracking-tight">
-                  <Counter key={metrics?.active ?? 0} value={metrics?.active ?? 0} />
-                </p>
-                <p className="text-xs text-muted-foreground font-medium">Active SKUs</p>
-              </div>
-            </div>
-
-            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                <Clock className="size-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold tracking-tight">
-                  <Counter
-                    key={metrics?.underDevelopment ?? 0}
-                    value={metrics?.underDevelopment ?? 0}
-                  />
-                </p>
-                <p className="text-xs text-muted-foreground font-medium">In Development</p>
-              </div>
-            </div>
-
-            <div className="surface p-4 rounded-xl border border-border/70 flex items-center gap-3.5">
-              <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                <Layers className="size-5" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold tracking-tight">
-                  <Counter key={dosageForms.length} value={dosageForms.length} />
-                </p>
-                <p className="text-xs text-muted-foreground font-medium">Dosage Forms</p>
-              </div>
-            </div>
-          </div>
+          <MetricGrid columns={4} label="Product summary">
+            <MetricCard
+              icon={Boxes}
+              label="Total products"
+              value={metrics?.total ?? totalElements}
+              detail="All catalogue SKUs"
+              loading={metricsLoading}
+              tone="primary"
+            />
+            <MetricCard
+              icon={CheckCircle2}
+              label="Active SKUs"
+              value={metrics?.active ?? 0}
+              detail="Available for new RFQs"
+              loading={metricsLoading}
+              tone="success"
+            />
+            <MetricCard
+              icon={Clock}
+              label="In development"
+              value={metrics?.underDevelopment ?? 0}
+              detail="Products being prepared"
+              loading={metricsLoading}
+              tone="warning"
+            />
+            <MetricCard
+              icon={Layers}
+              label="Dosage forms"
+              value={dosageForms.length}
+              detail="Configured formulation types"
+              loading={dosageFormsLoading}
+              tone="violet"
+            />
+          </MetricGrid>
 
           {/* ── Universal Filters & Search (Standardized from RFQ Module) ── */}
           <UniversalFilterBar
