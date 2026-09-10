@@ -24,7 +24,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { userSessionService } from "@/lib/user-session";
+import { isUserAdmin, userSessionService } from "@/lib/user-session";
 import {
   Counter,
   MetricCard,
@@ -72,7 +72,7 @@ import {
 } from "@/lib/qa-api";
 import { fetchAllClients } from "@/lib/client-api";
 import { CUSTOMER_TYPE_LABELS, type Client } from "@/lib/client-types";
-import { fetchInquiries } from "@/lib/inquiry-api";
+import { fetchInquiries, fetchMyInquiries } from "@/lib/inquiry-api";
 import type { CustomerInquiry } from "@/lib/inquiry-types";
 import {
   QA_RFQ_STATUS_LABELS,
@@ -153,14 +153,14 @@ function QaDashboardPage() {
 
   // Queries (instant cache + keepPreviousData for fast loading)
   const { data: kpis } = useQuery({
-    queryKey: ["qa-kpis"],
+    queryKey: ["qa-kpis", sessionUser?.id],
     queryFn: fetchQaKpis,
     staleTime: 30000,
   });
 
   const { data: inquiriesPage } = useQuery({
-    queryKey: ["inquiries-for-qa"],
-    queryFn: () => fetchInquiries(0, 100),
+    queryKey: ["inquiries-for-qa", sessionUser?.id],
+    queryFn: () => isUserAdmin(sessionUser) ? fetchInquiries(0, 100) : fetchMyInquiries(0, 100),
     staleTime: 60000,
     enabled: newRfqModalOpen,
   });
@@ -194,7 +194,7 @@ function QaDashboardPage() {
     : clientsList;
 
   const { data: rfqsPage, isLoading: rfqsLoading } = useQuery({
-    queryKey: ["qa-rfqs", page, pageSize, search, statusFilter, priorityFilter, dosageFilter],
+    queryKey: ["qa-rfqs", sessionUser?.id, page, pageSize, search, statusFilter, priorityFilter, dosageFilter],
     queryFn: () =>
       fetchQaRfqs({
         page,
@@ -220,7 +220,7 @@ function QaDashboardPage() {
     mutationFn: (dto: QaRfqRequestDto) => createQaRfq(dto),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ["qa-rfqs"] });
-      queryClient.invalidateQueries({ queryKey: ["qa-kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["qa-kpis", sessionUser?.id] });
       toast.success(`QA RFQ ${created.rfqNo} created successfully`);
       setNewRfqModalOpen(false);
       navigate({ to: "/qa/rfq/$rfqId", params: { rfqId: created.id } });
@@ -234,7 +234,7 @@ function QaDashboardPage() {
     mutationFn: (id: string) => deleteQaRfq(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["qa-rfqs"] });
-      queryClient.invalidateQueries({ queryKey: ["qa-kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["qa-kpis", sessionUser?.id] });
       toast.success("RFQ deleted");
       setDeleteConfirm(null);
     },
@@ -248,7 +248,7 @@ function QaDashboardPage() {
       cloneMfr(match.targetType, match.targetId, rfqId),
     onSuccess: (mfr) => {
       queryClient.invalidateQueries({ queryKey: ["qa-rfqs"] });
-      queryClient.invalidateQueries({ queryKey: ["qa-kpis"] });
+      queryClient.invalidateQueries({ queryKey: ["qa-kpis", sessionUser?.id] });
       toast.success(`Cloned formula into ${mfr.mfrNo}!`);
       setMatchModalRfq(null);
       navigate({ to: "/qa/mfr/$mfrId", params: { mfrId: mfr.id } });

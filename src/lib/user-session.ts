@@ -9,7 +9,7 @@ const ROUTE_MODULE_RIGHTS: Array<{ prefix: string; rights: string[] }> = [
   { prefix: "/clients", rights: ["CLIENT_MASTER"] },
   { prefix: "/products", rights: ["PRODUCT_MASTER"] },
   { prefix: "/inquiry", rights: ["SALES", "QA", "QC"] },
-  { prefix: "/qa", rights: ["QA"] },
+  { prefix: "/qa", rights: ["QA", "QC"] },
   { prefix: "/orders", rights: ["SALES"] },
   { prefix: "/reports", rights: ["REPORTS"] },
   {
