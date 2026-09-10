@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { InquiryFormSkeleton } from "@/components/page-skeletons";
 import { fetchInquiryById } from "@/lib/inquiry-api";
-import { InquiryWizard } from "./_shell.inquiry";
+import { InquiryWizard } from "@/components/inquiry-wizard";
 
 export const Route = createFileRoute("/_shell/inquiry_/$inquiryId/edit")({
   component: EditInquiry,
