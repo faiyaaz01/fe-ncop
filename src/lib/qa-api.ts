@@ -111,8 +111,9 @@ export async function deleteQaRfq(id: string): Promise<void> {
 }
 
 /** GET /api/v1/qa/rfqs/:id/matches — run MFR matching engine */
-export async function fetchMfrMatches(id: string): Promise<MfrMatchResult[]> {
-  const res = await fetch(apiUrl(`/api/v1/qa/rfqs/${id}/matches`), {
+export async function fetchMfrMatches(id: string, productId?: string): Promise<MfrMatchResult[]> {
+  const suffix = productId ? `?productId=${encodeURIComponent(productId)}` : "";
+  const res = await fetch(apiUrl(`/api/v1/qa/rfqs/${id}/matches${suffix}`), {
     method: "GET",
     headers: authHeaders(),
   });
@@ -167,13 +168,14 @@ export async function createQaMfr(dto: QaMfrRequestDto): Promise<QaMfr> {
 /** POST /api/v1/qa/mfrs/from-rfq — create MFR initialized from RFQ */
 export async function createMfrFromRfq(
   rfqId: string,
+  rfqProductId?: string,
   batchSize?: number,
   batchUnit?: string,
 ): Promise<QaMfr> {
   const res = await fetch(apiUrl("/api/v1/qa/mfrs/from-rfq"), {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({ rfqId, batchSize, batchUnit }),
+    body: JSON.stringify({ rfqId, rfqProductId, batchSize, batchUnit }),
   });
   return handleResponse<QaMfr>(res);
 }
@@ -199,6 +201,18 @@ export async function updateQaMfr(id: string, dto: QaMfrRequestDto): Promise<QaM
     headers: authHeaders(),
     body: JSON.stringify(dto),
   });
+  return handleResponse<QaMfr>(res);
+}
+
+/** Upload a validated PDF/image change-part layout and persist its reference on the MFR. */
+export async function uploadMfrChangePart(id: string, type: "compression" | "strip", file: File): Promise<QaMfr> {
+  const session = userSessionService.getCurrentUser();
+  const body = new FormData();
+  body.append("type", type);
+  body.append("file", file);
+  const headers: HeadersInit = {};
+  if (session?.token) headers.Authorization = `Bearer ${session.token}`;
+  const res = await fetch(apiUrl(`/api/v1/qa/mfrs/${id}/change-parts/upload`), { method: "POST", headers, body });
   return handleResponse<QaMfr>(res);
 }
 
@@ -242,6 +256,15 @@ export async function raiseQaQuery(dto: QaQueryRequestDto): Promise<QaQuery> {
     body: JSON.stringify(dto),
   });
   return handleResponse<QaQuery>(res);
+}
+
+/** GET /api/v1/qa/queries — get all technical queries visible to the user */
+export async function fetchQaQueries(): Promise<QaQuery[]> {
+  const res = await fetch(apiUrl("/api/v1/qa/queries"), {
+    method: "GET",
+    headers: authHeaders(),
+  });
+  return handleResponse<QaQuery[]>(res);
 }
 
 /** GET /api/v1/qa/queries/rfq/:rfqId — get queries for an RFQ */

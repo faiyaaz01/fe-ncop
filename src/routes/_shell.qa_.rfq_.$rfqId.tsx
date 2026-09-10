@@ -66,6 +66,7 @@ import {
   STRENGTH_UNITS,
   BATCH_UNITS,
   type QaRfq,
+  type QaRfqProduct,
   type QaCompositionLine,
   type QaChangeParts,
   type QaRfqStatus,
@@ -91,10 +92,11 @@ function QaRfqDetailPage() {
     queryFn: () => fetchQaRfqById(rfqId),
   });
 
+  const [activeProductId, setActiveProductId] = useState<string | undefined>();
   const { data: matches = [], isLoading: matchesLoading } = useQuery({
-    queryKey: ["qa-matches", rfqId],
-    queryFn: () => fetchMfrMatches(rfqId),
-    enabled: Boolean(rfqId),
+    queryKey: ["qa-matches", rfqId, activeProductId],
+    queryFn: () => fetchMfrMatches(rfqId, activeProductId),
+    enabled: Boolean(rfqId && activeProductId),
   });
 
   const { data: queries = [] } = useQuery({
@@ -105,6 +107,7 @@ function QaRfqDetailPage() {
 
   // Local Form State
   const [compositionLines, setCompositionLines] = useState<QaCompositionLine[]>([]);
+  const [products, setProducts] = useState<QaRfqProduct[]>([]);
   const [changeParts, setChangeParts] = useState<QaChangeParts>({});
   const [status, setStatus] = useState<QaRfqStatus>("FORMULA_PENDING");
   const [priority, setPriority] = useState<QaPriority>("MEDIUM");
@@ -154,6 +157,19 @@ function QaRfqDetailPage() {
   useEffect(() => {
     if (rfq) {
       setCompositionLines(rfq.compositionLines || []);
+      const legacyProduct: QaRfqProduct = {
+        id: "legacy-product",
+        productName: rfq.productName,
+        dosageForm: rfq.dosageForm,
+        standard: rfq.standard,
+        compositionLines: rfq.compositionLines || [],
+        orderQty: rfq.orderQty,
+        packingSpecs: rfq.packingSpecs,
+        totalTablets: rfq.totalTablets,
+      };
+      const resolvedProducts = rfq.products?.length ? rfq.products : [legacyProduct];
+      setProducts(resolvedProducts);
+      setActiveProductId(resolvedProducts[0]?.id);
       setChangeParts(rfq.changeParts || {});
       setStatus(rfq.status);
       setPriority(rfq.priority);
@@ -201,6 +217,10 @@ function QaRfqDetailPage() {
         packagingSpec: rfq!.packagingSpec,
         remarks,
         compositionLines,
+        products: products.map((product) => ({
+          ...product,
+          totalTablets: calculateTotalTablets(product.orderQty || 0, product.packingSpecs || ""),
+        })),
         changeParts,
       }),
     onSuccess: () => {
@@ -215,7 +235,10 @@ function QaRfqDetailPage() {
   });
 
   const createMfrMutation = useMutation({
-    mutationFn: () => createMfrFromRfq(rfqId, targetBatchSize, batchUnit),
+    mutationFn: (product: QaRfqProduct) => createMfrFromRfq(
+      rfqId, product.id === "legacy-product" ? undefined : product.id,
+      product.totalTablets || targetBatchSize, batchUnit,
+    ),
     onSuccess: (mfr) => {
       queryClient.invalidateQueries({ queryKey: ["qa-rfqs", rfqId] });
       toast.success(`MFR ${mfr.mfrNo} created from RFQ!`);
@@ -245,6 +268,7 @@ function QaRfqDetailPage() {
       raiseQaQuery({
         rfqId,
         rfqNo: rfq?.rfqNo,
+        rfqProductId: activeProductId === "legacy-product" ? undefined : activeProductId,
         subject: newQuerySubject,
         queryText: newQueryText,
         raisedBy: "QA Team",
@@ -373,7 +397,7 @@ function QaRfqDetailPage() {
               variant="outline"
               size="sm"
               className="gap-1.5"
-              onClick={() => createMfrMutation.mutate()}
+              onClick={() => products[0] && createMfrMutation.mutate(products[0])}
               disabled={createMfrMutation.isPending}
             >
               <FileSpreadsheet className="size-3.5" />
@@ -487,7 +511,7 @@ function QaRfqDetailPage() {
             <Button
               size="sm"
               className="gap-1.5 h-8 text-xs"
-              onClick={() => createMfrMutation.mutate()}
+              onClick={() => products[0] && createMfrMutation.mutate(products[0])}
               disabled={createMfrMutation.isPending}
             >
               <FileSpreadsheet className="size-3.5" />
@@ -509,57 +533,18 @@ function QaRfqDetailPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              <tr>
-                <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">1</td>
-                <td className="py-3.5 px-4">
-                  <div className="font-medium text-foreground text-sm">
-                    {rfq.productName}
-                  </div>
-                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                    {compositionLines.length > 0
-                      ? compositionLines.map((l) => `${l.api} ${l.labelClaim}${l.claimUnit} ${l.pharmacopeia}`).join(" + ")
-                      : `${rfq.productName} ${rfq.dosageForm}`}
-                  </div>
-                </td>
-                <td className="py-3.5 px-4">
-                  <Input
-                    type="number"
-                    value={orderQty}
-                    onChange={(e) => handleOrderQtyChange(Number(e.target.value))}
-                    className="h-8 text-xs font-mono w-28"
-                    placeholder="12000"
-                  />
-                </td>
-                <td className="py-3.5 px-4">
-                  <Input
-                    value={packingSpecs}
-                    onChange={(e) => handlePackingSpecsChange(e.target.value)}
-                    className="h-8 text-xs font-mono w-28"
-                    placeholder="10x1x10"
-                  />
-                </td>
-                <td className="py-3.5 px-4">
-                  <div className="text-sm font-semibold text-foreground font-mono flex items-center gap-1">
-                    <Counter key={totalTablets} value={totalTablets} decimals={0} />
-                    <span className="font-sans font-semibold text-sm">
-                      {isTablet ? "tablets" : isCapsule ? "capsules" : "units"}
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground font-mono mt-0.5">
-                    = {orderQty.toLocaleString()} × {packingSpecs}
-                  </div>
-                </td>
-                <td className="py-3.5 px-4 text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs gap-1.5"
-                    onClick={() => setQueryModalOpen(true)}
-                  >
-                    <HelpCircle className="size-3.5" /> Query
-                  </Button>
-                </td>
-              </tr>
+              {products.map((product, index) => {
+                const productTotal = calculateTotalTablets(product.orderQty || 0, product.packingSpecs || "");
+                const updateProduct = (updates: Partial<QaRfqProduct>) => setProducts(products.map((item, i) => i === index ? { ...item, ...updates } : item));
+                return <tr key={product.id || index}>
+                  <td className="py-3.5 px-4 font-mono text-xs text-muted-foreground">{index + 1}</td>
+                  <td className="py-3.5 px-4"><div className="font-medium text-foreground text-sm">{product.productName}</div><div className="text-xs text-muted-foreground font-mono mt-0.5">{product.compositionLines?.map((line) => `${line.api} ${line.labelClaim}${line.claimUnit} ${line.pharmacopeia}`).join(" + ") || product.dosageForm}</div></td>
+                  <td className="py-3.5 px-4"><Input type="number" value={product.orderQty || 0} onChange={(e) => updateProduct({ orderQty: Number(e.target.value) })} className="h-8 text-xs font-mono w-28" /></td>
+                  <td className="py-3.5 px-4"><Input value={product.packingSpecs || ""} onChange={(e) => updateProduct({ packingSpecs: e.target.value })} className="h-8 text-xs font-mono w-28" /></td>
+                  <td className="py-3.5 px-4"><div className="text-sm font-semibold text-foreground font-mono"><Counter key={productTotal} value={productTotal} decimals={0} /> units</div><div className="text-[11px] text-muted-foreground font-mono mt-0.5">= {(product.orderQty || 0).toLocaleString()} × {product.packingSpecs}</div></td>
+                  <td className="py-3.5 px-4 text-right"><div className="flex justify-end gap-1"><Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setActiveProductId(product.id); setQueryModalOpen(true); }}><HelpCircle className="size-3.5" /> {product.technicalQueryRaised ? "Query Raised" : "Query"}</Button><Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => createMfrMutation.mutate({ ...product, totalTablets: productTotal })}>Create MFR</Button></div></td>
+                </tr>;
+              })}
             </tbody>
           </table>
         </div>

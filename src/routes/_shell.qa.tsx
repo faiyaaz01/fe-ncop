@@ -68,6 +68,7 @@ import {
   createQaRfq,
   deleteQaRfq,
   fetchMfrMatches,
+  fetchQaQueries,
   cloneMfr,
 } from "@/lib/qa-api";
 import { fetchAllClients } from "@/lib/client-api";
@@ -120,6 +121,7 @@ function QaDashboardPage() {
   const [newRfqModalOpen, setNewRfqModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; rfqNo: string } | null>(null);
   const [matchModalRfq, setMatchModalRfq] = useState<QaRfq | null>(null);
+  const [taskPopup, setTaskPopup] = useState<"my-pending" | "overdue" | "technical-queries" | null>(null);
 
   // New RFQ Form State
   const sessionUser = userSessionService.getCurrentUser();
@@ -215,6 +217,21 @@ function QaDashboardPage() {
     enabled: Boolean(matchModalRfq?.id),
   });
 
+  // Popup data is fetched only when a dashboard widget is opened, leaving the main list untouched.
+  const { data: popupRfqsPage, isLoading: popupRfqsLoading } = useQuery({
+    queryKey: ["qa-dashboard-popup-rfqs", sessionUser?.id, taskPopup],
+    queryFn: () => fetchQaRfqs({ page: 0, size: 500 }),
+    enabled: taskPopup === "my-pending" || taskPopup === "overdue",
+    staleTime: 15000,
+  });
+
+  const { data: popupQueries = [], isLoading: popupQueriesLoading } = useQuery<QaQuery[]>({
+    queryKey: ["qa-dashboard-popup-queries", sessionUser?.id],
+    queryFn: fetchQaQueries,
+    enabled: taskPopup === "technical-queries",
+    staleTime: 15000,
+  });
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: (dto: QaRfqRequestDto) => createQaRfq(dto),
@@ -261,6 +278,20 @@ function QaDashboardPage() {
   const rfqList = rfqsPage?.content ?? [];
   const totalElements = rfqsPage?.totalElements ?? 0;
   const totalPages = rfqsPage?.totalPages ?? 1;
+  const popupRfqs = popupRfqsPage?.content ?? [];
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const popupTasks = taskPopup === "my-pending"
+    ? popupRfqs.filter((rfq) =>
+        rfq.status === "FORMULA_PENDING" || rfq.status === "SPECIFICATION_PENDING",
+      )
+    : taskPopup === "overdue"
+      ? popupRfqs.filter(
+          (rfq) =>
+            rfq.status !== "COMPLETED" && Boolean(rfq.dueDate) && rfq.dueDate! < today,
+        )
+      : [];
+  const openTechnicalQueries = popupQueries.filter((query) => query.status === "OPEN");
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -908,6 +939,7 @@ function QaDashboardPage() {
           }
           detail="Assigned workload"
           tone="primary"
+          onClick={() => setTaskPopup("my-pending")}
         />
         <MetricCard
           compact
@@ -916,6 +948,7 @@ function QaDashboardPage() {
           value={kpis?.overdueTasksCount ?? 0}
           detail="Past the due date"
           tone="danger"
+          onClick={() => setTaskPopup("overdue")}
         />
         <MetricCard
           compact
@@ -924,6 +957,7 @@ function QaDashboardPage() {
           value={kpis?.openQueriesCount ?? 0}
           detail="Open clarifications"
           tone="violet"
+          onClick={() => setTaskPopup("technical-queries")}
         />
       </MetricGrid>
 
@@ -1327,6 +1361,102 @@ function QaDashboardPage() {
         />
       )}
 
+      {/* Dashboard task widgets */}
+      <Dialog open={Boolean(taskPopup)} onOpenChange={(open) => !open && setTaskPopup(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[82vh] flex flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="border-b border-border/60 bg-muted/20 px-5 py-4">
+            <div className="flex items-start gap-3 pr-6">
+              <div className={cn(
+                "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                taskPopup === "overdue" ? "bg-rose-500/10 text-rose-600" : taskPopup === "technical-queries" ? "bg-violet-500/10 text-violet-600" : "bg-primary/10 text-primary",
+              )}>
+                {taskPopup === "overdue" ? <AlertTriangle className="size-5" /> : taskPopup === "technical-queries" ? <HelpCircle className="size-5" /> : <AlertCircle className="size-5" />}
+              </div>
+              <div className="min-w-0">
+                <DialogTitle>
+                  {taskPopup === "my-pending" ? "My Pending Tasks" : taskPopup === "overdue" ? "Overdue Tasks" : "Technical Queries"}
+                </DialogTitle>
+                <DialogDescription className="mt-1 text-xs">
+                  {taskPopup === "my-pending"
+                    ? "Formula and specification work waiting for action."
+                    : taskPopup === "overdue"
+                      ? "Open RFQs whose due date has passed."
+                      : "Open technical clarifications requiring follow-up."}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            {taskPopup === "technical-queries" ? (
+              popupQueriesLoading ? (
+                <div className="flex flex-col items-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="size-5 animate-spin text-primary" /> Loading technical queries...</div>
+              ) : openTechnicalQueries.length === 0 ? (
+                <EmptyState icon={<HelpCircle className="size-6 text-muted-foreground" />} title="No open technical queries" description="New technical clarifications will appear here." />
+              ) : (
+                <div className="space-y-2.5">
+                  {openTechnicalQueries.map((query) => (
+                    <button
+                      key={query.id}
+                      type="button"
+                      className="group flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      onClick={() => {
+                        setTaskPopup(null);
+                        if (query.rfqId) navigate({ to: "/qa/rfq/$rfqId", params: { rfqId: query.rfqId } });
+                        else if (query.mfrId) navigate({ to: "/qa/mfr/$mfrId", params: { mfrId: query.mfrId } });
+                      }}
+                      disabled={!query.rfqId && !query.mfrId}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-xs font-semibold text-primary">{query.queryNo}</span>
+                          <Badge variant="outline" className="border-violet-500/25 bg-violet-500/10 text-[10px] text-violet-700 dark:text-violet-300">Open</Badge>
+                        </div>
+                        <p className="mt-1 truncate text-sm font-medium text-foreground">{query.subject || "Technical clarification"}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{query.queryText}</p>
+                        <p className="mt-2 text-[11px] text-muted-foreground">{query.rfqNo ? `RFQ: ${query.rfqNo}` : query.mfrId ? "Linked MFR" : "No linked work item"}</p>
+                      </div>
+                      {(query.rfqId || query.mfrId) && <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />}
+                    </button>
+                  ))}
+                </div>
+              )
+            ) : popupRfqsLoading ? (
+              <div className="flex flex-col items-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="size-5 animate-spin text-primary" /> Loading tasks...</div>
+            ) : popupTasks.length === 0 ? (
+              <EmptyState icon={taskPopup === "overdue" ? <AlertTriangle className="size-6 text-muted-foreground" /> : <AlertCircle className="size-6 text-muted-foreground" />} title={taskPopup === "overdue" ? "No overdue tasks" : "No pending tasks"} description={taskPopup === "overdue" ? "All visible tasks are currently within their due date." : "There is no formula or specification work waiting right now."} />
+            ) : (
+              <div className="space-y-2.5">
+                {popupTasks.map((rfq) => {
+                  const statusColor = QA_RFQ_STATUS_COLORS[rfq.status] ?? QA_RFQ_STATUS_COLORS.FORMULA_PENDING;
+                  return (
+                    <button key={rfq.id} type="button" className="group flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" onClick={() => {
+                      setTaskPopup(null);
+                      navigate({ to: "/qa/rfq/$rfqId", params: { rfqId: rfq.id } });
+                    }}>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-mono text-xs font-semibold text-primary">{rfq.sourceRfqNo || rfq.rfqNo}</span>
+                          <span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", statusColor.bg, statusColor.text, statusColor.border)}>{QA_RFQ_STATUS_LABELS[rfq.status]}</span>
+                        </div>
+                        <p className="mt-1 truncate text-sm font-medium text-foreground">{rfq.productName}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{rfq.customerName || "No customer assigned"} · {rfq.dosageForm}</p>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className={cn("text-xs font-medium", taskPopup === "overdue" ? "text-rose-600" : "text-muted-foreground")}>{rfq.dueDate ? `Due ${rfq.dueDate}` : "No due date"}</p>
+                        <ArrowRight className="ml-auto mt-2 size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="border-t border-border/60 bg-muted/10 px-5 py-3">
+            <Button variant="outline" onClick={() => setTaskPopup(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

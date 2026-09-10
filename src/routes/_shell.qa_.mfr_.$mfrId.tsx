@@ -45,6 +45,7 @@ import {
   fetchQaMfrById,
   updateQaMfr,
   submitQaMfr,
+  uploadMfrChangePart,
 } from "@/lib/qa-api";
 import {
   QA_STAGES,
@@ -445,6 +446,16 @@ function QaMfrWorkbenchPage() {
     onError: (err: Error) => {
       toast.error(`Failed to submit MFR: ${err.message}`);
     },
+  });
+
+  const uploadChangePartMutation = useMutation({
+    mutationFn: ({ type, file }: { type: "compression" | "strip"; file: File }) => uploadMfrChangePart(mfrId, type, file),
+    onSuccess: (saved) => {
+      setChangeParts(saved.changeParts || {});
+      queryClient.invalidateQueries({ queryKey: ["qa-mfrs", mfrId] });
+      toast.success("Change-part layout uploaded");
+    },
+    onError: (err: Error) => toast.error(`Upload failed: ${err.message}`),
   });
 
   if (isLoading) {
@@ -1038,17 +1049,11 @@ function QaMfrWorkbenchPage() {
               </Label>
               <Input
                 type="file"
+                accept="application/pdf,image/png,image/jpeg,image/webp"
                 className="h-9 text-xs file:mr-3 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-primary/10 file:text-primary cursor-pointer"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    setChangeParts({
-                      ...changeParts,
-                      changePartAvailable: true,
-                      compressionCpFileName: file.name,
-                    });
-                    toast.success(`Compression CP layout attached: ${file.name}`);
-                  }
+                  if (file) uploadChangePartMutation.mutate({ type: "compression", file });
                 }}
               />
               {changeParts.compressionCpFileName && (
@@ -1065,17 +1070,11 @@ function QaMfrWorkbenchPage() {
               </Label>
               <Input
                 type="file"
+                accept="application/pdf,image/png,image/jpeg,image/webp"
                 className="h-9 text-xs file:mr-3 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:bg-primary/10 file:text-primary cursor-pointer"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  if (file) {
-                    setChangeParts({
-                      ...changeParts,
-                      changePartAvailable: true,
-                      stripCpFileName: file.name,
-                    });
-                    toast.success(`Strip CP layout attached: ${file.name}`);
-                  }
+                  if (file) uploadChangePartMutation.mutate({ type: "strip", file });
                 }}
               />
               {changeParts.stripCpFileName && (
