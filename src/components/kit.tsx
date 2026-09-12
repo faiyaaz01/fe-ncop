@@ -491,6 +491,7 @@ export function MetricCard({
   suffix = "",
   compact = false,
   className,
+  onClick,
 }: {
   icon: LucideIcon;
   label: string;
@@ -503,6 +504,8 @@ export function MetricCard({
   suffix?: string;
   compact?: boolean;
   className?: string;
+  /** Makes the summary card an accessible action when supplied. */
+  onClick?: () => void;
 }) {
   const palette = metricToneClasses[tone];
   return (
@@ -510,8 +513,18 @@ export function MetricCard({
       className={cn(
         "surface group relative isolate flex min-h-[108px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border border-border/70 bg-card p-3.5 shadow-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md sm:p-4",
         compact && "min-h-[100px] p-3 sm:p-3.5",
+        onClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
         className,
       )}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick();
+        }
+      } : undefined}
     >
       <span
         aria-hidden
@@ -930,4 +943,3 @@ export const EntityFilterBar = UniversalFilterBar;
 
 // Universal View Mode Toggle
 export { ViewModeToggle, type ViewMode } from "@/components/view-mode-toggle";
-

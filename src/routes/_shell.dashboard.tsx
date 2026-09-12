@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Boxes, ClipboardList, FileCheck2, ListChecks, PackageCheck, Users } from "lucide-react";
+import { AlertCircle, AlertTriangle, ArrowRight, Boxes, ClipboardList, FileCheck2, HelpCircle, ListChecks, Loader2, PackageCheck, Users } from "lucide-react";
 import {
   Area,
   AreaChart,
@@ -21,11 +21,16 @@ import {
   type MetricTone,
 } from "@/components/kit";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { fetchAllClients, fetchClientCount } from "@/lib/client-api";
 import { fetchProductMetrics } from "@/lib/product-api";
 import { fetchInquiries, fetchMyInquiries } from "@/lib/inquiry-api";
 import { canAccessRoute, userSessionService } from "@/lib/user-session";
 import { normalizeCountryName } from "@/lib/country";
+import { fetchQaKpis, fetchQaQueries, fetchQaRfqs } from "@/lib/qa-api";
+import { QA_RFQ_STATUS_COLORS, QA_RFQ_STATUS_LABELS, type QaQuery, type QaRfq } from "@/lib/qa-types";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/dashboard")({
   head: () => ({
@@ -57,6 +62,7 @@ function Dashboard() {
   const canViewInquiries = canAccessRoute(user, "/inquiry");
   const roles = [user?.role, ...(user?.roles || [])].map((role) => String(role).toUpperCase());
   const useMyInquiries = roles.some((role) => ["SALES", "QA", "QC"].includes(role));
+  const isQaUser = roles.includes("QA");
 
   const clientCount = useQuery({
     queryKey: ["dashboard", "client-count"],
@@ -210,7 +216,7 @@ function Dashboard() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              {canViewInquiries && (
+              {canViewInquiries && !isQaUser && (
                 <Button asChild variant="secondary" className="shadow-none">
                   <Link to="/inquiry">New inquiry</Link>
                 </Button>
@@ -228,7 +234,7 @@ function Dashboard() {
         </section>
       </Reveal>
 
-      {cards.length > 0 ? (
+      {!isQaUser && (cards.length > 0 ? (
         <MetricGrid columns={5} label="Workspace summary">
           {cards.map((card, index) => (
             <Reveal key={card.label} delay={index * 0.04} className="h-full">
@@ -255,9 +261,11 @@ function Dashboard() {
             Ask an administrator to assign the modules you need to your account.
           </p>
         </div>
-      )}
+      ))}
 
-      {(canViewInquiries || canViewClients || canViewProducts) && (
+      {isQaUser && <QaTaskWidgets userId={user?.id} />}
+
+      {!isQaUser && (canViewInquiries || canViewClients || canViewProducts) && (
         <section className="grid gap-4 xl:grid-cols-3">
           {canViewInquiries && (
             <Reveal className="xl:col-span-2">
@@ -460,6 +468,117 @@ function Dashboard() {
       )}
     </div>
   );
+}
+
+type QaPopupMode = "pending" | "overdue" | "queries" | null;
+
+/** QA-only work queue. Kept on the main dashboard so reviewers can act without opening QA/MFR first. */
+function QaTaskWidgets({ userId }: { userId?: string }) {
+  const navigate = useNavigate();
+  const [popup, setPopup] = useState<QaPopupMode>(null);
+  const kpis = useQuery({
+    queryKey: ["qa-kpis", userId],
+    queryFn: fetchQaKpis,
+    staleTime: 30_000,
+    refetchInterval: LIVE_REFRESH_INTERVAL,
+  });
+  const popupRfqs = useQuery({
+    queryKey: ["dashboard-qa-popup-rfqs", userId, popup],
+    queryFn: () => fetchQaRfqs({ page: 0, size: 500 }),
+    enabled: popup === "pending" || popup === "overdue",
+    staleTime: 15_000,
+  });
+  const popupQueries = useQuery<QaQuery[]>({
+    queryKey: ["dashboard-qa-popup-queries", userId],
+    queryFn: fetchQaQueries,
+    enabled: popup === "queries",
+    staleTime: 15_000,
+  });
+
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const tasks = (popupRfqs.data?.content || []).filter((rfq) =>
+    popup === "pending"
+      ? rfq.status === "FORMULA_PENDING" || rfq.status === "SPECIFICATION_PENDING"
+      : popup === "overdue"
+        ? rfq.status !== "COMPLETED" && Boolean(rfq.dueDate) && rfq.dueDate! < today
+        : false,
+  );
+  const queries = (popupQueries.data || []).filter((query) => query.status === "OPEN");
+  const popupTitle = popup === "pending" ? "My Pending Tasks" : popup === "overdue" ? "Overdue Tasks" : "Technical Queries";
+
+  return (
+    <Reveal>
+      <section aria-label="QA work queue" className="space-y-3">
+        <div>
+          <h2 className="text-base font-semibold">QA Work Queue</h2>
+          <p className="text-xs text-muted-foreground">Your formulation tasks and open technical clarifications</p>
+        </div>
+        <MetricGrid columns={3} label="QA work queue">
+          <MetricCard compact icon={AlertCircle} label="My pending tasks" value={kpis.data?.myPendingTasksCount ?? 0} detail="Assigned workload" tone="primary" loading={kpis.isLoading} onClick={() => setPopup("pending")} />
+          <MetricCard compact icon={AlertTriangle} label="Overdue tasks" value={kpis.data?.overdueTasksCount ?? 0} detail="Past the due date" tone="danger" loading={kpis.isLoading} onClick={() => setPopup("overdue")} />
+          <MetricCard compact icon={HelpCircle} label="Technical queries" value={kpis.data?.openQueriesCount ?? 0} detail="Open clarifications" tone="violet" loading={kpis.isLoading} onClick={() => setPopup("queries")} />
+        </MetricGrid>
+      </section>
+
+      <Dialog open={Boolean(popup)} onOpenChange={(open) => !open && setPopup(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[82vh] flex flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="border-b border-border/60 bg-muted/20 px-5 py-4">
+            <div className="flex items-start gap-3 pr-6">
+              <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", popup === "overdue" ? "bg-rose-500/10 text-rose-600" : popup === "queries" ? "bg-violet-500/10 text-violet-600" : "bg-primary/10 text-primary")}>
+                {popup === "overdue" ? <AlertTriangle className="size-5" /> : popup === "queries" ? <HelpCircle className="size-5" /> : <AlertCircle className="size-5" />}
+              </div>
+              <div>
+                <DialogTitle>{popupTitle}</DialogTitle>
+                <DialogDescription className="mt-1 text-xs">Click an item to open the related QA workbench.</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            {popup === "queries" ? (
+              popupQueries.isLoading ? <PopupLoading label="Loading technical queries..." /> : queries.length === 0 ? <PopupEmpty label="No open technical queries" /> : (
+                <div className="space-y-2.5">{queries.map((query) => <QueryPopupRow key={query.id} query={query} onOpen={() => {
+                  setPopup(null);
+                  if (query.rfqId) navigate({ to: "/qa/rfq/$rfqId", params: { rfqId: query.rfqId } });
+                  else if (query.mfrId) navigate({ to: "/qa/mfr/$mfrId", params: { mfrId: query.mfrId } });
+                }} />)}</div>
+              )
+            ) : popupRfqs.isLoading ? <PopupLoading label="Loading tasks..." /> : tasks.length === 0 ? <PopupEmpty label={popup === "overdue" ? "No overdue tasks" : "No pending tasks"} /> : (
+              <div className="space-y-2.5">{tasks.map((rfq) => <TaskPopupRow key={rfq.id} rfq={rfq} overdue={popup === "overdue"} onOpen={() => {
+                setPopup(null);
+                navigate({ to: "/qa/rfq/$rfqId", params: { rfqId: rfq.id } });
+              }} />)}</div>
+            )}
+          </div>
+          <DialogFooter className="border-t border-border/60 bg-muted/10 px-5 py-3"><Button variant="outline" onClick={() => setPopup(null)}>Close</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Reveal>
+  );
+}
+
+function PopupLoading({ label }: { label: string }) {
+  return <div className="flex flex-col items-center gap-2 py-12 text-sm text-muted-foreground"><Loader2 className="size-5 animate-spin text-primary" />{label}</div>;
+}
+
+function PopupEmpty({ label }: { label: string }) {
+  return <div className="py-12 text-center text-sm text-muted-foreground">{label}</div>;
+}
+
+function TaskPopupRow({ rfq, overdue, onOpen }: { rfq: QaRfq; overdue: boolean; onOpen: () => void }) {
+  const status = QA_RFQ_STATUS_COLORS[rfq.status] ?? QA_RFQ_STATUS_COLORS.FORMULA_PENDING;
+  return <button type="button" onClick={onOpen} className="group flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-xs font-semibold text-primary">{rfq.sourceRfqNo || rfq.rfqNo}</span><span className={cn("inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium", status.bg, status.text, status.border)}>{QA_RFQ_STATUS_LABELS[rfq.status]}</span></div><p className="mt-1 truncate text-sm font-medium">{rfq.productName}</p><p className="mt-0.5 text-xs text-muted-foreground">{rfq.customerName || "No customer assigned"} · {rfq.dosageForm}</p></div>
+    <div className="shrink-0 text-right"><p className={cn("text-xs font-medium", overdue ? "text-rose-600" : "text-muted-foreground")}>{rfq.dueDate ? `Due ${rfq.dueDate}` : "No due date"}</p><ArrowRight className="ml-auto mt-2 size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" /></div>
+  </button>;
+}
+
+function QueryPopupRow({ query, onOpen }: { query: QaQuery; onOpen: () => void }) {
+  const linked = Boolean(query.rfqId || query.mfrId);
+  return <button type="button" disabled={!linked} onClick={onOpen} className="group flex w-full items-center gap-3 rounded-xl border border-border/70 bg-card p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+    <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><span className="font-mono text-xs font-semibold text-primary">{query.queryNo}</span><Badge variant="outline" className="border-violet-500/25 bg-violet-500/10 text-[10px] text-violet-700 dark:text-violet-300">Open</Badge></div><p className="mt-1 truncate text-sm font-medium">{query.subject || "Technical clarification"}</p><p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{query.queryText}</p></div>
+    {linked && <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />}
+  </button>;
 }
 
 type DashboardCard = {

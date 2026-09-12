@@ -86,7 +86,7 @@ export const DOSAGE_FORMS = [
 ] as const;
 
 export const PHARMACOPEIAS = ["IP", "BP", "USP", "EP", "Ph.Eur", "In-House", "None"] as const;
-export const STRENGTH_UNITS = ["mg", "mcg", "g", "kg", "% w/v", "% w/w", "IU", "ml"] as const;
+export const STRENGTH_UNITS = ["mg", "mcg", "g", "kg", "ml", "L", "Nos"] as const;
 export const BATCH_UNITS = ["Tablets", "Capsules", "Litres", "Bottles", "Kg", "Vials", "Ampoules"] as const;
 
 // ─── Sub-Entities ────────────────────────────────────────────────────────────
@@ -176,6 +176,7 @@ export interface QaRfq {
   dueDate?: string;
   createdDate?: string;
   compositionLines: QaCompositionLine[];
+  products?: QaRfqProduct[];
   changeParts?: QaChangeParts;
   packagingSpec?: string;
   orderQty?: number;
@@ -188,11 +189,24 @@ export interface QaRfq {
   lastUpdatedOn?: string;
 }
 
+export interface QaRfqProduct {
+  id?: string;
+  productName: string;
+  dosageForm?: string;
+  standard?: string;
+  compositionLines: QaCompositionLine[];
+  orderQty?: number;
+  packingSpecs?: string;
+  totalTablets?: number;
+  technicalQueryRaised?: boolean;
+}
+
 export interface QaMfr {
   id: string;
   mfrNo: string;
   rfqId?: string;
   rfqNo?: string;
+  rfqProductId?: string;
   productName: string;
   dosageForm: string;
   dosageVariant?: string;
@@ -211,6 +225,8 @@ export interface QaMfr {
   remarks?: string;
   createdBy?: string;
   approvedBy?: string;
+  nextDepartment?: string;
+  nextApprover?: string;
   createdOn?: string;
   lastUpdatedOn?: string;
 }
@@ -221,6 +237,7 @@ export interface QaQuery {
   rfqId?: string;
   rfqNo?: string;
   mfrId?: string;
+  rfqProductId?: string;
   raisedBy?: string;
   raisedTo?: string;
   subject?: string;
@@ -254,6 +271,7 @@ export interface QaRfqRequestDto {
   dueDate?: string;
   createdDate?: string;
   compositionLines?: QaCompositionLine[];
+  products?: QaRfqProduct[];
   changeParts?: QaChangeParts;
   packagingSpec?: string;
   orderQty?: number;
@@ -267,6 +285,7 @@ export interface QaRfqRequestDto {
 export interface QaMfrRequestDto {
   rfqId?: string;
   rfqNo?: string;
+  rfqProductId?: string;
   productName?: string;
   dosageForm?: string;
   dosageVariant?: string;
@@ -285,12 +304,15 @@ export interface QaMfrRequestDto {
   remarks?: string;
   createdBy?: string;
   approvedBy?: string;
+  nextDepartment?: string;
+  nextApprover?: string;
 }
 
 export interface QaQueryRequestDto {
   rfqId?: string;
   rfqNo?: string;
   mfrId?: string;
+  rfqProductId?: string;
   raisedBy?: string;
   raisedTo?: string;
   subject?: string;
@@ -306,6 +328,9 @@ export interface MfrMatchResult {
   dosageForm: string;
   dosageVariant?: string;
   composition?: string;
+  batchSize?: number;
+  batchUnit?: string;
+  status?: string;
   totalScore: number;
   productNameScore: number;
   compositionScore: number;
@@ -313,6 +338,7 @@ export interface MfrMatchResult {
   dosageFormScore: number;
   standardScore: number;
   statusScore: number;
+  batchSizeScore?: number;
   matchedIngredients: string[];
 }
 
