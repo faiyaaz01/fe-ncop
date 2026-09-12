@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Plus, Send, Trash2, CalendarIcon } from "lucide-react";
+import { ChevronLeft, Plus, Save, Send, Trash2, CalendarIcon } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -31,7 +31,14 @@ import { cn } from "@/lib/utils";
 import { fetchAllClients } from "@/lib/client-api";
 import { fetchAllProducts, fetchDosageForms } from "@/lib/product-api";
 import { fetchAllUsers } from "@/lib/auth-api";
-import { createInquiry, fetchInquiries, fetchMyInquiries, updateInquiry } from "@/lib/inquiry-api";
+import {
+  createInquiry,
+  createInquiryDraft,
+  fetchInquiries,
+  fetchMyInquiries,
+  updateInquiry,
+  updateInquiryDraft,
+} from "@/lib/inquiry-api";
 import { userSessionService } from "@/lib/user-session";
 import { InquiryList } from "@/components/inquiry-list";
 import type {
@@ -300,16 +307,16 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
     (u) => u.effectiveActive && u.roleNames.some((r) => r.toUpperCase() === "SALES"),
   );
 
-  const submit = async () => {
-    if (!customerId || !contactPersonId || !allLinesComplete) {
+  const submit = async (asDraft = false) => {
+    if (!asDraft && (!customerId || !contactPersonId || !allLinesComplete)) {
       toast.error("Select a customer and contact, then complete each product and quantity.");
       return;
     }
-    if (hasQa && !qaAssigneeId) {
+    if (!asDraft && hasQa && !qaAssigneeId) {
       toast.error("Please select a QA Reviewer for the in-house products.");
       return;
     }
-    if (hasQc && !qcAssigneeId) {
+    if (!asDraft && hasQc && !qcAssigneeId) {
       toast.error("Please select a QC Reviewer for the outsourced products.");
       return;
     }
@@ -334,17 +341,26 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
         ),
       };
       const inquiry = editingInquiry
-        ? await updateInquiry(editingInquiry.id, request)
-        : await createInquiry(request);
+        ? asDraft
+          ? await updateInquiryDraft(editingInquiry.id, request)
+          : await updateInquiry(editingInquiry.id, request)
+        : asDraft
+          ? await createInquiryDraft(request)
+          : await createInquiry(request);
       await queryClient.invalidateQueries({ queryKey: ["inquiries"] });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["qa-rfqs"] }),
         queryClient.invalidateQueries({ queryKey: ["qa-kpis"] }),
       ]);
       setPreviewingDraft(false);
-      toast.success(
-        editingInquiry ? `${inquiry.rfqNo} updated` : `${inquiry.rfqNo} submitted for review`,
-      );
+      if (asDraft) {
+        toast.success(`${inquiry.rfqNo} saved as a draft`);
+        resetForm();
+        setView("list");
+        if (initialInquiry) navigate({ to: "/inquiry" });
+        return;
+      }
+      toast.success(editingInquiry ? `${inquiry.rfqNo} updated` : `${inquiry.rfqNo} submitted for review`);
       navigate({ to: "/inquiry/$inquiryId", params: { inquiryId: inquiry.id } });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to submit inquiry");
@@ -380,7 +396,7 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
     setQcAssigneeId(inquiry.qcAssigneeId || "");
     setSalesAssigneeId(inquiry.salesAssigneeId || "");
     setLines(
-      inquiry.lines.map(({ productId, sourcing, ...line }) => ({
+      inquiry.lines.length ? inquiry.lines.map(({ productId, sourcing, ...line }) => ({
         key: crypto.randomUUID(),
         productId,
         sourcing,
@@ -394,7 +410,7 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
         tabletPackRequired: line.tabletPackRequired,
         targetPrice: line.targetPrice,
         packagingNotes: line.packagingNotes,
-      })),
+      })) : [emptyLine()],
     );
     setView("create");
     setPreviewingDraft(false);
@@ -918,7 +934,12 @@ export function InquiryWizard({ initialInquiry }: { initialInquiry?: CustomerInq
             </section>
           </div>
         </div>
-        <div className="relative z-10 flex shrink-0 justify-end border-t border-border/60 bg-card px-6 py-4 sm:px-8">
+        <div className="relative z-10 flex shrink-0 justify-end gap-2 border-t border-border/60 bg-card px-6 py-4 sm:px-8">
+          {isSalesUser && (
+            <Button variant="outline" disabled={submitting} onClick={() => submit(true)}>
+              <Save className="size-4" /> Save as draft
+            </Button>
+          )}
           <Button
             disabled={submitting || !allLinesComplete}
             onClick={() => setPreviewingDraft(true)}

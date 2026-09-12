@@ -30,12 +30,37 @@ export async function createInquiry(dto: CustomerInquiryRequestDto): Promise<Cus
   );
 }
 
+/** Save incomplete Sales work without routing it to QA or QC. */
+export async function createInquiryDraft(dto: CustomerInquiryRequestDto): Promise<CustomerInquiry> {
+  return response<CustomerInquiry>(
+    await fetch(apiUrl("/api/v1/inquiries/draft"), {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
 export async function updateInquiry(
   id: string,
   dto: CustomerInquiryRequestDto,
 ): Promise<CustomerInquiry> {
   return response<CustomerInquiry>(
     await fetch(apiUrl(`/api/v1/inquiries/${id}`), {
+      method: "PUT",
+      headers: headers(),
+      body: JSON.stringify(dto),
+    }),
+  );
+}
+
+/** Update a Sales draft while keeping it private from the review queues. */
+export async function updateInquiryDraft(
+  id: string,
+  dto: CustomerInquiryRequestDto,
+): Promise<CustomerInquiry> {
+  return response<CustomerInquiry>(
+    await fetch(apiUrl(`/api/v1/inquiries/${id}/draft`), {
       method: "PUT",
       headers: headers(),
       body: JSON.stringify(dto),
